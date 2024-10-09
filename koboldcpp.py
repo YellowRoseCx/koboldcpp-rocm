@@ -4491,7 +4491,7 @@ def main(launch_args,start_server=True):
                 fetch_gpu_properties(False,True,True)
                 pass
             if args.gpulayers==-1:
-                if MaxMemory[0] > 0 and (not args.usecpu) and (args.usecublas or (args.usevulkan is not None) or args.useclblast or sys.platform=="darwin"):
+                if MaxMemory[0] > 0 and (not args.usecpu) and ((args.usecublas is not None) or (args.usevulkan is not None) or (args.useclblast is not None) or sys.platform=="darwin"):
                     extract_modelfile_params(args.model_param,args.sdmodel,args.whispermodel,args.mmproj)
                     layeramt = autoset_gpu_layers(args.contextsize,args.sdquant,args.blasbatchsize)
                     print(f"Auto Recommended GPU Layers: {layeramt}")
