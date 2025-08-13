@@ -51,6 +51,7 @@ KoboldCpp-ROCm is an easy-to-use AI text-generation software for GGML and GGUF m
 - There are several parameters than can be added to CLI launch, such as ``--usecublas mmq`` or ``--usecublas mmq lowvram`` which uses optimized Kernels that could increase performance.
 A typical start command looks like this: ``python koboldcpp.py --threads 6 --blasthreads 6 --usecublas --gpulayers 18 --blasbatchsize 256 --contextsize 8192 --model /AI/llama-2-70b-chat.Q4_K_M.gguf``
 
+- For a full Multi AMD GPU use this repo : https://github.com/Dev-next-gen/MultiAMDGPU_AIDev_Ubuntu
 
 - **AMD GPU Acceleration**: If you're on Windows with an AMD GPU you can get CUDA/ROCm HIPblas support out of the box using the `--usecublas` flag.
 - **GPU Layer Offloading**: Want even more speedup? Combine one of the above GPU flags with `--gpulayers` to offload entire layers to the GPU! **Much faster, but uses more VRAM**. Experiment to determine number of layers to offload, and reduce by a few if you run out of memory.
