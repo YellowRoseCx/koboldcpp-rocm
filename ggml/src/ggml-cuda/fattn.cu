@@ -216,11 +216,11 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
 
     const int cc = ggml_cuda_info().devices[device].cc;
 
-    #if defined(GGML_HIP_ROCWMMA_FATTN)
-    if (GGML_CUDA_CC_IS_AMD(cc) && ggml_cuda_should_use_wmma_fattn(cc)) { //kcpp: fix for rocwmma
-        return BEST_FATTN_KERNEL_WMMA_F16;
-    }
-    #endif // defined(GGML_HIP_ROCWMMA_FATTN)
+    // #if defined(GGML_HIP_ROCWMMA_FATTN)
+    // if (GGML_CUDA_CC_IS_AMD(cc) && ggml_cuda_should_use_wmma_fattn(cc)) { //kcpp: fix for rocwmma
+    //     return BEST_FATTN_KERNEL_WMMA_F16;
+    // }
+    // #endif // defined(GGML_HIP_ROCWMMA_FATTN)
 
     switch (K->ne[0]) {
         case  40:
