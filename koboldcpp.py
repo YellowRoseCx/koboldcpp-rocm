@@ -3452,7 +3452,7 @@ Change Mode<br>
                 logprobsdict = parse_last_logprobs(lastlogprobs)
             response_body = (json.dumps({"logprobs":logprobsdict}).encode())
 
-        elif self.path.endswith('/v1/models'):
+        elif self.path.endswith('/v1/models') or self.path=='/models':
             response_body = (json.dumps({"object":"list","data":[{"id":friendlymodelname,"object":"model","created":int(time.time()),"owned_by":"koboldcpp","permission":[],"root":"koboldcpp"}]}).encode())
 
         elif self.path.endswith('/sdapi/v1/sd-models'):
@@ -3476,7 +3476,7 @@ Change Mode<br>
             response_body = (json.dumps(["kobo","cheery","sleepy","shouty","chatty"]).encode()) #some random voices for them to enjoy
         elif self.path.endswith('/speakers'): #xtts compatible
             response_body = (json.dumps([{"name":"kobo","voice_id":"kobo","preview_url":""},{"name":"cheery","voice_id":"cheery","preview_url":""},{"name":"sleepy","voice_id":"sleepy","preview_url":""},{"name":"shouty","voice_id":"shouty","preview_url":""},{"name":"chatty","voice_id":"chatty","preview_url":""}]).encode()) #some random voices for them to enjoy
-        elif self.path.endswith('/v1/audio/voices'):
+        elif self.path.endswith('/v1/audio/voices') or self.path=='/audio/voices':
             response_body = (json.dumps({"status":"ok","voices":["kobo","cheery","sleepy","shouty","chatty"]}).encode()) #some random voices for them to enjoy
         elif self.path.endswith('/get_tts_settings'): #xtts compatible
             response_body = (json.dumps({"temperature":0.75,"speed":1,"length_penalty":1,"repetition_penalty":1,"top_p":1,"top_k":4,"enable_text_splitting":True,"stream_chunk_size":100}).encode()) #some random voices for them to enjoy
@@ -4072,9 +4072,9 @@ Change Mode<br>
             elif self.path.endswith('/api/extra/generate/stream'):
                 api_format = 2
                 sse_stream_flag = True
-            elif self.path.endswith('/v1/completions') or self.path.endswith('/v1/completion'):
+            elif self.path.endswith('/v1/completions') or self.path.endswith('/v1/completion') or self.path=='/completions':
                 api_format = 3
-            elif self.path.endswith('/v1/chat/completions'):
+            elif self.path.endswith('/v1/chat/completions') or self.path=='/chat/completions':
                 api_format = 4
             elif self.path.endswith('/sdapi/v1/interrogate'):
                 if not has_vision_support:
@@ -4090,15 +4090,15 @@ Change Mode<br>
                 api_format = 6
             elif self.path.endswith('/api/chat'): #ollama
                 api_format = 7
-            elif self.path=="/prompt" or self.path.endswith('/v1/images/generations') or self.path.endswith('/sdapi/v1/txt2img') or self.path.endswith('/sdapi/v1/img2img'):
+            elif self.path=="/prompt" or self.path=="/images/generations" or self.path.endswith('/v1/images/generations') or self.path.endswith('/sdapi/v1/txt2img') or self.path.endswith('/sdapi/v1/img2img'):
                 is_imggen = True
                 if self.path=="/prompt":
                     is_comfyui_imggen = True
-                elif self.path.endswith('/v1/images/generations'):
+                elif self.path.endswith('/v1/images/generations') or self.path=="/images/generations":
                     is_oai_imggen = True
-            elif self.path.endswith('/api/extra/transcribe') or self.path.endswith('/v1/audio/transcriptions'):
+            elif self.path.endswith('/api/extra/transcribe') or self.path.endswith('/v1/audio/transcriptions') or self.path=="/audio/transcriptions":
                 is_transcribe = True
-            elif self.path.endswith('/api/extra/tts') or self.path.endswith('/v1/audio/speech') or self.path.endswith('/tts_to_audio'):
+            elif self.path.endswith('/api/extra/tts') or self.path.endswith('/v1/audio/speech') or self.path=="/audio/speech" or self.path.endswith('/tts_to_audio'):
                 is_tts = True
             elif self.path.endswith('/api/extra/embeddings') or self.path.endswith('/v1/embeddings'):
                 is_embeddings = True
