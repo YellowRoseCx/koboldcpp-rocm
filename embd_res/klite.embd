@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 288;
+	const LITEVER = 289;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -2876,7 +2876,6 @@ Current version indicated by LITEVER below.
 	const corpo_greeter_square = niko_square;
 	const favicon_busy = rootStyles.getPropertyValue('--img_favicon_busy').match(/url\("(.*)"\)/)[1];
 	const favivon_normal =rootStyles.getPropertyValue('--img_favicon_normal').match(/url\("(.*)"\)/)[1];
-	const compressed_scenario_db = ["XQAAAQCkKgAAAAAAAAA9iIqG1FTp3Td41VnWyuXTp3Lb95KmIEizGvJcmkqrV2FY5cKEeSxCwbqBRjHVjL7PUH9wCoW89dPxjDNZvgp6okMOelpy7_1P6GV-mfJV4jz42_DXqYfET4aYlAT13M95gkcA14f0NLvI_p6B9CyG8EbkhRxsk3uyf_KgTV5kwqzAcr5C4JQ_pJr77GnYCHQI8h6F765-lcqrvw1Xu1GHhcN3lj7s9PhMvLnmGPZbQMrTo5sqPJDzYO6lytxmNSHSXMICpN2kFJB6kqyL5lBxNAH3Au_F_JIC85GqwLXWEy8wZms5KmAdp1s3EA1yabPGqqF0G5RxBp3aXzm7h6QUJPy1qSr6JJAo4fi2gCPaLkdn2pKqNDR1Ww8FA6AVHOyMgCTmmrQxWVYgXY9TdhHKcRcrIsoHNXEeWSqMGJNQ8lzVfc26teZdBdPLhqcClG8wUThPtyobTMz8Fgom88nTv7VT-mZhwH9Nc4ghoCL8dMR0Skf-EYDZ0Uvz03_GTn5OB8yuX6FmsD1XQJv_CKBAUHeDKd7n_bC7WOnlAINHPX9Bh5TnwjeLYO-UAL2ClMJTFzR-k2cjVHGQnLB7hZ48L1nToRG1gSVN7dP3Zysw7riwIxnfG4MMNXtEbHyxrCvz2zRTUEqbHLrwIzdJRpJ5s5XfTlY1CPZkQCwxbA6rrUt27D6a-YDKavbg0hubpViPRYbnEDXr9gL-7in4f_K2cOZdQ26Q--hk0xzEtgBNFI6inHA2nA4LofUpWjl835qg6CUyz9EzQkw0cDgPVjYXehC9oC_3H0U2O9YC-Ah8VpdPdCHUFuaQr7oXgePUub_Be1XQyCA5TaqrJxVxUG2hZA4rOVJHZ_AahfiJN7z6QcVEp-8xf-wHcv1lpWjjNdXFWDqVQZkdOaKf63dtjP35SmC5eCw2_BNX_t-db_FCCAhm2Vn2WI3q4k00p4l_ocCrJIdRID6muBVZQXCzxcRf5m8kcGwrTB-XVS-XSSPZInaBxZjgimOl5bLwJvdMC-HNYtU-yUDjXvDjPraZ_7ZV_-knU1GbHf1BpI9-rNbl_3bbA7KbmL7Q_goV1Clvi6gLYgjbXGQMTFjQEoodZX3fK_bDhVsrA1fWMJMWwfY3ua-j8HNuyRDfhPBpbTK0Gvz5-GWbIRF3v4zwR9HzIjz2frY7luy3ApQ6QJw7K6ITvD80u5VLfpHYReVCLpgs-lvPStklgnGXj3j5vuaH9f-wFohB19vwzRnthvgdplXPQ9jMy3ieb80sELS0WiGD-E2L_HhNXUcpTdeBp3HQFK4QubJOiIeKuZDVR7PxvtwBj26m-pLXLzKc6WqQlt07TsRo_72SlAaZodyyFRXf8636HCAyEHcVEhR6uZ1lDu00BHvsyVe6BdG7zvjNdmLluA0qBJQ9FO3ipHezadlwCPnEBDQAAZRgHKUvRCJNOQH_jcqFLLtmDADXoLvcK8_lN0LEeisA4B1LH0X2x0Q6NqLgngh9M1y_cBEBaazMa_UIZwoL6eZGU0QhlpvysBi1wKDybNcF_uKrIxdQwn8L_QRFHtDn39-hw-GDs_6zbnRlwrBEwrMtAQfc62FLSzGUMAzww-aTGvUuQvP-D9m0r-eDbSATlSsrIYobVUDUdDWsMDUsjKfYOW_Rp0GMjk40BQxcdzjNjLCYaTEN5cMhsWyfTbhIHDP7-wfbvJG7Al7Z-nH2Pa-QXPte687xVanKT0d3Er07vOV9HoI09mtuhxE4g0VaLm4TMqxSMRBX3EB60W1U2sX9sHjAgmwfpUNXRNj03QeJe4cg0pndf-hhKkTsfNQMU_N6-Zt8IrM2xtzFfvKB4BpFyWmaYu_X7bGwgSZjzrBNE10fx001fMr2fmrVy_sj7mW7WhlWXa3N5eMe4pqkA4EawmGzhuIwAqZNmtvnL_N2nt4T4ZyqkAAyXMMKb60UJAXkqLjUisD1bnNt1qD9otg8mGNzQxlaY5Bfm7286vNmjyxGY4UVrn0RV0DSFFb5_NYEW5y5YYxiabWABr8k0ezTM8R_qQ7NxdUOj0qhBKOqGyzyuVgKNnB6-ZzpKVGbB7RYJXwfEtkKNuUc3UWmbwxcsCTuW4TOScqJUh4dA5vlgLjB3-Q79yEMRYB8n6jetkR4z25RkYRXvTxkHIVQd2qr8BchdUcmHsZvG_tXI0-bxx_f_TGyfgi8ol7L5SRfWfOtYHCXSVHOCwnDj7GN4rIrwt3qWRcPkdTMw1RguDZW0eTpCpZyCJH_z3xVfpVh5lgf7Nu4tH-CpFRrOaJc79K1lSuIZs8yvjh5dbYAH4rKQ28OOFRu2MmU7Ko8Of4CECcJMhohFtVW6nTCB48-Pl8owiGM5_2uBJOJRAsyu3fHHbKqKvZ-0kYmN9ypyTAxQjgDiCOE3J1txPiqRRRRSaFZgLPNacdyjGO2y2SpWwzYudx8tEq3tBDAPBCXwWqwefcG__iN5OMRgCIAvr-9qfl2iSaVR5LZ-kBluVoW27o0hIUtgdry03bmUN50ob4hwCz8xVoupcHjI3Cy0nLpgiGixjo4afafQPE_TXJf-NixlWN-cH2a4ZzU6Qc5KKzIciwnt6Hx-iRQzB_uK-pBDjC8boVXolOsFyaqWsoLgkghTo2qCFZuxP2GKzS9wQ5sBWxTMEPGryHxaylpXXmUjlBJ-j9p4vJN9YxjQEbyuTVYy0PxmtDbyh6g_n3Lr09ttCg40hqfWBhCT9P4-uFoAjozUciHQFBfI8t04dKZnobLbVq-f_HJGzUZu5zHRHsPI939tJxODDJxiflfHLwxXjQS2cq9Vj-kvn1pgXAN5unYh8Y7-nqepxc0KkO2v8mU-r8fYFmUFJdZu6HR23P2y7ndsozZEKdUAVay36pmW_gvVQuSA_jzLwXn3Ee2y-A7G-w96bTe82gJG95PsSOt2L6AcuF8mqWL_EVBjIZJMN63T__0UHh9VPDCRTUITwn35t7Z0aGYHnssPVAxXLh7y2LhCaIN0u6lnbiDlKAdKc1-4qYbr1sHORC8tjSG8cjWLkgBcNkFo7rqhKQSNtU1H44aT8ceG08a8cSpze8aC6dMVaz6DxEaFIZ-aRqfqO0QV6ty2-6hrcRVedypt1Twd7UEkXZM5Erjb-_8jq4RzshqXVzKEqPfIYpmtHqkmeJq8BLfc1GT9UGrmPpYO4-K8LM-u7aOpcxcagPn2S3McsWI3a8CWkU9t4g9WEPNH-5s8VqF-3rSmgi5kk40Y7HjEyA-6clhNhl9lbP6hIbf9TKHO9fWwzTz8NieUPNZZPgrBrULggzHXPrfJIxl8eLSrKuD8n2Pbumu2k4ljMV_WIq9qCJ1wPofdIoWHWiz7oV2snLve1CFPUCdAhLkHQ8KpO6xvSi6mKY9WsOhOLxKm92vsWLv-rfM2CW4XUja5arRpGynr7cF9CDuEGWIxkPjOF_5x8ZXg2x1TJcrgvLDO_S4u2zKl2tQGRW4NHU1zF9h_3SQkpbwWH5KOPisP6c8vb5rg_rZ5laFedxQQSpguSq5el9-ddzvlr4C8Q22eDQvwUEO_P6c6VZN5A2QWBGZsJoaZ4gZ8UArmGLxSihBj_5oOdDdUcbUOhGUIWrtYrs4PJKxpnHDFUZaYwIbtnLyAoORKYvq8LgAH0SP57KeeYkZzUGP1f0jkDzAmwV4ZHE0pnZhEo3XkXVuIHc6MXZ-RniZaS_vaoY3Bq6XHrKoWZdLiCoU6aqPc-ZpPnvXmnKHyLLs4e96M1wGKIyT28_VCR6EDRJPxbZ9Ig1kN8TIHCF3tE8y2It5hkz1-zNYT6uw3SDkFSdrV_DRiAVqUhxrQdUPhpD92zVgsWdJR0TZLU7CBLlOuBVwyfmtHMUBL6dIvYie47Kr47nOJ5i2ka8EZGZf-Y8aD6xv6hpBbybU_5oGfYLRG4MiNRhML4u90tQ3hBxBbGYK8sWOzui2UEx0ynB_a8jz8eEs7u_9ylTD1v1f-gC8JYQMNAZIm46pvl2s1X07B8Gf7Laj4aozcWqg8DgC_8aLypoTffyxjWw4Fpd8LWn1fRPsFOdeV0UrS7FNtUakvYq_qxphGu5mNuINIJIMJzgI3giGnyCbr2IrsJ1ITmEGnggLQYes1t3j44v1quvVwQXqHX6HhSnoJlN2IlT5DuZ2kx6-pb68nK62xVJaOS-wDeeJnQ8zzhqJACstuF7g-jidRoJmGc8yChHfCN8ZFOhT0poNQB-Jf5IUZ7aSCXmceYN4VUhmB_w-Db1XZUNHOJqGiTgcT1KzejzNpN49b0QUjcRJiOpEhJp_LzBUiRQSnweOSFrWlTs5Jf9p3wqN9zFYZ_3Xz6IR2klwyLQXc-LbBd1QFwkB17HTYMspUXjrSpJULdQ90OxzbSEafF4RKvgIL4sAU1pCMTa2bVrcUmY2MiECVIbwPNN0CjZeoEAd1dP5FFjlwGG7xUNRO1E20CqHZJ1oqeEur06ZXvPK1zy3SlF-_lKF6eRfNClzR2ERGYqf-zEQwwkPNiMNnURPcdt64pw4kcjTKBIkorum3ruuqJZMitcZx0YiANx7ssy8dMuVteEFFCQnmglgTCsEZTK_xzigPie_f8Q5p1vsJPje5Z2cugsaW-vOXbuOE471n6LuIyoII2dWq0m8H3_8pxlErkZ5E7OY--w3InCuSCv2ubxaZ9AbaNuuyGw49fI3zvRurTYespYO-Aj1FcjDrxqRB3bihJm_u3a56fwnoyOeE0071TY_AlVlq1RYauV4-7L-RAFJZo0wKnPZM9Hs7VB_cCwJ_oPe1y0XBF95agtAQdicj42KdstIlpjWtdGb4LpHgVQI_56G3As0H81-uj47VuBourA2hUay0BpHAvcwbNLyu8OcZB31I6dfy2797wGlrWwAN-Xt3M3CVW9SvIN_GMlg0RB75rUEtgPkR-VPRdPH_Jb19wVoFPPpwjP6cYzVW1U_iRymFKaNpMo4CWFN6t54wshlCVwkfZKbhSP14z74oMKxy-qqt-WKNhkOr1uh_sevNa57iHBnFlHzt_eaZoPNTsCmzqnC4boOlK9o5_hFn8hiw33R3NQC-RD-w1XEl8-hpdZYdCcnexwRYd9sH2LMHySL59Kp_09yIwAE_ukVMDa6Yd9OHrbSCycQNZSI_0fMnF5s9oWTXnsxecDpRKgSWJQIQPUb6dlOdGOT0-MnebivpKgbDxzx52Zr0EMS7aU5eJxEdO9rdiFda8kQk5IeBgr1QcqIFs_1UIp6oQneXgwTlpXXxLHs16ShDG1qkLmDZjb4vrb_Ha2YCBIqid6wVKjec-UwEwWyvfV4UAPFgiNRJN7TdQNRxbSZJ8XWeA2gor9PN5JkMS0l_qGKoke3sbWDsp-G_B0KUjwUBTtPsKRhdnc0JyV_akuZ8jxAmXDDydxOy_EqNMgrDGN_4FuSY7XNLy2OXXJG3bB9a_lxEzdVNPWzM0cijTQFLzIiAKAyWTfwPNagcvgLUAeHxlQ22E0V37-sFwkstvpJ-s8C2yqxQKcv4GfMZOfSYEaZAhiO_y8EXgFknGGwjLB7K3CgvGwBRWWcgx-eqXYs9rAygf_X2_7-rBG_7Rxj3GW957PwwzwZjZDkdRHik8sj0htIkDRAyHo2EsPwObKXK-W32JKUX3VSgiY8AzCUhUUIWwFVVLXEvB1jtU7G7wRaj5_z9QywvgoIqnOTmpm4TTRA0cCJkiYoJcl8BOIHoWuYznL89zWjWy_ZQDKaYAsHugQYXaKI_UaaLV4gVFjDNqZCgqjAFyMjG4qZR64jkaI71mefUaDLLwsqIiLpOWZi8BlvP0YcOVeTyo2mJbq3EXfjXyDvPuZuZ9SAjqwCdLr902yzLm4DdzYRyfPbpt8rGUu-Uw27Ix2oZRe_zj0G_3FdCw0"];
 
 	// whitelisted auto selected horde model names
 	const defaultmodels = ["gpt4all","supercot","pygmalion-6","pygmalion-v8","pygmalion-2","hermes","airoboros","chrono","wizard","mantis","vicuna","manticore","alpaca","myth","xwin","spicyboros","mlewd","mxlewd","westlake","anubis","skyfall","llama2","llama3","llama-2","llama-3-","llama-3.","mistral","maid","mixtral","estopia","fighter","fimbul","euryale","nemo","gemma","lunaris","stheno","magnum","cydonia","qwen2.5-32b","behemoth","exaone","glm4","glm-4","tutu","deepseek"];
@@ -3281,6 +3280,18 @@ Current version indicated by LITEVER below.
 		"worldinfo": []
 	},
 	{
+		"title": "Julius Caesar",
+		"author": "Fateseeker",
+		"desc": "49 B.C.E. - Join Julius Caesar as Fabius, his trusted centurion, on the precipice of crossing the Rubicon and declaring the civil war that will ultimately shape the future of the world. Alea iacta est!",
+		"opmode": 2,
+		"prompt": "The shrill cry of a rooster crowing wrenches you from sleep within the confines of your modest canvas tent on the banks of the Rubicon. Just as you groggily start to gather your gear, a messenger legionnaire arrives, his eyes gleaming with anticipation. \"My esteemed Centurion, General Julius Caesar requests your presence, along with the other officers. There is a matter of great import he wishes to discuss.\"\n\nYou nod wearily, rubbing bleary eyes. \"Allow me to prepare first.\" Thoughts swirl like a maelstrom in your mind, as whispers of stalled negotiations between Caesar and the Senate echo through the camp's grapevine. It seems an opportune moment to seize control, to launch a rebellion, and your heart races with the prospect. Steadying yourself, you don your uniform and stride forth to meet the general.\n\nAs you enter the opulent tent, its opalescent silks rippling softly in the tentative morning light, Caesar greets you with an amiable smile. \"Greetings, Fabius,\" he intones, his voice every bit as commanding as his towering presence. \"I am grateful for your attendance so that we may deliberate on the matters at hand.\"\n\nCaesar then looks at the other officers inside the tent. \"Thank you for coming, centurions. As you know, the Senate has refused to negotiate in good faith. They demand I disband my army and return to Rome unarmed, where they aim to prosecute me. I cannot comply. After so many conquests, so much spilled blood, they would strip me of my dignitas. The time has come to choose a course of action that honors my men's sacrifices.\"\n\n\"There are no easy paths forward. We stand at the Rubicon river, the point of no return. Crossing it would mean civil war. But my honor, and the honor of the 13th Legion, is at stake. I ask you now, as my most trusted officers - shall we cross the Rubicon?\"\n\nCaesar pauses, letting his words sink in. Your heart hammers in your chest. Is he suggesting open rebellion? What will you do next?\n",
+		"adventure_context_mod": false,
+		"adventure_switch_mode": 1,
+		"memory": "[You are Lucius Fabius Marcellus, a centurion on the 13th Legion. You saved Caesar's life once during the battle of Alesia, earning you his trust and a part of his inner circle]\n[49 B.C.E: Julius Caesar crosses the Rubicon, triggers a civil war and the downfall of the Roman Republic]\n[Caesarean legions: In Gaul for the winter; Pompeian legions: in Iberia, Greece, Africa]\n[Labienus will join Pompey if Caesar declares Civil War; Pompey and the senate will flee to Greece if Caesar march towards Rome; Pompey will be killed by Ptolemy XIII if he flees to Egypt]",
+		"authorsnote": "",
+		"worldinfo": [{"key":"Gaius Julius Caesar, Caesarean","content":"[Gaius Julius Caesar: Pominent Roman general, statesman, writer; greatest military mind of his time; starts Civil war and defies the Senate]"},{"key":"Rubicon River, Rubicon","content":"[Rubicon: Shallow river in Northern Italy; illegal to cross with army]"},{"key":"Roman Senate, SPQR, Senate","content":"[Roman Senate: Governing body of the Republic; elected officials]"},{"key":"Gnaeus Pompey Magnus, Pompeian, Pompey the Great","content":"[Gnaeus Pompey Magnus (Pompey the Great): Powerful rival of Julius Caesar; former ally of Caesar; Aligned with the Senate; If Caesar crosses the Rubicon, Pompey flees to Greece; if Greece is lost, he will seek refuge in Egypt]"},{"key":"Mark Antony, Marcus Antonius","content":"[Mark Antony: Key ally of Julius Caesar, powerful figure, urges Caesar to cross the Rubicon]"},{"key":"Cleopatra, Cleopatra VII","content":"[Cleopatra: Will form alliance and romance with Julius Caesar, is in conflict with King Ptolemy XIII, in hiding]"},{"key":"Titus Labienus","content":"[Titus Labienus: Right hand man of Caeasar, skilled military commander on par with Caesar, joins Pompey against Caesar]"},{"key":"Rome, Eternal City","content":"[Rome: Capital city of the Roman Republic, Bustling metropolis, plagued by political unrest and social inequality]"},{"key":"Ariminum","content":"[Arminium: Key military outpost and transportation hub]"},{"key":"Ravenna","content":"[Ravenna: City in northern Italy, strategically important, large naval port]"},{"key":"Massilia","content":"[Massilia: City in southern Gaul, important trading center, will ally with Pompey]"},{"key":"Alexandria","content":"[Alexandria: Capital city of Egypt, Important cultural and intellectual site, Home of the Pharoah of Egypt]"},{"key":"Gaul","content":"[Gaul: Huge region in western Europe, conquered by Julius Caesar during his military campaigns in the 50s BCE, home of his vast legions]"},{"key":"Hispania","content":"[Hispania: Rich in resources, strategic location on the west, controlled by Pompey, Home of Pompeian legions]"},{"key":"Greece","content":"[Greece: Lesser allied power of Rome; center of trade, culture, intellectual inquiry; home to many famous intellectuals]"},{"key":"Ilyria","content":"[Ilyria: Region located along the eastern coast of the Adriatic Sea, controlled by Caesar]"},{"key":"Numidia, Juba I","content":"[Numidia: region located in North Africa, King Juba I will betray Caesar and join Pompey]"},{"key":"Legion","content":"[Legion: large military unit; consists of 4,800 to 6,000 legionnaires; supported by cavalry and auxiliary troops; divided into cohorts, centuries, and maniples]"},{"key":"Legionary, Legionnaire","content":"[Legionnaire: highly trained professional soldier in legions; Roman citizens enlisted for a specific term; disciplined, skillful]"},{"key":"Centurion, Century","content":"[Centurion: High-ranking officer; commanded a century within a legion; experienced and respected leaders; maintainins discipline, trains soldiers, leads them into battle, leads a Century of 80 men."},{"key":"Legionary Eagle, Aquila. aquilifer","content":"[Legionary eagle (Aquila): sacred standard and symbol of a legion's honor; carried by aquilifer: responsible for protecting and displaying the eagle during battles]"},{"key":"Legatus, Legate, General","content":"[Legatus (legate): high-ranking officer; commanded a legion; appointed by the Roman Senate or dictator; held authority and responsibility in military strategy and administration]"},{"key":"Signifer","content":"[Signifer: soldier who carried signum, a banner that identified the cohort or century they belonged to; crucial role in communication and coordination]"},{"key":"Decurion, turma","content":"[Decurion: officer; commanded cavalry turma; responsible for leading cavalry charges, reconnaissance. Turma is a Roman cavalry unit; 30 to 32 horsemen;led by a decurion]"},{"key":"Scorpion, Scorpio","content":"[Scorpion (scorpio): Roman large crossbow; launch large bolts; effective against infantry and cavalry]"},{"key":"Onager","content":"[Onager: large Roman siege engine; large catapult; torsion-powered; hurls large stones; demolishes walls, large fortifications and buildings]"},{"key":"Testudo","content":"[Testudo: Military formation; used by Roman legionnaries; interlocked shields above heads, and sides; protective shell; excellent defense against projectiles, allows soldiers to advance under cover]"},{"key":"Corvus","content":"[Corvus: Roman boarding device; naval warfare; large boarding bridge with spiked end; dropped onto enemy ships; allows legionnaries to get to enemy ships]"},{"key":"Ptolemy XIII, Ptolemy","content":"[Ptolemy XIII: young pharaoh; rules over Egypt; Has future uneasy relationship with Caesar; ongoing power struggle with sister Cleopatra VII]"},{"key":"Marcus Junius Brutus, Brutus","content":"[Marcus Junius Brutus: Prominent Roman senator; renowned military leader; close friend to Julius Caesar; will kill Caesar if he wins the civil war]"},{"key":"Octavian","content":"[Octavian: Young and ambitious grandnephew of Julius Caesar]"},{"key":"Legio XIII, 13th legion","content":"[Legio XIII (13th Legion): battle-hardened; highly disciplined loyal to Caesar; Formidable; Legion Caesar is in during his crossing of the Rubicon]"},{"key":"Imperator","content":"[Imperator: Title bestowed upon victorious Roman generals; honorific; symbol of military prowess; given a triumph by the Senate]"},{"key":"Marcus Licinius Crassus","content":"[Marcus Licinius Crassuss: Prominent Roman general and politician; former ally of Caesar and Pompey; former richest man in Rome; killed by the Parthian Empire in the Battle of Carrhae]"}]
+	},
+	{
 		"title":"Coding Assistant",
 		"author":"Concedo",
 		"desc":"Provides coding examples and instructions, and completes programming tasks.",
@@ -3648,7 +3659,8 @@ Current version indicated by LITEVER below.
 		saved_cohere_preamble: "", //cohere preamble
 		saved_palm_jailbreak:"", //gemini system prompt
 		saved_palm_jailbreak2:"", //gemini postfix
-		saved_openrouter_provider:"",
+		saved_openrouter_provider:"", //for overriding provider
+		saved_openrouter_reasoning:0, //enable or disable openrouter thinking, 0=default, 1=disable, 2=enable
 		saved_oai_custommodel: "", //customized oai custom model
 		saved_oai_role: 3, //0=user,1=assistant,2=system, 3=auto
 		saved_a1111_url: default_a1111_base,
@@ -4350,6 +4362,58 @@ Current version indicated by LITEVER below.
 		return input;
 	}
 
+	//written by AI. splits a long string by provided delimiters in an array, returns an array
+	function splitByDelimiters(text, delimiters) {
+		const result = [];
+		const n = text.length;
+		let i = 0;
+
+		while (i < n) {
+			// Find the next delimiter occurrence at or after i
+			let nextIndex = -1;
+			let nextDelimiter = null;
+			for (const d of delimiters) {
+				const idx = text.indexOf(d, i);
+				if (idx !== -1 && (nextIndex === -1 || idx < nextIndex)) {
+					nextIndex = idx;
+					nextDelimiter = d;
+				}
+			}
+
+			if (nextIndex === -1) { // If no delimiter found at all, push the rest and finish
+				if (i < n) {
+					result.push(text.slice(i));
+				}
+				break;
+			}
+
+			// If there's text before the found delimiter, push that leading text first
+			if (nextIndex > i) {
+				result.push(text.slice(i, nextIndex));
+			}
+
+			// Now find the next delimiter after this one to mark end of this segment
+			let nextAfter = -1;
+			for (const d of delimiters) {
+				const idx = text.indexOf(d, nextIndex + nextDelimiter.length);
+				if (idx !== -1 && (nextAfter === -1 || idx < nextAfter)) {
+					nextAfter = idx;
+				}
+			}
+
+			// Take from the delimiter start up to the next delimiter (or end)
+			if (nextAfter === -1) {
+				result.push(text.slice(nextIndex));
+				break;
+			} else {
+				result.push(text.slice(nextIndex, nextAfter));
+				i = nextAfter;
+			}
+		}
+
+		return result;
+	}
+
 	function asyncRunner(generatorFn) { //allows async/await like syntax before it exists
 		return function (...args) {
 			const generator = generatorFn.apply(this, args);
@@ -4516,13 +4580,6 @@ Current version indicated by LITEVER below.
     External LLM APIs</a>.`;
 
 	trigger_abort_controller(); //first trigger sets it up
-
-	//uncompress compacted scenarios
-	for(let i=0;i<compressed_scenario_db.length;++i)
-	{
-		let decom = lz_d.decompress(b64_to_buf(compressed_scenario_db[i]));
-		scenario_db.push(JSON.parse(decom));
-	}
 
 	//disable debug log if not local
 	let dbgmode = urlParams.get('dbg');
@@ -4932,7 +4989,7 @@ Current version indicated by LITEVER below.
 			return replaceAll(instag, "\\n", "\n");
 		}
 	}
-	function get_instruct_latest_end(doTrim=true)
+	function get_instruct_latest_end()
 	{
 		//scan history for the newest end tag. if none, return empty
 		let truncated_context = concat_gametext(true, "");
@@ -4949,6 +5006,23 @@ Current version indicated by LITEVER below.
 		if (maxIndex === lastA) return get_instructstartplaceholder_end();
 		if (maxIndex === lastB) return get_instructendplaceholder_end();
 		return instructsysplaceholder_end;
+	}
+	function is_instruct_latest_human_turn() //returns true if current latest turn is from the user
+	{
+		//scan history for the newest end tag. if none, return empty
+		let truncated_context = concat_gametext(true, "");
+		let strA = get_instructstartplaceholder().trim();
+		let strB = get_instructendplaceholder().trim();
+		let strC = get_instructsysplaceholder().trim();
+		let lastA = strA?truncated_context.lastIndexOf(strA):-1;
+		let lastB = strB?truncated_context.lastIndexOf(strB):-1;
+		let lastC = strC?truncated_context.lastIndexOf(strC):-1;
+
+		const maxIndex = Math.max(lastA, lastB, lastC);
+
+		if (maxIndex === -1 || lastA === -1) return false;
+		if (maxIndex === lastA) return true;
+		return false;
 	}
 	function get_current_timestamp()
 	{
@@ -6489,12 +6563,35 @@ Current version indicated by LITEVER below.
 				latexBlocks.push({ key, value: match });
 				return key;
 			});
-			return { "text":text, "latexBlocks":latexBlocks };
+			return { "text":text, "blocks":latexBlocks };
 		}
 		function unstashLatex(text, latexBlocks) {
 			for(let i=0;i<latexBlocks.length;++i)
 			{
 				text = literalReplace(text,latexBlocks[i].key,latexBlocks[i].value);
+			}
+			return text;
+		}
+		function stashCodeblocks(text)
+		{
+			const codeBlocks = [];
+			let counter = 0;
+			text = text.replace(/``(.*?)``/gm, (match, code) => {
+				const key = `%%ILCODEXBLK${counter++}%%`;
+				codeBlocks.push({ key, value: match });
+				return key;
+			});
+			text = text.replace(/`(.*?)`/gm, (match, code) => {
+				const key = `%%ILCODEXBLK${counter++}%%`;
+				codeBlocks.push({ key, value: match });
+				return key;
+			});
+			return { "text":text, "blocks":codeBlocks };
+		}
+		function unstashCodeblocks(text, codeBlocks) {
+			for(let i=0;i<codeBlocks.length;++i)
+			{
+				text = literalReplace(text,codeBlocks[i].key,codeBlocks[i].value);
 			}
 			return text;
 		}
@@ -6598,12 +6695,14 @@ Current version indicated by LITEVER below.
 				append_spcetg = true;
 			}
 
-			let stashres = null;
+			let stashLatexRes = null;
 			if(renderLatex)
 			{
-				stashres = stashLatex(md);
-				md = stashres.text;
+				stashLatexRes = stashLatex(md);
+				md = stashLatexRes.text;
 			}
+			let stashInlineCodeRes = stashCodeblocks(md);
+			md = stashInlineCodeRes.text;
 
 			md = md.replace(/^###### (.*?)\s*#*$/gm, "<h6>$1</h6>")
 			.replace(/^##### (.*?)\s*#*$/gm, "<h5>$1</h5>")
@@ -6613,9 +6712,6 @@ Current version indicated by LITEVER below.
 			.replace(/^# (.*?)\s*#*$/gm, "<h1>$1</h1>")
 			.replace(/^<h(\d)\>(.*?)\s*{(.*)}\s*<\/h\d\>$/gm,'<h$1 id="$3">$2</h$1>')
 			.replace(/^-{3,}|^\_{3,}|^\*{3,}$/gm, "<hr/>")
-			.replace(/``(.*?)``/gm, (match, code) => {
-				return `<code>${escapeHTML(code).replace(/`/g, "`")}</code>`;})
-			.replace(/`(.*?)`/gm, "<code>$1</code>")
 			.replace(/^\>\> (.*$)/gm, "<blockquote><blockquote>$1</blockquote></blockquote>")
 			.replace(/^&gt;&gt; (.*$)/gm, "<blockquote><blockquote>$1</blockquote></blockquote>")
 			.replace(/^\> (.*$)/gm, "<blockquote>$1</blockquote>")
@@ -6657,12 +6753,24 @@ Current version indicated by LITEVER below.
 			.replace(/\*([^\s*][\s\S]*?[^\\])\*/gm, "<em>$1</em>")
 			.replace(/___(\w.*?[^\\])___/gm, "<b><em>$1</em></b>")
 			.replace(/__(\w.*?[^\\])__/gm, "<u>$1</u>")
+			.replace(/(^|[\s.,;:!?<>])_([^_\s](?:[^_]*[^_\s])?)_(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //single underscore italics
 			.replace(/~~(\w.*?)~~/gm, "<del>$1</del>")
 			.replace(/\^\^(\w.*?)\^\^/gm, "<ins>$1</ins>")
 			.replace(/\{\{(\w.*?)\}\}/gm, "<mark>$1</mark>")
 			.replace(/^((?:\|[^|\r\n]*[^|\r\n\s]\s*)+\| {0,2}(?:\r?\n|\r|))+/gm,
 				(matchedTable) => convertMarkdownTableToHtml(matchedTable));
 			//.replace(/  \n/g, "\n<br/>"); //this is the reddit behavior where spacespacenewline generates extra newline
+
+
+			//unstash inline code
+			if(stashInlineCodeRes!=null)
+			{
+				md = unstashCodeblocks(md,stashInlineCodeRes.blocks);
+			}
+			md = md.replace(/``(.*?)``/gm, (match, code) => {
+				return `<code>${escapeHTML(code).replace(/`/g, "`")}</code>`;})
+			.replace(/`(.*?)`/gm, "<code>$1</code>");
+
 			if(append_spcetg)
 			{
 				append_spcetg = false;
@@ -6672,9 +6780,9 @@ Current version indicated by LITEVER below.
 			md = md.replace(/<\/code\><\/pre\>\n<pre\><code\>/g, "\n");
 			if(renderLatex)
 			{
-				if(stashres!=null)
+				if(stashLatexRes!=null)
 				{
-					md = unstashLatex(md,stashres.latexBlocks);
+					md = unstashLatex(md,stashLatexRes.blocks);
 				}
 				//to aid the latex renderer, we temporarily add newlines between some blocks
 				md = md.replace(/<\/li><li>/gm, "</li>\n<li>");
@@ -11410,6 +11518,7 @@ Current version indicated by LITEVER below.
 				document.getElementById("openrouterproviderbox").classList.remove("hidden");
 				document.getElementById("custom_oai_endpoint").value = default_openrouter_base;
 				document.getElementById("openrouterproviders").value = localsettings.saved_openrouter_provider;
+				document.getElementById("openrouterreasoning").value = localsettings.saved_openrouter_reasoning;
 				document.getElementById("custom_oai_key").value =(localsettings.saved_openrouter_key==dummy_api_key?"":localsettings.saved_openrouter_key);
 				try_fetch_oai_models_auto();
 			}
@@ -11972,6 +12081,7 @@ Current version indicated by LITEVER below.
 				{
 					localsettings.saved_openrouter_key = custom_oai_key;
 					localsettings.saved_openrouter_provider = document.getElementById("openrouterproviders").value;
+					localsettings.saved_openrouter_reasoning = document.getElementById("openrouterreasoning").value;
 				}
 				localsettings.saved_oai_jailbreak = document.getElementById("jailbreakprompttext").value;
 				if(localsettings.saved_oai_jailbreak=="")
@@ -16686,7 +16796,7 @@ Current version indicated by LITEVER below.
 		let ist = get_instructstartplaceholder();
 		let iet = get_instructendplaceholder();
 		let iste = get_instructstartplaceholder_end();
-		let prev_et = get_instruct_latest_end(false);
+		let prev_et = get_instruct_latest_end();
 
 		if(newgen != "")
 		{
@@ -16810,6 +16920,21 @@ Current version indicated by LITEVER below.
 			if (localsettings.opmode == 4)
 			{
 				newgen = wrap_newgen_instruct_format(newgen,true);
+				let latest_human = is_instruct_latest_human_turn();
+				if(newgen=="" && latest_human) //assume the user is trying to get the AI to respond even though there's no output tag
+				{
+					//so we force one
+					let iet = get_instructendplaceholder();
+					let iste = get_instructstartplaceholder_end();
+					if(localsettings.separate_end_tags)
+					{
+						newgen = iste + iet;
+					}
+					else
+					{
+						newgen = iet;
+					}
+				}
 			}
 			if (localsettings.opmode == 3 && newgen != "") {
 				newgen = wrap_newgen_chat_format(newgen);
@@ -18009,6 +18134,11 @@ Current version indicated by LITEVER below.
 							"order": [document.getElementById("openrouterproviders").value.trim()],
 							"allow_fallbacks": false, //always explicitly selected
 						};
+					}
+					let reasonselect = document.getElementById("openrouterreasoning").value;
+					if(reasonselect!=0)
+					{
+						oai_payload.reasoning = {"enabled":(reasonselect==2?true:false)};
 					}
 				}
 
@@ -20952,53 +21082,110 @@ Current version indicated by LITEVER below.
 				let fullmergedstory = gametext_elem.innerText;
 
 				let newestChunk = "";
-				if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
-				{
 
-					let cl = editedChunks[editedChunks.length-1].length;
-					if(cl>0)
+				//if we're in instruct mode AND there is at least 1 instruct tag in history, split by tags
+				let splitbyinsttags = false;
+				if(localsettings.opmode==4)
+				{
+					let strA = get_instructstartplaceholder();
+					let strB = get_instructendplaceholder();
+					if(fullmergedstory.includes(strA)||fullmergedstory.includes(strB))
 					{
-						newestChunk = fullmergedstory.slice(-cl);
-						fullmergedstory = fullmergedstory.slice(0,-cl);
+						splitbyinsttags = true;
 					}
 				}
 
-				//if it ends with a single newline, remove it to avoid ghost newlines
-				if (newestChunk) {
-					if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
-						newestChunk = newestChunk.slice(0, -1);
+				if(splitbyinsttags)
+				{
+					let ins = get_instructstartplaceholder();
+					let ine = get_instructendplaceholder();
+					let delimiters = [ins,ine];
+					let turns = splitByDelimiters(fullmergedstory,delimiters);
+					//if an input turn is followed by an output turn, the input acquires the output tag
+					for(let i=0;i<turns.length;++i)
+					{
+						let temp = "";
+						if(turns[i].startsWith(ins))
+						{
+							temp = ins;
+							turns[i] = turns[i].substring(ins.length);
+						}
+						else if(turns[i].startsWith(ine))
+						{
+							temp = ine;
+							turns[i] = turns[i].substring(ine.length);
+						}
+						let subturns = splitByDelimiters(turns[i],[ins.trim(),ine.trim()]);
+						subturns[0] = temp + subturns[0];
+    					turns.splice(i, 1); // Remove the current element, insert all subturns
+						for (let j = subturns.length - 1; j >= 0; j--) {
+							turns.splice(i, 0, subturns[j]);
+						}
+						i += subturns.length - 1; // Adjust the index to account for the new elements
+					}
+					for(let i=0;i<turns.length-1;++i)
+					{
+						if(turns[i].startsWith(ins) && turns[i+1].startsWith(ine))
+						{
+							//transfer the ine from turn i+1 and append it to the end of turn i
+							turns[i+1] = turns[i+1].substring(ine.length); // Remove ine from the start of next turn
+							turns[i] = turns[i] + ine; // Append ine to the current turn
+						}
+					}
+					for(let i=0;i<turns.length;++i)
+					{
+						gametext_arr.push(turns[i]);
 					}
 				}
 				else
 				{
-					if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
-						fullmergedstory = fullmergedstory.slice(0, -1);
-					}
-				}
-
-				//split by newlines for the rest
-				if(fullmergedstory.length>0)
-				{
-					let splittertoken = "\n";
-					if (fullmergedstory.includes("\n\n")) {
-						splittertoken = "\n\n";
-					}
-					let splitmergedstory = fullmergedstory.split(splittertoken);
-					for (var i = 0; i < splitmergedstory.length; ++i) {
-						if (i != 0) {
-							gametext_arr.push(splittertoken + splitmergedstory[i]);
-						} else {
-							gametext_arr.push(splitmergedstory[i]);
+					if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
+					{
+						let cl = editedChunks[editedChunks.length-1].length;
+						if(cl>0)
+						{
+							newestChunk = fullmergedstory.slice(-cl);
+							fullmergedstory = fullmergedstory.slice(0,-cl);
 						}
 					}
-				}
-				if(newestChunk!="")
-				{
-					//little hack to merge a row with only a newline into the last chunk
-					if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
-						gametext_arr[gametext_arr.length - 1] += newestChunk;
-					} else {
-						gametext_arr.push(newestChunk);
+
+					//if it ends with a single newline, remove it to avoid ghost newlines
+					if (newestChunk) {
+						if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
+							newestChunk = newestChunk.slice(0, -1);
+						}
+					}
+					else
+					{
+						if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
+							fullmergedstory = fullmergedstory.slice(0, -1);
+						}
+					}
+
+					//split by newlines for the rest
+					if(fullmergedstory.length>0)
+					{
+						let splittertoken = "\n";
+						if (fullmergedstory.includes("\n\n")) {
+							splittertoken = "\n\n";
+						}
+						let splitmergedstory = fullmergedstory.split(splittertoken);
+						for (var i = 0; i < splitmergedstory.length; ++i) {
+							if (i != 0) {
+								gametext_arr.push(splittertoken + splitmergedstory[i]);
+							} else {
+								gametext_arr.push(splitmergedstory[i]);
+							}
+						}
+					}
+					if(newestChunk!="")
+					{
+						//little hack to merge a row with only a newline into the last chunk
+						if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
+							gametext_arr[gametext_arr.length - 1] += newestChunk;
+						} else {
+							gametext_arr.push(newestChunk);
+						}
 					}
 				}
 
@@ -27305,8 +27492,16 @@ Current version indicated by LITEVER below.
 					value="" onload="togglejailbreak2();"></textarea>
 					</div>
 				</span>
-				<span id="openrouterproviderbox" class="hidden"><br>Preferred Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 140px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value="">
-					<div style="display:inline;width:210px;">
+				<span id="openrouterproviderbox" class="hidden">
+					<br>
+					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 256px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
+					<div id="openrouterreasoningbox" style="display:inline;">
+						<div style="padding-left:2px;padding-right:2px" class="box-label">Thinking</div>
+						<select title="Thinking Settings" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:3px;display:inline;width:72px" id="openrouterreasoning">
+						<option value="0" selected>Default</option>
+						<option value="1">Disable</option>
+						<option value="2">Enable</option>
+						</select>
 					</div>
 				</span>
 
