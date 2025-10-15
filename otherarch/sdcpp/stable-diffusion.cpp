@@ -145,6 +145,17 @@ public:
         ggml_backend_free(backend);
     }
 
+    std::string toLowerCase(const std::string& str) {
+        std::string result;
+        std::locale loc;
+
+        for (char ch : str) {
+            result += std::tolower(ch, loc); // Use locale-aware tolower
+        }
+
+        return result;
+    }
+
     void init_backend() {
 #ifdef SD_USE_CUDA
         LOG_DEBUG("Using CUDA backend");
@@ -202,6 +213,9 @@ public:
         init_backend();
 
         std::string taesd_path_fixed = taesd_path;
+        std::string t5_path_fixed = SAFE_STR(sd_ctx_params->t5xxl_path);
+        std::string clipl_path_fixed = SAFE_STR(sd_ctx_params->clip_l_path);
+        std::string clipg_path_fixed = SAFE_STR(sd_ctx_params->clip_g_path);
 
         ModelLoader model_loader;
 
@@ -231,39 +245,64 @@ public:
         bool iswan = (tempver==VERSION_WAN2 || tempver==VERSION_WAN2_2_I2V || tempver==VERSION_WAN2_2_TI2V);
         bool isqwenimg = (tempver==VERSION_QWEN_IMAGE);
 
-        if (strlen(SAFE_STR(sd_ctx_params->clip_l_path)) > 0) {
-            LOG_INFO("loading clip_l from '%s'", sd_ctx_params->clip_l_path);
+        //kcpp qol fallback: if qwen image, and they loaded the qwen2vl as t5 by mistake
+        if(isqwenimg && t5_path_fixed!="")
+        {
+            if(clipl_path_fixed=="" && clipg_path_fixed=="")
+            {
+                clipl_path_fixed = t5_path_fixed;
+                t5_path_fixed = "";
+            }
+            else if(clipl_path_fixed=="" && clipg_path_fixed!="")
+            {
+                clipl_path_fixed = t5_path_fixed;
+                t5_path_fixed = "";
+            }
+            else if(clipl_path_fixed!="" && clipg_path_fixed=="")
+            {
+                //very tricky case. see if we can tell if clipl is an mmproj, if so move to right place
+                if(toLowerCase(clipl_path_fixed).find("mmproj") != std::string::npos)
+                {
+                    clipg_path_fixed = clipl_path_fixed;
+                    clipl_path_fixed = t5_path_fixed;
+                    t5_path_fixed = "";
+                }
+            }
+        }
+
+        if (clipl_path_fixed!="") {
+            LOG_INFO("loading clip_l from '%s'", clipl_path_fixed.c_str());
             std::string prefix = is_unet ? "cond_stage_model.transformer." : "text_encoders.clip_l.transformer.";
             if(iswan)
             {
                 prefix = "cond_stage_model.transformer.";
-                LOG_INFO("swap clip_vision from '%s'", sd_ctx_params->clip_l_path);
+                LOG_INFO("swap clip_vision from '%s'", clipl_path_fixed.c_str());
             }
             if(isqwenimg)
             {
                 prefix = "text_encoders.qwen2vl.";
-                LOG_INFO("swap qwen2vl from '%s'", sd_ctx_params->clip_l_path);
+                LOG_INFO("swap qwen2vl from '%s'", clipl_path_fixed.c_str());
             }
-            if (!model_loader.init_from_file(sd_ctx_params->clip_l_path, prefix)) {
-                LOG_WARN("loading clip_l from '%s' failed", sd_ctx_params->clip_l_path);
+            if (!model_loader.init_from_file(clipl_path_fixed.c_str(), prefix)) {
+                LOG_WARN("loading clip_l from '%s' failed", clipl_path_fixed.c_str());
             }
         }
 
-        if (strlen(SAFE_STR(sd_ctx_params->clip_g_path)) > 0) {
-            LOG_INFO("loading clip_g from '%s'", sd_ctx_params->clip_g_path);
+        if (clipg_path_fixed!="") {
+            LOG_INFO("loading clip_g from '%s'", clipg_path_fixed.c_str());
             std::string prefix = is_unet ? "cond_stage_model.1.transformer." : "text_encoders.clip_g.transformer.";
             if(iswan)
             {
                 prefix = "cond_stage_model.transformer.";
-                LOG_INFO("swap clip_vision from '%s'", sd_ctx_params->clip_g_path);
+                LOG_INFO("swap clip_vision from '%s'", clipg_path_fixed.c_str());
             }
             if(isqwenimg)
             {
                 prefix = "text_encoders.qwen2vl.visual.";
-                LOG_INFO("swap qwen2vl mmproj from '%s'", sd_ctx_params->clip_g_path);
+                LOG_INFO("swap qwen2vl mmproj from '%s'", clipg_path_fixed.c_str());
             }
-            if (!model_loader.init_from_file(sd_ctx_params->clip_g_path, prefix)) {
-                LOG_WARN("loading clip_g from '%s' failed", sd_ctx_params->clip_g_path);
+            if (!model_loader.init_from_file(clipg_path_fixed.c_str(), prefix)) {
+                LOG_WARN("loading clip_g from '%s' failed", clipg_path_fixed.c_str());
             }
         }
 
@@ -275,10 +314,10 @@ public:
             }
         }
 
-        if (strlen(SAFE_STR(sd_ctx_params->t5xxl_path)) > 0) {
-            LOG_INFO("loading t5xxl from '%s'", sd_ctx_params->t5xxl_path);
-            if (!model_loader.init_from_file(sd_ctx_params->t5xxl_path, "text_encoders.t5xxl.transformer.")) {
-                LOG_WARN("loading t5xxl from '%s' failed", sd_ctx_params->t5xxl_path);
+        if (t5_path_fixed!="") {
+            LOG_INFO("loading t5xxl from '%s'", t5_path_fixed.c_str());
+            if (!model_loader.init_from_file(t5_path_fixed.c_str(), "text_encoders.t5xxl.transformer.")) {
+                LOG_WARN("loading t5xxl from '%s' failed", t5_path_fixed.c_str());
             }
         }
 
@@ -309,7 +348,7 @@ public:
         if (version == VERSION_COUNT &&
             strlen(SAFE_STR(sd_ctx_params->model_path)) > 0 &&
             strlen(SAFE_STR(sd_ctx_params->diffusion_model_path)) == 0 &&
-            strlen(SAFE_STR(sd_ctx_params->t5xxl_path)) > 0 )
+            t5_path_fixed!="" )
         {
             bool endswithsafetensors = ends_with(sd_ctx_params->model_path, ".safetensors");
             if(endswithsafetensors && !model_loader.has_diffusion_model_tensors())
