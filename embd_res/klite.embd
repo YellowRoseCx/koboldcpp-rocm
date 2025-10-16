@@ -4368,6 +4368,11 @@ Current version indicated by LITEVER below.
 		const n = text.length;
 		let i = 0;
 
+		if(!text)
+		{
+			return [""];
+		}
+
 		while (i < n) {
 			// Find the next delimiter occurrence at or after i
 			let nextIndex = -1;
@@ -21134,7 +21139,10 @@ Current version indicated by LITEVER below.
 					}
 					for(let i=0;i<turns.length;++i)
 					{
-						gametext_arr.push(turns[i]);
+						if(turns[i])
+						{
+							gametext_arr.push(turns[i]);
+						}
 					}
 				}
 				else
