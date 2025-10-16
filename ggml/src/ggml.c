@@ -7315,24 +7315,24 @@ struct ggml_tensor * ggml_istft(
     ggml_set_op_params(result, params, sizeof(params));
     return result;
 }
-static struct ggml_tensor * ggml_round_impl(
+static struct ggml_tensor * ggml_ttsround_impl(
         struct ggml_context * ctx,
         struct ggml_tensor  * a,
         bool                  inplace) {
     struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
-    result->op     = GGML_OP_ROUND;
+    result->op     = GGML_OP_TTSROUND;
     result->src[0] = a;
     return result;
 }
-struct ggml_tensor * ggml_round(
+struct ggml_tensor * ggml_ttsround(
         struct ggml_context * ctx,
         struct ggml_tensor  * a) {
-    return ggml_round_impl(ctx, a, false);
+    return ggml_ttsround_impl(ctx, a, false);
 }
-struct ggml_tensor * ggml_round_inplace(
+struct ggml_tensor * ggml_ttsround_inplace(
         struct ggml_context * ctx,
         struct ggml_tensor  * a) {
-    return ggml_round_impl(ctx, a, true);
+    return ggml_ttsround_impl(ctx, a, true);
 }
 static struct ggml_tensor * ggml_mod_impl(
         struct ggml_context * ctx,

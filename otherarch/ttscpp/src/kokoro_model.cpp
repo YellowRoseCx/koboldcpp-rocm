@@ -1041,8 +1041,8 @@ struct ggml_cgraph * kokoro_duration_runner::build_kokoro_duration_graph(kokoro_
     cur = build_lstm(ctx, cur, model->prosody_pred->duration_proj_lstm, batch.n_tokens, gf);
     cur = ggml_sigmoid(ctx, ggml_add(ctx, ggml_mul_mat(ctx, model->prosody_pred->duration_proj, cur), model->prosody_pred->duration_proj_bias));
     // If we were to support speed we would add a constant tensor for the speed and divide here.
-    len = ggml_round(ctx, ggml_sum_rows(ctx, cur));
-    len = ggml_clamp(ctx, ggml_round(ctx, ggml_sum_rows(ctx, cur)), 1.0f, 50.0f);
+    len = ggml_ttsround(ctx, ggml_sum_rows(ctx, cur));
+    len = ggml_clamp(ctx, ggml_ttsround(ctx, ggml_sum_rows(ctx, cur)), 1.0f, 50.0f);
 
     ggml_build_forward_expand(gf, len);
 

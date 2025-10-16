@@ -1678,7 +1678,7 @@ static void ggml_compute_forward_mul_mat_id(
 /////////////////////////////////
 /////   kcpp: dirtypatch for tts cpp ////////////
 inline static void ggml_vec_reci_f32 (const int n, float * y, const float * x) { for (int i = 0; i < n; ++i) y[i] = 1.0f/x[i];   }
-inline static void ggml_vec_round_f32 (const int n, float * y, const float * x) { for (int i = 0; i < n; ++i) y[i] = (float)((int) (x[i] + 0.5f)); }
+inline static void ggml_vec_ttsround_f32 (const int n, float * y, const float * x) { for (int i = 0; i < n; ++i) y[i] = (float)((int) (x[i] + 0.5f)); }
 inline static void ggml_vec_mod_f32(const int n, float * y, const float * x, const float mod_val) { for (int i = 0; i < n; ++i) y[i] = fmod(x[i], mod_val); }
 void ggml_compute_forward_sin_f32_ffast_math(struct ggml_tensor * dst);
 static void ggml_compute_forward_reciprocal_f32(
@@ -1817,7 +1817,7 @@ static void ggml_compute_forward_mod(
             }
     }
 }
-static void ggml_compute_forward_round_f32(
+static void ggml_compute_forward_ttsround_f32(
         const struct ggml_compute_params * params,
         struct ggml_tensor * dst) {
 
@@ -1836,12 +1836,12 @@ static void ggml_compute_forward_round_f32(
     GGML_ASSERT(src0->nb[0] == sizeof(float));
 
     for (int i = 0; i < n; i++) {
-        ggml_vec_round_f32(nc,
+        ggml_vec_ttsround_f32(nc,
                 (float *) ((char *) dst->data  + i*( dst->nb[1])),
                 (float *) ((char *) src0->data + i*(src0->nb[1])));
     }
 }
-static void ggml_compute_forward_round(
+static void ggml_compute_forward_ttsround(
         const struct ggml_compute_params * params,
         struct ggml_tensor * dst) {
 
@@ -1850,7 +1850,7 @@ static void ggml_compute_forward_round(
     switch (src0->type) {
         case GGML_TYPE_F32:
             {
-                ggml_compute_forward_round_f32(params, dst);
+                ggml_compute_forward_ttsround_f32(params, dst);
             } break;
         default:
             {
@@ -2840,9 +2840,9 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             {
                 ggml_compute_forward_reciprocal(params, tensor);
             } break;
-        case GGML_OP_ROUND:
+        case GGML_OP_TTSROUND:
             {
-                ggml_compute_forward_round(params, tensor);
+                ggml_compute_forward_ttsround(params, tensor);
             } break;
         case GGML_OP_CUMSUM:
             {
@@ -3188,7 +3188,7 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
             }
         case GGML_OP_RECIPROCAL: //kcpp: dirtypatch tts cpp
         case GGML_OP_MOD:
-        case GGML_OP_ROUND:
+        case GGML_OP_TTSROUND:
         case GGML_OP_CUMSUM:
         case GGML_OP_STFT:
         case GGML_OP_AA_STFT:

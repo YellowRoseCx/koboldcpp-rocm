@@ -568,7 +568,7 @@ extern "C" {
         //kcpp: dirtypatch of unofficial ops for ttscpp
         GGML_OP_UPSCALE_LINEAR, // linear interpolate
         GGML_OP_RECIPROCAL,
-        GGML_OP_ROUND,
+        GGML_OP_TTSROUND,
         GGML_OP_MOD,
         GGML_OP_CUMSUM,
         GGML_OP_STFT,
@@ -2589,10 +2589,10 @@ extern "C" {
     GGML_API bool                          ggml_threadpool_params_match  (const struct ggml_threadpool_params * p0, const struct ggml_threadpool_params * p1);
 
     //kcpp: dirtypatch of ttscpp additions
-    GGML_API struct ggml_tensor * ggml_round(
+    GGML_API struct ggml_tensor * ggml_ttsround(
             struct ggml_context * ctx,
             struct ggml_tensor * a);
-    GGML_API struct ggml_tensor * ggml_round_inplace(
+    GGML_API struct ggml_tensor * ggml_ttsround_inplace(
             struct ggml_context * ctx,
             struct ggml_tensor * a);
     // This is a floating point mod by the mod_val parameter
