@@ -276,6 +276,15 @@ static ggml_cuda_device_info ggml_cuda_init() {
         } else if (device_name.substr(0, 21) == "NVIDIA GeForce GTX 16") {
             turing_devices_without_mma.push_back({ id, device_name });
         }
+
+        // Temporary performance fix:
+        // Setting device scheduling strategy for iGPUs with cc121 to "spinning" to avoid delays in cuda synchronize calls.
+        // TODO: Check for future drivers the default scheduling strategy and
+        // remove this call again when cudaDeviceScheduleSpin is default.
+        if (prop.major == 12 && prop.minor == 1) {
+            CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleSpin));
+        }
+
 #endif  // defined(GGML_USE_HIP)
     }
 
@@ -2889,7 +2898,7 @@ static bool ggml_cuda_can_fuse(const struct ggml_cgraph * cgraph, int node_idx, 
         }
 
         //if rms norm is the B operand, then we don't handle broadcast
-        if (rms_norm == mul->src[1] && !ggml_are_same_shape(mul->src[0], rms_norm->src[1])) {
+        if (rms_norm == mul->src[1] && !ggml_are_same_shape(mul->src[0], rms_norm)) {
             return false;
         }
 
@@ -3629,9 +3638,10 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_CONV_2D_DW:
         case GGML_OP_CONV_TRANSPOSE_2D:
         case GGML_OP_POOL_2D:
-        case GGML_OP_SUM:
         case GGML_OP_ACC:
             return true;
+        case GGML_OP_SUM:
+            return ggml_is_contiguous_rows(op->src[0]);
         case GGML_OP_ARGSORT:
             // TODO: Support arbitrary column width
             return op->src[0]->ne[0] <= 1024;
