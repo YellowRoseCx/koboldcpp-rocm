@@ -245,6 +245,17 @@ std::unordered_map<std::string, std::string> qwenvl_vision_name_map{
     {"ln2.", "norm2."},
 };
 
+std::string kcpp_fix_wrong_img_tensor_name(const std::string& name) //kcpp function that fixes common wrong tensor names
+{
+    if (starts_with(name, "text_encoders.qwen25_7b.transformer.model.")) {
+        return "text_encoders.qwen2vl.model." + name.substr(strlen("text_encoders.qwen25_7b.transformer.model."));
+    }
+    if (starts_with(name, "text_encoders.qwen25_7b.transformer.visual.")) {
+        return "text_encoders.qwen2vl.visual." + name.substr(strlen("text_encoders.qwen25_7b.transformer.visual."));
+    }
+    return name;
+}
+
 std::string convert_cond_model_name(const std::string& name) {
     std::string new_name = name;
     std::string prefix;
@@ -1342,6 +1353,8 @@ bool ModelLoader::init_from_safetensors_file(const std::string& file_path, const
         if (!starts_with(name, prefix)) {
             name = prefix + name;
         }
+
+        name = kcpp_fix_wrong_img_tensor_name(name);
 
         TensorStorage tensor_storage(name, type, ne, n_dims, file_index, ST_HEADER_SIZE_LEN + header_size_ + begin);
         tensor_storage.reverse_ne();
