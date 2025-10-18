@@ -1181,7 +1181,7 @@ def autoset_gpu_layers(ctxsize, sdquanted, bbs, qkv_level): #shitty algo to dete
                     mem1 = layers*(4 if bbs <= 512 else (bbs/128))*headkvlen*cs*fattn_discount*4*1.45
                     mem2 = layers*headcount*headkvlen*cs*fattn_discount*4*1.15
                     ratio = max(ratio,(mem - reservedmem - mem1) / (fsize + mem2))
-                layerlimit = min(int(ratio*layers), (layers + 3))
+                layerlimit = min(int(ratio*layers), (layers + 1))
         layerlimit = (0 if layerlimit<=2 else layerlimit)
         return layerlimit
     except Exception:
@@ -5133,7 +5133,7 @@ def show_gui():
 
     def changed_gpulayers_estimate(*args):
         predicted_gpu_layers = autoset_gpu_layers(int(contextsize_text[context_var.get()]),sd_quant_option(sd_quant_var.get()),int(blasbatchsize_values[int(blas_size_var.get())]),(quantkv_var.get() if flashattention_var.get()==1 else 0))
-        max_gpu_layers = (f"/{modelfile_extracted_meta[1][0]+3}" if (modelfile_extracted_meta and modelfile_extracted_meta[1] and modelfile_extracted_meta[1][0]!=0) else "")
+        max_gpu_layers = (f"/{modelfile_extracted_meta[1][0]+1}" if (modelfile_extracted_meta and modelfile_extracted_meta[1] and modelfile_extracted_meta[1][0]!=0) else "")
         index = runopts_var.get()
         gpu_be = (index == "Use Vulkan" or index == "Use Vulkan (Old CPU)" or index == "Use CLBlast" or index == "Use CLBlast (Old CPU)" or index == "Use CLBlast (Older CPU)" or index == "Use CUDA" or index == "Use hipBLAS (ROCm)")
         layercounter_label.grid(row=6, column=1, padx=75, sticky="W")
