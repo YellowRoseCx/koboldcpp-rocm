@@ -948,7 +948,9 @@ public:
                 denoiser->scheduler = std::make_shared<SmoothStepSchedule>();
                 break;
             case DEFAULT:
-                // Don't touch anything.
+                // Reset back to discrete
+                LOG_INFO("running with discrete scheduler");
+                denoiser->scheduler = std::make_shared<DiscreteSchedule>();
                 break;
             default:
                 LOG_ERROR("Unknown scheduler %i", scheduler);

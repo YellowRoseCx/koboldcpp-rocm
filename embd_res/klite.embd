@@ -15371,23 +15371,26 @@ Current version indicated by LITEVER below.
 		return inputtxt;
 	}
 
-	function end_trim_to_sentence(input,include_newline=false) {
+	function end_trim_to_sentence(input, include_newline = false) {
 		let last = -1;
 		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…'];
-		for (let i = 0; i < enders.length; ++i)
-		{
+		for (let i = 0; i < enders.length; ++i) {
 			last = Math.max(last, input.lastIndexOf(enders[i]));
 		}
-
-		if(include_newline)
-		{
+		if (include_newline) {
 			let nl = input.lastIndexOf("\n");
 			last = Math.max(last, nl);
 		}
-		if (last > 0) {
-			return input.substring(0, last + 1).replace(/[\t\r\n ]+$/, '');
+		let cleaned = input.replace(/[\t\r\n ]+$/, '');
+		if (last <= 0) {  // If no valid end found
+			return cleaned;
 		}
-		return input.replace(/[\t\r\n ]+$/, '');
+		let trimmedLength = cleaned.length - (last + 1); // Calculate how many characters would be trimmed
+		if (trimmedLength > 150) {	// If more than 150 chars would be trimmed, skip trimming
+			return cleaned;
+		}
+		// Otherwise, trim up to the last sentence end
+		return cleaned.substring(0, last + 1).replace(/[\t\r\n ]+$/, '');
 	}
 
 	function start_trim_to_sentence(input) {
@@ -18038,28 +18041,29 @@ Current version indicated by LITEVER below.
 							//it's an object/array, so repack the text turn
 							let t1 = mainoaibody[0].text;
 							mhistory = repack_instruct_history(t1);
+						}
 
-							//many backends REFUSE to allow the assistant to go first. If the first turn belongs to assistant, we turn it into user
-							if(mhistory.length>0 && !mhistory[0].myturn)
-							{
-								mhistory[0].myturn = true;
-							}
-							//if both first and second turns are from user, merge them into one turn
-							if(mhistory.length>1 && mhistory[0].myturn && mhistory[1].myturn)
-							{
-								mhistory[0].msg += "\n"+mhistory[1].msg;
-								mhistory.splice(1, 1);
-							}
+						//many backends REFUSE to allow the assistant to go first. If the first turn belongs to assistant, we turn it into user
+						if(mhistory.length>0 && !mhistory[0].myturn)
+						{
+							mhistory[0].myturn = true;
+						}
+						//if both first and second turns are from user, merge them into one turn
+						if(mhistory.length>1 && mhistory[0].myturn && mhistory[1].myturn)
+						{
+							mhistory[0].msg += "\n"+mhistory[1].msg;
+							mhistory.splice(1, 1);
+						}
 
-							if(mhistory.length>0 && mainoaibody.length>1 && mainoaibody[1].type && mainoaibody[1].type!="text")
+						if(mhistory.length>0 && mainoaibody.length>1 && mainoaibody[1].type && mainoaibody[1].type!="text")
+						{
+							mhistory[0].msg = [{type: 'text', text: mhistory[0].msg}];
+							for(let i=1;i<mainoaibody.length;++i)
 							{
-								mhistory[0].msg = [{type: 'text', text: mhistory[0].msg}];
-								for(let i=1;i<mainoaibody.length;++i)
-								{
-									mhistory[0].msg.push(mainoaibody[i]);
-								}
+								mhistory[0].msg.push(mainoaibody[i]);
 							}
 						}
+
 
 						for(let i=0;i<mhistory.length;++i)
 						{
