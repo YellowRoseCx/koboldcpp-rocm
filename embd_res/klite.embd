@@ -5481,6 +5481,34 @@ Current version indicated by LITEVER below.
 			&& String.fromCharCode(x.data[0]) == 'c')
 			&& String.fromCharCode(x.data[4]) == 'a');
 
+		if(!found || found.length==0)
+		{
+			let found2 = chunks.filter(x => (
+			x.name == "tEXt"
+			&& x.data.length > 6
+			&& String.fromCharCode(x.data[0]) == 'c')
+			&& String.fromCharCode(x.data[1]) == 'c'
+			&& String.fromCharCode(x.data[2]) == 'v'
+			&& String.fromCharCode(x.data[3]) == '3'); //its a stupid new v3 card
+
+			if(found2 && found2.length>0)
+			{
+				try {
+					let b64buf = "";
+					let bytes = found2[0].data; //skip the chara
+					for (var i = 5; i < bytes.length; i++) {
+						b64buf += String.fromCharCode(bytes[i]);
+					}
+					var decoded = JSON.parse(b64_decode_unicode(b64buf));
+					console.log(decoded);
+					return decoded;
+				} catch (e) {
+					console.log("Error decoding b64 in image: " + e);
+					return null;
+				}
+			}
+		}
+
 		//remove ext asset
 		found = found.filter(x => (
 			x.data.length > 12
