@@ -452,13 +452,6 @@ public:
 
         if (sd_version_is_sdxl(version)) {
             scale_factor = 0.13025f;
-            if (strlen(SAFE_STR(sd_ctx_params->vae_path)) == 0 && taesd_path_fixed.size() == 0) {
-                LOG_WARN(
-                    "!!!It looks like you are using SDXL model. "
-                    "If you find that the generated images are completely black, "
-                    "try specifying a different VAE. "
-                    "You can find it here: https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/blob/main/sdxl_vae.safetensors");
-            }
         } else if (sd_version_is_sd3(version)) {
             scale_factor = 1.5305f;
         } else if (sd_version_is_flux(version)) {
@@ -476,17 +469,7 @@ public:
         bool clip_on_cpu = sd_ctx_params->keep_clip_on_cpu;
 
         {
-            clip_backend   = backend;
-            bool use_t5xxl = false;
-            if (sd_version_is_dit(version) && !sd_version_is_qwen_image(version)) {
-                use_t5xxl = true;
-            }
-            if (!clip_on_cpu && !ggml_backend_is_cpu(backend) && use_t5xxl) {
-                LOG_WARN(
-                    "!!!It appears that you are using the T5 model. Some backends may encounter issues with it."
-                    "If you notice that the generated images are completely black,"
-                    "try running the T5 model on the CPU using the --clip-on-cpu parameter.");
-            }
+            clip_backend = backend;
             if (clip_on_cpu && !ggml_backend_is_cpu(backend)) {
                 LOG_INFO("CLIP: Using CPU backend");
                 clip_backend = ggml_backend_cpu_init();
@@ -648,6 +631,15 @@ public:
                 if (sd_ctx_params->vae_conv_direct) {
                     LOG_INFO("Using Conv2d direct in the vae model");
                     first_stage_model->enable_conv2d_direct();
+                }
+                if (version == VERSION_SDXL &&
+                    (strlen(SAFE_STR(sd_ctx_params->vae_path)) == 0 || sd_ctx_params->force_sdxl_vae_conv_scale)) {
+                    float vae_conv_2d_scale = 1.f / 32.f;
+                    LOG_WARN(
+                        "No VAE specified with --vae or --force-sdxl-vae-conv-scale flag set, "
+                        "using Conv2D scale %.3f",
+                        vae_conv_2d_scale);
+                    first_stage_model->set_conv2d_scale(vae_conv_2d_scale);
                 }
                 first_stage_model->alloc_params_buffer();
                 first_stage_model->get_param_tensors(tensors, "first_stage_model");
@@ -2150,6 +2142,7 @@ char* sd_img_gen_params_to_str(const sd_img_gen_params_t* sd_img_gen_params) {
              "seed: %" PRId64
              "batch_count: %d\n"
              "ref_images_count: %d\n"
+             "auto_resize_ref_image: %s\n"
              "increase_ref_index: %s\n"
              "control_strength: %.2f\n"
              "photo maker: {style_strength = %.2f, id_images_count = %d, id_embed_path = %s}\n"
@@ -2164,6 +2157,7 @@ char* sd_img_gen_params_to_str(const sd_img_gen_params_t* sd_img_gen_params) {
              sd_img_gen_params->seed,
              sd_img_gen_params->batch_count,
              sd_img_gen_params->ref_images_count,
+             BOOL_STR(sd_img_gen_params->auto_resize_ref_image),
              BOOL_STR(sd_img_gen_params->increase_ref_index),
              sd_img_gen_params->control_strength,
              sd_img_gen_params->pm_params.style_strength,
@@ -2804,14 +2798,20 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx, const sd_img_gen_params_t* sd_img_g
     std::vector<ggml_tensor*> ref_latents;
     for (int i = 0; i < ref_images.size(); i++) {
         ggml_tensor* img;
-        if (sd_version_is_qwen_image(sd_ctx->sd->version)) {
+        if (sd_img_gen_params->auto_resize_ref_image) {
+            LOG_DEBUG("auto resize ref images");
             sd_image_f32_t ref_image = sd_image_t_to_sd_image_f32_t(*ref_images[i]);
             int VAE_IMAGE_SIZE       = std::min(1024 * 1024, width * height);
             double vae_width         = sqrt(VAE_IMAGE_SIZE * ref_image.width / ref_image.height);
             double vae_height        = vae_width * ref_image.height / ref_image.width;
 
-            vae_height = round(vae_height / 32) * 32;
-            vae_width  = round(vae_width / 32) * 32;
+            int factor = 16;
+            if (sd_version_is_qwen_image(sd_ctx->sd->version)) {
+                factor = 32;
+            }
+
+            vae_height = round(vae_height / factor) * factor;
+            vae_width  = round(vae_width / factor) * factor;
 
             sd_image_f32_t resized_image = resize_sd_image_f32_t(ref_image, static_cast<int>(vae_width), static_cast<int>(vae_height));
             free(ref_image.data);

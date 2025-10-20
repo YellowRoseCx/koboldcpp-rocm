@@ -164,6 +164,7 @@ typedef struct {
     bool diffusion_flash_attn;
     bool diffusion_conv_direct;
     bool vae_conv_direct;
+    bool force_sdxl_vae_conv_scale;
     bool chroma_use_dit_mask;
     bool chroma_use_t5_mask;
     int chroma_t5_mask_pad;
@@ -215,6 +216,7 @@ typedef struct {
     sd_image_t init_image;
     sd_image_t* ref_images;
     int ref_images_count;
+    bool auto_resize_ref_image;
     bool increase_ref_index;
     sd_image_t mask_image;
     int width;

@@ -80,7 +80,8 @@ struct SDParams {
     std::string control_image_path;
     std::vector<std::string> ref_image_paths;
     std::string control_video_path;
-    bool increase_ref_index = false;
+    bool auto_resize_ref_image = true;
+    bool increase_ref_index    = false;
 
     std::string prompt;
     std::string negative_prompt;
@@ -131,6 +132,7 @@ struct SDParams {
     prediction_t prediction = DEFAULT_PRED;
 
     sd_tiling_params_t vae_tiling_params = {false, 0, 0, 0.5f, 0.0f, 0.0f};
+    bool force_sdxl_vae_conv_scale       = false;
 
     SDParams() {
         sd_sample_params_init(&sample_params);
@@ -174,6 +176,7 @@ void print_params(SDParams params) {
         printf("        %s\n", path.c_str());
     };
     printf("    control_video_path:                %s\n", params.control_video_path.c_str());
+    printf("    auto_resize_ref_image:             %s\n", params.auto_resize_ref_image ? "true" : "false");
     printf("    increase_ref_index:                %s\n", params.increase_ref_index ? "true" : "false");
     printf("    offload_params_to_cpu:             %s\n", params.offload_params_to_cpu ? "true" : "false");
     printf("    clip_on_cpu:                       %s\n", params.clip_on_cpu ? "true" : "false");
@@ -198,6 +201,7 @@ void print_params(SDParams params) {
     printf("    seed:                              %zd\n", params.seed);
     printf("    batch_count:                       %d\n", params.batch_count);
     printf("    vae_tiling:                        %s\n", params.vae_tiling_params.enabled ? "true" : "false");
+    printf("    force_sdxl_vae_conv_scale:         %s\n", params.force_sdxl_vae_conv_scale ? "true" : "false");
     printf("    upscale_repeats:                   %d\n", params.upscale_repeats);
     printf("    chroma_use_dit_mask:               %s\n", params.chroma_use_dit_mask ? "true" : "false");
     printf("    chroma_use_t5_mask:                %s\n", params.chroma_use_t5_mask ? "true" : "false");
@@ -242,9 +246,10 @@ void print_usage(int argc, const char* argv[]) {
     printf("  -i, --end-img [IMAGE]              path to the end image, required by flf2v\n");
     printf("  --control-image [IMAGE]            path to image condition, control net\n");
     printf("  -r, --ref-image [PATH]             reference image for Flux Kontext models (can be used multiple times) \n");
+    printf("  --disable-auto-resize-ref-image    disable auto resize of ref images\n");
     printf("  --control-video [PATH]             path to control video frames, It must be a directory path.\n");
     printf("                                     The video frames inside should be stored as images in lexicographical (character) order\n");
-    printf("                                     For example, if the control video path is `frames`, the directory contain images such as 00.png, 01.png, … etc.\n");
+    printf("                                     For example, if the control video path is `frames`, the directory contain images such as 00.png, 01.png, ... etc.\n");
     printf("  --increase-ref-index               automatically increase the indices of references images based on the order they are listed (starting with 1).\n");
     printf("  -o, --output OUTPUT                path to write result image to (default: ./output.png)\n");
     printf("  -p, --prompt [PROMPT]              the prompt to render\n");
@@ -292,6 +297,7 @@ void print_usage(int argc, const char* argv[]) {
     printf("  --vae-tile-size [X]x[Y]            tile size for vae tiling (default: 32x32)\n");
     printf("  --vae-relative-tile-size [X]x[Y]   relative tile size for vae tiling, in fraction of image size if < 1, in number of tiles per dim if >=1 (overrides --vae-tile-size)\n");
     printf("  --vae-tile-overlap OVERLAP         tile overlap for vae tiling, in fraction of tile size (default: 0.5)\n");
+    printf("  --force-sdxl-vae-conv-scale        force use of conv scale on sdxl vae\n");
     printf("  --vae-on-cpu                       keep vae in cpu (for low vram)\n");
     printf("  --clip-on-cpu                      keep clip in cpu (for low vram)\n");
     printf("  --diffusion-fa                     use flash attention in the diffusion model (for low vram)\n");
@@ -562,6 +568,7 @@ void parse_args(int argc, const char** argv, SDParams& params) {
 
     options.bool_options = {
         {"", "--vae-tiling", "", true, &params.vae_tiling_params.enabled},
+        {"", "--force-sdxl-vae-conv-scale", "", true, &params.force_sdxl_vae_conv_scale},
         {"", "--offload-to-cpu", "", true, &params.offload_params_to_cpu},
         {"", "--control-net-cpu", "", true, &params.control_net_cpu},
         {"", "--clip-on-cpu", "", true, &params.clip_on_cpu},
@@ -575,6 +582,7 @@ void parse_args(int argc, const char** argv, SDParams& params) {
         {"", "--chroma-disable-dit-mask", "", false, &params.chroma_use_dit_mask},
         {"", "--chroma-enable-t5-mask", "", true, &params.chroma_use_t5_mask},
         {"", "--increase-ref-index", "", true, &params.increase_ref_index},
+        {"", "--disable-auto-resize-ref-image", "", false, &params.auto_resize_ref_image},
     };
 
     auto on_mode_arg = [&](int argc, const char** argv, int index) {
@@ -1382,6 +1390,7 @@ int main(int argc, const char* argv[]) {
         params.diffusion_flash_attn,
         params.diffusion_conv_direct,
         params.vae_conv_direct,
+        params.force_sdxl_vae_conv_scale,
         params.chroma_use_dit_mask,
         params.chroma_use_t5_mask,
         params.chroma_t5_mask_pad,
@@ -1423,6 +1432,7 @@ int main(int argc, const char* argv[]) {
                 init_image,
                 ref_images.data(),
                 (int)ref_images.size(),
+                params.auto_resize_ref_image,
                 params.increase_ref_index,
                 mask_image,
                 params.width,
