@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <filesystem>
 
-#define KCPP_BAKE_SD_VOCAB
+#define KCPP_NO_BAKE_SD_VOCAB
 
 #include "model_adapter.h"
 
