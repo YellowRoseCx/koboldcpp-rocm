@@ -27427,7 +27427,8 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="oaicustom" class="menutext hidden">
 				<span id="oaidesc">
-				Entering your OpenAI API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" href="https://platform.openai.com/api-keys">OpenAI API key</a> will allow you to use KoboldAI Lite with their API.<br>
+				<b>Or, set a custom API URL to use ANY 3rd-party OAI Compatible API</b><br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenAI API, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenAI API URL and Key.</span><br>
 				<div style="display:inline-flex">
@@ -27438,17 +27439,17 @@ Current version indicated by LITEVER below.
 				</div>
 				</span>
 				<span id="openrouterdesc" class="hidden">
-				Entering your OpenRouter API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" href="https://openrouter.ai/settings/keys">OpenRouter API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenRouter Key.</span><br><br>
 				</span>
 				<span id="mistralaidesc" class="hidden">
-				Entering your MistralAI API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" href="https://docs.mistral.ai/getting-started/quickstart">MistralAI API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the MistralAI API and is not transmitted to us.<br>Only Temperature and Top-P samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input MistralAI Key.</span><br><br>
 				</span>
 				<span id="featherlessdesc" class="hidden">
-				Entering your Featherless API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" href="https://featherless.ai/docs/getting-started">Featherless API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Featherless API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Featherless Key.</span><br><br>
 				</span>
@@ -27463,8 +27464,8 @@ Current version indicated by LITEVER below.
 				<span class="color_green" style="font-weight: bold;">No Key Required.</span><br><br>
 				</span>
 				<span id="nvidianimdesc" class="hidden">
-				Entering your Nvidia NIM API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Due to CORS restrictions, your connection WILL be proxied.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				Entering your <a class="color_blueurl" href="https://build.nvidia.com/explore/discover">Nvidia NIM API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Nvidia NIM Key.</span><br><br>
 				</span>
 
@@ -27685,7 +27686,7 @@ Current version indicated by LITEVER below.
 
 			</div>
 			<div id="geminicustom" class="menutext hidden">
-				Uses Gemini by Google.<br><br>
+				Entering your <a class="color_blueurl" href="https://docs.mistral.ai/getting-started/quickstart">Google Gemini API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Gemini API and is not transmitted to us.<br><br>
 				<div>
 				<select title="Gemini AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_gemini_model" onchange="togglegeminimodel()">
@@ -27739,13 +27740,10 @@ Current version indicated by LITEVER below.
 				</div>
 			</div>
 			<div id="coherecustom" class="menutext hidden">
-				Uses Cohere's models through their own API.<br><br>
+				Entering your <a class="color_blueurl" href="https://dashboard.cohere.com/api-keys">Cohere API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Cohere API and is not transmitted to us.<br><br>
 				<select title="Cohere AI Model Selection" style="padding:4px;" class="form-control" id="custom_cohere_model">
-					<option value="command" selected="selected">command</option>
-					<option value="command-r">command-r</option>
-					<option value="command-r-plus">command-r-plus</option>
-					<option value="command-r-08-2024">command-r-08-2024</option>
+					<option value="command-r-08-2024" selected="selected">command-r-08-2024</option>
 					<option value="command-r-plus-08-2024">command-r-plus-08-2024</option>
 					<option value="command-r7b-12-2024">command-r7b-12-2024</option>
 					<option value="command-a-03-2025">command-a-03-2025</option>
