@@ -296,8 +296,8 @@ std::string trim(const std::string& s) {
 static sd_log_cb_t sd_log_cb = NULL;
 void* sd_log_cb_data         = NULL;
 
-
 #define LOG_BUFFER_SIZE 4096
+
 void log_message(const char* format, ...) {
     if (sdloglevel>0) {
         printf("\n");
