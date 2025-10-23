@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 289;
+	const LITEVER = 290;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -3424,11 +3424,12 @@ Current version indicated by LITEVER below.
 
 	const claude_submit_endpoint = "/complete";
 	const claude_submit_endpoint_v3 = "/messages";
-	const claude_models_endpoint = "/v1/models";
+	const claude_models_endpoint = "/models";
 
 	const default_openrouter_base = "https://openrouter.ai/api/v1";
 	const default_mistralai_base = "https://api.mistral.ai/v1";
 	const default_featherless_base = "https://api.featherless.ai/v1";
+	const default_nvidianim_base = "https://integrate.api.nvidia.com/v1";
 	const default_grok_base = "https://api.x.ai/v1";
 	const default_oai_base = "https://api.openai.com/v1";
 	const default_claude_base = "https://api.anthropic.com";
@@ -3644,6 +3645,7 @@ Current version indicated by LITEVER below.
 		saved_openrouter_key: "",
 		saved_mistralai_key: "",
 		saved_featherless_key: "",
+		saved_nvidianim_key: "",
 		saved_pollinations_key: "", //this is a dummy key and isnt needed
 		saved_grok_key:"",
 		saved_claude_key: "", //do not ever share this in save files!
@@ -4573,6 +4575,8 @@ Current version indicated by LITEVER below.
 	}
 
 	polyfills();
+
+	document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
 
 	document.getElementById("lastreq1").innerHTML =
 	document.getElementById("lastreq2").innerHTML =
@@ -6264,6 +6268,7 @@ Current version indicated by LITEVER below.
 	{
 		synchro_pending_stream = "";
 		streaming_was_thinking = false;
+		let logprobs_content_arr = [];
 		let reqOpt =
 		{method: 'POST',
 		headers: submit_headers,
@@ -6376,6 +6381,12 @@ Current version indicated by LITEVER below.
 									synchro_pending_stream += event.data.choices[0].delta.reasoning;
 								}
 
+								//collect logprobs if detected
+								if(event.data.choices[0].logprobs && event.data.choices[0].logprobs.content && event.data.choices[0].logprobs.content.length>0)
+								{
+									logprobs_content_arr = logprobs_content_arr.concat(event.data.choices[0].logprobs.content);
+								}
+
 								//mistral prefill interception
 								if(oaiemulatecompletionscontent!="" && synchro_pending_stream!="" && synchro_pending_stream.startsWith(oaiemulatecompletionscontent))
 								{
@@ -6436,6 +6447,14 @@ Current version indicated by LITEVER below.
 					}
 					synchro_pending_stream = "";
 					streaming_was_thinking = false;
+					if (logprobs_content_arr.length>0 && last_response_obj==null) {
+						//fake a last response obj
+						let fakedresponse = {
+							"artificial_response": true,
+							"results":[{"logprobs":{"content":logprobs_content_arr}}]
+						};
+						last_response_obj = fakedresponse;
+					}
 					poll_pending_response();
 					//handle gen failures
 					if(resp.status==503)
@@ -6881,7 +6900,7 @@ Current version indicated by LITEVER below.
 			connect_custom_endpoint();
 			document.getElementById("lastreq3").innerHTML = document.getElementById("lastreq2").innerHTML = document.getElementById("lastreq1").innerHTML =
 			`<a href="#" class="color_grayurl" onclick="msgbox('Source code is available at https://github.com/LostRuins/lite.koboldai.net \\nPlease report any bugs you find there.','Information')">KoboldAI Lite</a> v${LITEVER} Embedded`;
-
+			document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
 			read_url_params_data();
 		}
 		else
@@ -8700,6 +8719,7 @@ Current version indicated by LITEVER below.
 					let tmp_or1 = localsettings.saved_openrouter_key;
 					let tmp_mai = localsettings.saved_mistralai_key;
 					let tmp_fai = localsettings.saved_featherless_key;
+					let tmp_nvai = localsettings.saved_nvidianim_key;
 					let tmp_pol = localsettings.saved_pollinations_key;
 					let tmp_grok = localsettings.saved_grok_key;
 					let tmp_claude1 = localsettings.saved_claude_key;
@@ -8755,6 +8775,7 @@ Current version indicated by LITEVER below.
 					localsettings.saved_openrouter_key = tmp_or1;
 					localsettings.saved_mistralai_key = tmp_mai;
 					localsettings.saved_featherless_key = tmp_fai;
+					localsettings.saved_nvidianim_key = tmp_nvai;
 					localsettings.saved_pollinations_key = tmp_pol;
 					localsettings.saved_grok_key = tmp_grok;
 					localsettings.saved_claude_key = tmp_claude1;
@@ -11172,6 +11193,8 @@ Current version indicated by LITEVER below.
 				return document.getElementById("custom_grok_model");
 			case "10":
 				return document.getElementById("custom_pollinations_model");
+			case "11":
+				return document.getElementById("custom_nvidianim_model");
 			default:
 				return document.getElementById("custom_oai_model"); //just return oai
 		}
@@ -11179,7 +11202,7 @@ Current version indicated by LITEVER below.
 	function ep_should_always_use_chat_completions()
 	{
 		let epchoice = document.getElementById("customapidropdown").value;
-		return (epchoice==7 || epchoice==10);
+		return (epchoice==7 || epchoice==10 || epchoice==11);
 	}
 
 	function select_custom_oai_model()
@@ -11222,15 +11245,18 @@ Current version indicated by LITEVER below.
 	{
 		let desired_claude_key = document.getElementById("custom_claude_key").value.trim();
 		let claude_ep = document.getElementById("custom_claude_endpoint").value.trim();
-		if(claude_ep.toLowerCase().includes("api.anthropic.com"))
-		{
-			//official API has broken cors settings
-			claude_ep = apply_proxy_url(claude_ep,true);
-		}
+
 		if(desired_claude_key=="")
 		{
 			msgbox("Claude requires an API key to fetch model list!");
 			return;
+		}
+
+		if (document.getElementById("claudeaddversion").checked)
+		{
+			if (claude_ep != "" && claude_ep.length > 4 && !claude_ep.slice(-4).toLowerCase().includes("/v")) {
+				claude_ep = claude_ep + "/v1";
+			}
 		}
 
 		let dropdown = document.getElementById("custom_claude_model");
@@ -11239,6 +11265,7 @@ Current version indicated by LITEVER below.
 			headers: {
 				'Content-Type': 'application/json',
 				'anthropic-version':'2023-06-01',
+				'anthropic-dangerous-direct-browser-access':true,
 				'x-api-key': desired_claude_key,
 			},
 			referrerPolicy: 'no-referrer',
@@ -11398,10 +11425,12 @@ Current version indicated by LITEVER below.
 		let dropdown = get_custom_ep_model_dropdown();
 		let fetchurl = desired_oai_ep + oai_models_endpoint;
 		let epchoice = document.getElementById("customapidropdown").value;
-		if(epchoice==2 && !is_local_url(desired_oai_ep) && document.getElementById("corsproxy_oai").checked)
+
+		if((epchoice==2 && !is_local_url(desired_oai_ep) && document.getElementById("corsproxy_oai").checked) || fetchurl.toLowerCase().includes("api.nvidia.com"))
 		{
 			fetchurl = cors_proxy + "?" + fetchurl; //temp cors proxy if selected
 		}
+
 		fetch(fetchurl, {
 			method: 'GET',
 			headers: oaiheaders,
@@ -11501,6 +11530,7 @@ Current version indicated by LITEVER below.
 		document.getElementById("custom_openrouter_model").classList.add("hidden");
 		document.getElementById("custom_mistralai_model").classList.add("hidden");
 		document.getElementById("custom_featherless_model").classList.add("hidden");
+		document.getElementById("custom_nvidianim_model").classList.add("hidden");
 		document.getElementById("custom_grok_model").classList.add("hidden");
 		document.getElementById("custom_pollinations_model").classList.add("hidden");
 		document.getElementById("hordeloadmodelcontainer").classList.add("hidden");
@@ -11520,7 +11550,7 @@ Current version indicated by LITEVER below.
 				document.getElementById("customkoboldkey").value = localsettings.saved_kai_key;
 			}
 		}
-		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10)
+		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10 || epchoice==11)
 		{
 			document.getElementById("oaicustom").classList.remove("hidden");
 			document.getElementById("custom_oai_endpoint").classList.add("hidden");
@@ -11528,6 +11558,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("openrouterdesc").classList.add("hidden");
 			document.getElementById("mistralaidesc").classList.add("hidden");
 			document.getElementById("featherlessdesc").classList.add("hidden");
+			document.getElementById("nvidianimdesc").classList.add("hidden");
 			document.getElementById("grokdesc").classList.add("hidden");
 			document.getElementById("oaidesc").classList.add("hidden");
 			document.getElementById("pollinationsdesc").classList.add("hidden");
@@ -11584,6 +11615,14 @@ Current version indicated by LITEVER below.
 				document.getElementById("custom_oai_key").value = dummy_api_key;
 				document.getElementById("custom_oai_endpoint").value = pollinations_text_endpoint;
 				document.getElementById("custom_oai_key").classList.add("hidden");
+				try_fetch_oai_models_auto();
+			}
+			else if(epchoice==11)
+			{
+				document.getElementById("custom_nvidianim_model").classList.remove("hidden");
+				document.getElementById("nvidianimdesc").classList.remove("hidden");
+				document.getElementById("custom_oai_key").value = (localsettings.saved_nvidianim_key==dummy_api_key?"":localsettings.saved_nvidianim_key);
+				document.getElementById("custom_oai_endpoint").value = default_nvidianim_base;
 				try_fetch_oai_models_auto();
 			}
 			oai_model_change(ep_should_always_use_chat_completions() || force_autotoggle_chatcompl);
@@ -12050,7 +12089,7 @@ Current version indicated by LITEVER below.
 				});
 			}
 		}
-		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10) //connect to OAI / OpenRouter / MistralAI / Featherless / Grok Endpoint
+		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10 || epchoice==11) //connect to OAI / OpenRouter / MistralAI / Featherless / Grok Endpoint / NvidiaNim
 		{
 			let desired_oai_key = document.getElementById("custom_oai_key").value.trim();
 			let desired_oai_ep = document.getElementById("custom_oai_endpoint").value.trim();
@@ -12089,7 +12128,7 @@ Current version indicated by LITEVER below.
 					localsettings.saved_oai_key = custom_oai_key;
 					localsettings.saved_oai_addr = custom_oai_endpoint;
 
-					if(!is_local_url(custom_oai_endpoint) && document.getElementById("corsproxy_oai").checked)
+					if((!is_local_url(custom_oai_endpoint) && document.getElementById("corsproxy_oai").checked) || custom_oai_endpoint.toLowerCase().includes("api.nvidia.com"))
 					{
 						uses_cors_proxy = true;
 					}
@@ -12109,6 +12148,11 @@ Current version indicated by LITEVER below.
 				else if(epchoice==10)
 				{
 					localsettings.saved_pollinations_key = dummy_api_key; //placeholder key, not actually used
+				}
+				else if(epchoice==11)
+				{
+					localsettings.saved_nvidianim_key = custom_oai_key;
+					uses_cors_proxy = true;
 				}
 				else
 				{
@@ -12182,11 +12226,6 @@ Current version indicated by LITEVER below.
 			if(desired_claude_key!="" && desired_claude_ep!="")
 			{
 				dismiss_endpoint_container();
-
-				if(desired_claude_ep.toLowerCase().includes("api.anthropic.com"))
-				{
-					document.getElementById("connectstatusproxied").classList.remove("hidden");
-				}
 
 				//good to go
 				custom_claude_endpoint = desired_claude_ep;
@@ -15588,6 +15627,34 @@ Current version indicated by LITEVER below.
 		}
 		else if(is_using_kcpp_with_streaming())
 		{
+			//if logprobs used, request last
+			if(localsettings.request_logprobs && last_response_obj==null)
+			{
+				fetch(apply_proxy_url(custom_kobold_endpoint + koboldcpp_logprobs_endpoint), {
+					method: 'POST',
+					headers: get_kobold_header(),
+					body: JSON.stringify({
+					"genkey": lastcheckgenkey
+					}),
+				})
+				.then((response) => response.json())
+				.then((data) => {
+					//makes sure a delayed response doesnt arrive late and mess up
+					if (data && data.logprobs != null && last_response_obj==null) {
+						//fake a last response obj
+						let fakedresponse = {
+							"artificial_response": true,
+							"results":[{"logprobs":data.logprobs}]
+						};
+						last_response_obj = fakedresponse;
+						update_logprobs_link();
+					}
+				})
+				.catch((error) => {
+					console.error('Error:', error);
+				});
+			}
+
 			//we can use abort functions
 			fetch(apply_proxy_url(custom_kobold_endpoint + koboldcpp_abort_endpoint), {
 			method: 'POST', // or 'PUT'
@@ -18205,11 +18272,6 @@ Current version indicated by LITEVER below.
 				|| custom_claude_model.toLowerCase().includes("claude-opus-4");
 				let actualep = (custom_claude_endpoint + (claudev3mode?claude_submit_endpoint_v3:claude_submit_endpoint));
 				let targetep = actualep;
-				if(custom_claude_endpoint.toLowerCase().includes("api.anthropic.com"))
-				{
-					//official API has broken cors settings
-					targetep = apply_proxy_url(actualep,true);
-				}
 				let claude_payload = null;
 				if(claudev3mode)
 				{
@@ -18306,6 +18368,7 @@ Current version indicated by LITEVER below.
 					'Content-Type': 'application/json',
 					'x-api-key': custom_claude_key,
 					'Authorization': 'Bearer '+custom_claude_key,
+					'anthropic-dangerous-direct-browser-access': true,
 				};
 				if(claudev3mode)
 				{
@@ -19856,13 +19919,23 @@ Current version indicated by LITEVER below.
 		{
 			shownotify();
 		}
-		let kcpp_has_logprobs = (last_response_obj!=null && last_response_obj.results && last_response_obj.results.length > 0 && last_response_obj.results[0].logprobs!=null);
-		let oai_has_logprobs = (last_response_obj!=null && last_response_obj.choices && last_response_obj.choices.length > 0 && last_response_obj.choices[0].logprobs!=null);
-		let lastresp = ` <a href="#" class="color_blueurl" onclick="show_last_logprobs()">(View Logprobs)</a>`;
-		let lastreq = `<a href="#" onclick="show_last_req()">Last request</a> served by <a href="#" onclick="get_and_show_workers()">${genworker}</a> using <span class="color_darkgreen">${genmdl}</span>${(genkudos>0?` for ${genkudos} kudos`:``)} in ${get_time_taken()} seconds.${(last_response_obj!=null && (kcpp_has_logprobs || oai_has_logprobs)?lastresp:"")}`;
+
+		let genworkertxt = (genworker=="Custom Endpoint")?`<a href="#" onclick="get_and_show_workers()">${genworker}</a>`:`${genworker}`;
+		let lastreq = `<a href="#" onclick="show_last_req()">Last request</a> served by ${genworkertxt} using <span class="color_darkgreen">${genmdl}</span>${(genkudos>0?` for ${genkudos} kudos`:``)} in ${get_time_taken()} seconds.`;
 		document.getElementById("lastreq1").innerHTML = lastreq;
 		document.getElementById("lastreq2").innerHTML = lastreq;
 		document.getElementById("lastreq3").innerHTML = lastreq;
+		document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
+		update_logprobs_link();
+	}
+
+	function update_logprobs_link()
+	{
+		let lastresp = ` <a href="#" class="color_blueurl" onclick="show_last_logprobs()">(View Logprobs)</a>`;
+		let kcpp_has_logprobs = (last_response_obj!=null && last_response_obj.results && last_response_obj.results.length > 0 && last_response_obj.results[0].logprobs!=null);
+		let oai_has_logprobs = (last_response_obj!=null && last_response_obj.choices && last_response_obj.choices.length > 0 && last_response_obj.choices[0].logprobs!=null);
+		let lastresptxt = `${(last_response_obj!=null && (kcpp_has_logprobs || oai_has_logprobs)?lastresp:"")}`;
+		document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = lastresptxt;
 	}
 
 	function poll_interrogation_db()
@@ -23107,6 +23180,9 @@ Current version indicated by LITEVER below.
 			}else if(custom_oai_endpoint.toLowerCase().includes("text.pollinations.ai"))
 			{
 				localsettings.prev_custom_endpoint_type = 10;
+			}else if(custom_oai_endpoint.toLowerCase().includes("api.nvidia.com"))
+			{
+				localsettings.prev_custom_endpoint_type = 11;
 			}
 		}
 		else if(custom_claude_key!="")
@@ -25471,7 +25547,7 @@ Current version indicated by LITEVER below.
 				</div>
 			</div>
 		</div>
-		<div class="lastreq color_gray" id="lastreq1"></div>
+		<div class="lastreq color_gray"><span id="lastreq1"></span><span id="lastreq1lp"></span></div>
 		</div>
 
 		<div id="enhancedchatinterface" class="chat_mesgs hidden">
@@ -25506,7 +25582,7 @@ Current version indicated by LITEVER below.
 					</div>
 				</div>
 
-				<div class="lastreq color_gray" id="lastreq2"></div>
+				<div class="lastreq color_gray"><span id="lastreq2"></span><span id="lastreq2lp"></span></div>
 			</div>
 		</div>
 
@@ -25543,7 +25619,7 @@ Current version indicated by LITEVER below.
 							<button title="Submit" onclick="submit_generation_button(true)" id="corpo_chat_send_btn" class="corpo_chat_send_btn mainnav" type="button"></button>
 							<button title="Abort" onclick="abort_generation()" id="corpo_chat_send_btn_abort" class="hidden corpo_chat_send_btn_abort mainnav" type="button"></button>
 						</div>
-						<div id="lastreq3" class="corpolastreq color_gray"></div>
+						<div class="corpolastreq color_gray"><span id="lastreq3"></span><span id="lastreq3lp"></span></div>
 					</div>
 				</div>
 			</div>
@@ -27295,6 +27371,7 @@ Current version indicated by LITEVER below.
 				<option value="8">Featherless API</option>
 				<option value="9">Grok API</option>
 				<option value="10">PollinationsAI API</option>
+				<option value="11">Nvidia NIM API</option>
 			</select>
 			</div>
 
@@ -27384,6 +27461,11 @@ Current version indicated by LITEVER below.
 				Pollinations.ai API is free to use without any key required.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">No Key Required.</span><br><br>
+				</span>
+				<span id="nvidianimdesc" class="hidden">
+				Entering your Nvidia NIM API key will allow you to use KoboldAI Lite with their API.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. Due to CORS restrictions, your connection WILL be proxied.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				<span class="color_green" style="font-weight: bold;">Please input Nvidia NIM Key.</span><br><br>
 				</span>
 
 				<input class="form-control" type="text" id="custom_oai_endpoint" placeholder="OpenAI API URL" value="" onblur="">
@@ -27486,6 +27568,17 @@ Current version indicated by LITEVER below.
 					<option value="bidara">bidara</option>
 					<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
 				</select>
+				<select title="Nvidia NIM AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_nvidianim_model" onchange="oai_model_change(true)">
+					<option value="bytedance/seed-oss-36b-instruct">bytedance/seed-oss-36b-instruct</option>
+					<option value="deepseek-ai/deepseek-v3.1-terminus">deepseek-ai/deepseek-v3.1-terminus</option>
+					<option value="google/gemma-3-27b-it">google/gemma-3-27b-it</option>
+					<option value="meta/llama-3.3-70b-instruct">meta/llama-3.3-70b-instruct</option>
+					<option value="mistralai/mistral-large">mistralai/mistral-large</option>
+					<option value="moonshotai/kimi-k2-instruct" selected>moonshotai/kimi-k2-instruct</option>
+					<option value="nvidia/llama-3.3-nemotron-super-49b-v1">nvidia/llama-3.3-nemotron-super-49b-v1</option>
+					<option value="qwen/qwen3-235b-a22b">qwen/qwen3-235b-a22b</option>
+				<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
+				</select>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="oaifetchlist" onclick="oai_fetch_models()">Fetch List</button>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="oaiusecustom" onclick="select_custom_oai_model()">Use Custom</button>
 				<div class="hidden" id="oaiemulatecompletionsbox">
@@ -27548,7 +27641,7 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="claudecustom" class="menutext hidden">
 				Entering your Claude API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <br><span class="color_red">At this time, the official Claude API has CORS restrictions and must be accessed with a CORS proxy. Your connection WILL be proxied.</span><br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Claude API URL and Key.</span><br><br>
 				<input class="form-control" type="text" id="custom_claude_endpoint" placeholder="Claude API URL" value="">
 				<input class="form-control" type="password" id="custom_claude_key" placeholder="Claude API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
