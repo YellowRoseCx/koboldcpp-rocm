@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 290;
+	const LITEVER = 291;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -3422,7 +3422,6 @@ Current version indicated by LITEVER below.
 	const default_oai_embeddings_endpoint = "/embeddings";
 	const default_dalle_model_name = "dall-e-3";
 
-	const claude_submit_endpoint = "/complete";
 	const claude_submit_endpoint_v3 = "/messages";
 	const claude_models_endpoint = "/models";
 
@@ -11479,22 +11478,12 @@ Current version indicated by LITEVER below.
 
 	function toggleclaudemodel()
 	{
-		if (document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-3")
-		|| document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-sonnet-4")
-		|| document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-opus-4"))
-		{
-			document.getElementById("claudesystemprompt").classList.remove("hidden");
-			document.getElementById("claudejailbreakprompt").classList.remove("hidden");
-			document.getElementById("clauderenamecompatdiv").classList.add("hidden");
-		}
-		else
-		{
-			document.getElementById("claudesystemprompt").classList.add("hidden");
-			document.getElementById("claudejailbreakprompt").classList.add("hidden");
-			document.getElementById("clauderenamecompatdiv").classList.remove("hidden");
-		}
+		document.getElementById("claudesystemprompt").classList.remove("hidden");
+		document.getElementById("claudejailbreakprompt").classList.remove("hidden");
+
 		if(document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-3-7")||
 		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-sonnet-4")||
+		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-haiku-4")||
 		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-opus-4"))
 		{
 			document.getElementById("claudethinkingbox").classList.remove("hidden");
@@ -18267,96 +18256,77 @@ Current version indicated by LITEVER below.
 			}
 			else if (custom_claude_key != "")//handle for Claude
 			{
-				let claudev3mode = custom_claude_model.toLowerCase().includes("claude-3")
-				|| custom_claude_model.toLowerCase().includes("claude-sonnet-4")
-				|| custom_claude_model.toLowerCase().includes("claude-opus-4");
-				let actualep = (custom_claude_endpoint + (claudev3mode?claude_submit_endpoint_v3:claude_submit_endpoint));
+
+				let actualep = (custom_claude_endpoint + claude_submit_endpoint_v3);
 				let targetep = actualep;
 				let claude_payload = null;
-				if(claudev3mode)
+
+				let sysprompt = document.getElementById("claudesystemprompt").value;
+				let assistantprompt = document.getElementById("claudejailbreakprompt").value;
+				let claudethinking = (document.getElementById("claudethinking").checked?true:false);
+
+				claude_payload =
 				{
-					let sysprompt = document.getElementById("claudesystemprompt").value;
-					let assistantprompt = document.getElementById("claudejailbreakprompt").value;
-					let claudethinking = (document.getElementById("claudethinking").checked?true:false);
+					"model": custom_claude_model,
+					"messages": [],
+					"max_tokens": submit_payload.params.max_length,
+					"temperature": submit_payload.params.temperature,
+				};
+				claude_payload.messages.push({"role": "user", "content": submit_payload.prompt})
+				if(sysprompt)
+				{
+					claude_payload.system = sysprompt;
+				}
 
-					claude_payload =
-					{
-						"model": custom_claude_model,
-						"messages": [],
-						"max_tokens": submit_payload.params.max_length,
-						"temperature": submit_payload.params.temperature,
-					};
-					claude_payload.messages.push({"role": "user", "content": submit_payload.prompt})
-					if(sysprompt)
-					{
-						claude_payload.system = sysprompt;
-					}
+				let claude_is_v4 = (custom_claude_model.toLowerCase().includes("claude-3-7")
+				|| custom_claude_model.toLowerCase().includes("claude-sonnet-4")
+				|| custom_claude_model.toLowerCase().includes("claude-haiku-4")
+				|| custom_claude_model.toLowerCase().includes("claude-opus-4"));
 
-					if(claudethinking && (custom_claude_model.toLowerCase().includes("claude-3-7")||custom_claude_model.toLowerCase().includes("claude-sonnet-4")||custom_claude_model.toLowerCase().includes("claude-opus-4")))
-					{
-						claude_payload.thinking = {
-							"type": "enabled",
-							"budget_tokens": 1024
-						}
-						claude_payload.max_tokens += 1024;
-						claude_payload.temperature = 1;
-					}
-					else
-					{
-						//unsupported with thinking
-						claude_payload.top_k = (submit_payload.params.top_k<1?300:submit_payload.params.top_k);
-						claude_payload.top_p = submit_payload.params.top_p;
-					}
+				let claude_is_v4_5 = (custom_claude_model.toLowerCase().includes("claude-sonnet-4-5")
+				|| custom_claude_model.toLowerCase().includes("claude-haiku-4-5")
+				|| custom_claude_model.toLowerCase().includes("claude-opus-4-1"));
 
-					if(localsettings.opmode==1)
-					{
-						claude_payload.system = "Always respond with a direct partial continuation of the story immediately from the latest word.";
-						if(sysprompt)
-						{
-							claude_payload.system = sysprompt +"\n"+ claude_payload.system;
-						}
+				if(claudethinking && claude_is_v4)
+				{
+					claude_payload.thinking = {
+						"type": "enabled",
+						"budget_tokens": 1024
 					}
-					if(assistantprompt)
-					{
-						claude_payload.messages.push({"role": "assistant", "content": assistantprompt});
-					}
-
+					claude_payload.max_tokens += 1024;
+					claude_payload.temperature = 1;
 				}
 				else
 				{
-					claude_payload =
-					{
-						"prompt": submit_payload.prompt,
-						"max_tokens_to_sample": submit_payload.params.max_length,
-						"model": custom_claude_model,
-						"top_k": (submit_payload.params.top_k<1?300:submit_payload.params.top_k),
-						"temperature": submit_payload.params.temperature,
-						"top_p": submit_payload.params.top_p,
-					};
+					//unsupported with thinking
+					claude_payload.top_k = (submit_payload.params.top_k<1?300:submit_payload.params.top_k);
+					claude_payload.top_p = submit_payload.params.top_p;
 
-					if(document.getElementById("clauderenamecompat").checked)
+					//for claude 4.5, if temperature is not 1, do not send top p
+					if(claude_is_v4_5)
 					{
-						let assistant_correct_case = "Assistant:";
-						if(!claude_payload.prompt.toLowerCase().trim().startsWith('human:'))
+						if(claude_payload.temperature == 1)
 						{
-							claude_payload.prompt = "Human: "+claude_payload.prompt;
+							delete claude_payload["temperature"];
 						}
-						if(!claude_payload.prompt.toLowerCase().trim().endsWith(assistant_correct_case.toLowerCase()))
+						else
 						{
-							if(localsettings.opmode==1)
-							{
-								claude_payload.prompt = claude_payload.prompt + " \n"+assistant_correct_case+" Here is a continuation of the story: \n"+assistant_correct_case;
-							}
-							else
-							{
-								claude_payload.prompt = claude_payload.prompt + " "+assistant_correct_case;
-							}
+							delete claude_payload["top_p"];
 						}
-						//trim end
-						claude_payload.prompt = claude_payload.prompt.replace(/[\t\r\n ]+$/, '');
-						//replace final assistant with fixed case
-						claude_payload.prompt = claude_payload.prompt.slice(0, -(assistant_correct_case.length))+assistant_correct_case;
 					}
+				}
+
+				if(localsettings.opmode==1)
+				{
+					claude_payload.system = "Always respond with a direct partial continuation of the story immediately from the latest word.";
+					if(sysprompt)
+					{
+						claude_payload.system = sysprompt +"\n"+ claude_payload.system;
+					}
+				}
+				if(assistantprompt)
+				{
+					claude_payload.messages.push({"role": "assistant", "content": assistantprompt});
 				}
 
 
@@ -18370,12 +18340,8 @@ Current version indicated by LITEVER below.
 					'Authorization': 'Bearer '+custom_claude_key,
 					'anthropic-dangerous-direct-browser-access': true,
 				};
-				if(claudev3mode)
-				{
-					claudeheaders["anthropic-version"] = '2023-06-01';
-				}else{
-					claudeheaders["anthropic-version"] = '2023-01-01';
-				}
+
+				claudeheaders["anthropic-version"] = '2023-06-01';
 
 				fetch(targetep, {
 					method: 'POST',
@@ -27502,11 +27468,12 @@ Current version indicated by LITEVER below.
 				<select title="OpenRouter AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_openrouter_model" onchange="oai_model_change(true)">
 					<option value="openai/gpt-3.5-turbo">openai/gpt-3.5-turbo</option>
 					<option value="openai/gpt-4">openai/gpt-4</option>
+					<option value="openai/gpt-4o">openai/gpt-4o</option>
+					<option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>
+					<option value="openai/gpt-5">openai/gpt-5</option>
 					<option value="openai/gpt-3.5-turbo-instruct">openai/gpt-3.5-turbo-instruct</option>
 					<option value="mistralai/mistral-7b-instruct" selected="selected">mistralai/mistral-7b-instruct</option>
 					<option value="gryphe/mythomax-l2-13b">gryphe/mythomax-l2-13b</option>
-					<option value="huggingfaceh4/zephyr-7b-beta">huggingfaceh4/zephyr-7b-beta</option>
-					<option value="anthropic/claude-2.0">anthropic/claude-2.0</option>
 					<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
 				</select>
 				<select title="Mistral AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_mistralai_model" onchange="oai_model_change(true)">
@@ -27648,31 +27615,22 @@ Current version indicated by LITEVER below.
 				<input class="form-control" type="password" id="custom_claude_key" placeholder="Claude API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
 				Model Choice:<br>
 				<select title="Claude AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_claude_model"  onload="toggleclaudemodel()"  onchange="toggleclaudemodel()">
-					<option value="claude-v1">claude-v1</option>
-					<option value="claude-v1-100k">claude-v1-100k</option>
-					<option value="claude-instant-v1">claude-instant-v1</option>
-					<option value="claude-instant-v1-100k">claude-instant-v1-100k</option>
-					<option value="claude-2">claude-2</option>
-					<option value="claude-2.1">claude-2.1</option>
-					<option value="claude-2.0">claude-2.0</option>
-					<option value="claude-3-opus-20240229">claude-3-opus</option>
-					<option value="claude-3-sonnet-20240229">claude-3-sonnet</option>
-					<option value="claude-3-haiku-20240307">claude-3-haiku</option>
+					<option value="claude-3-opus-20240229">claude-3-opus-20240229</option>
+					<option value="claude-3-sonnet-20240229">claude-3-sonnet-20240229</option>
+					<option value="claude-3-haiku-20240307">claude-3-haiku-20240307</option>
 					<option value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620</option>
 					<option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022</option>
-					<option value="claude-3-5-sonnet-latest" selected="selected">claude-3-5-sonnet-latest</option>
+					<option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
 					<option value="claude-3-5-haiku-20241022">claude-3-5-haiku-20241022</option>
 					<option value="claude-3-7-sonnet-20250219">claude-3-7-sonnet-20250219</option>
-					<option value="claude-sonnet-4-latest">claude-sonnet-4-latest</option>
+					<option value="claude-sonnet-4-latest" selected="selected">claude-sonnet-4-latest</option>
 					<option value="claude-opus-4-latest">claude-opus-4-latest</option>
+					<option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001</option>
+					<option value="claude-sonnet-4-5-20250929">claude-sonnet-4-5-20250929</option>
 				</select>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="claudefetchlist" onclick="claude_fetch_models()">Fetch List</button>
 				<input type="checkbox" title="Add endpoint version" id="claudeaddversion" onchange="" checked>
 				<div class="box-label" title="Add endpoint version">Add Endpoint Version</div>
-				<span id="clauderenamecompatdiv">
-				<input type="checkbox" title="Claude Compatibility Rename Fix" id="clauderenamecompat" onchange="" checked>
-				<div class="box-label" title="Rename User and Bot tags to work with claude, force inject them otherwise">Claude Compatibility Rename Fix</div>
-				</span>
 
 				<textarea class="form-control hidden" title="Claude System Prompt" rows="2" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="claudesystemprompt" placeholder="(Enter System Prompt, which steers overall AI behavior.)"
 				value="" onload=""></textarea>
