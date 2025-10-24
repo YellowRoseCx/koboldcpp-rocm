@@ -56,7 +56,7 @@ struct load_model_inputs
     const int clblast_info = 0;
     const int kcpp_main_gpu = 0;
     const char * vulkan_info = nullptr;
-    const int blasbatchsize = 512;
+    const int batchsize = 512;
     const int forceversion = 0;
     const int gpulayers = 0;
     const float rope_freq_scale = 1.0f;
