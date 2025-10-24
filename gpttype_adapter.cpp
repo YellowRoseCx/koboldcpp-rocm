@@ -2281,14 +2281,18 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             kvo.val_i64 = inputs.moe_experts;
             kvos.push_back(kvo);
         }
-        std::string override_kv = inputs.override_kv;
-        if(override_kv != "" && file_format==FileFormat::GGUF_GENERIC)
+        for(int x=0;x<overridekv_max;++x)
         {
-            printf("\nAttempting to apply KV override: %s...\n",override_kv.c_str());
-            bool kvo_ok = string_parse_kv_override(override_kv.c_str(),kvos);
-            LLAMA_LOG_INFO("\nKV override parse: %s\n",(kvo_ok?"success":"failed"));
-            fflush(stdout);
+            std::string override_kv = inputs.override_kv[x];
+            if(override_kv != "" && file_format==FileFormat::GGUF_GENERIC)
+            {
+                printf("\nAttempting to apply KV override: %s...\n",override_kv.c_str());
+                bool kvo_ok = string_parse_kv_override(override_kv.c_str(),kvos);
+                LLAMA_LOG_INFO("\nKV override parse: %s\n",(kvo_ok?"success":"failed"));
+                fflush(stdout);
+            }
         }
+
         if(kvos.size()>0)
         {
             kvos.emplace_back();

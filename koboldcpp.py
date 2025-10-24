@@ -55,13 +55,14 @@ net_save_slots = 12
 savestate_limit = 3 #3 savestate slots
 default_vae_tile_threshold = 768
 default_native_ctx = 16384
+overridekv_max = 4
 
 # abuse prevention
 stop_token_max = 256
 ban_token_max = 768
 logit_bias_max = 512
 dry_seq_break_max = 128
-extra_images_max = 4
+extra_images_max = 4 # for kontext/qwen img
 
 # global vars
 KcppVersion = "1.101"
@@ -201,7 +202,7 @@ class load_model_inputs(ctypes.Structure):
                 ("moecpu", ctypes.c_int),
                 ("no_bos_token", ctypes.c_bool),
                 ("load_guidance", ctypes.c_bool),
-                ("override_kv", ctypes.c_char_p),
+                ("override_kv", ctypes.c_char_p * overridekv_max),
                 ("override_tensors", ctypes.c_char_p),
                 ("flash_attention", ctypes.c_bool),
                 ("tensor_split", ctypes.c_float * tensor_split_max),
@@ -1446,7 +1447,17 @@ def load_model(model_filename):
     inputs.moe_experts = args.moeexperts
     inputs.no_bos_token = args.nobostoken
     inputs.load_guidance = args.enableguidance
-    inputs.override_kv = args.overridekv.encode("UTF-8") if args.overridekv else "".encode("UTF-8")
+    okv = []
+    if args.overridekv and str(args.overridekv).count(",")>0 and str(args.overridekv).count("=")>1 and str(args.overridekv).count(":")==str(args.overridekv).count("="):
+        okv = [x.strip() for x in str(args.overridekv).split(",")]
+        okv = [item for item in okv if item and item.strip()]
+    elif args.overridekv:
+        okv = [args.overridekv]
+    for n in range(overridekv_max):
+        if not okv or n >= len(okv):
+            inputs.override_kv[n] = "".encode("UTF-8")
+        else:
+            inputs.override_kv[n] = okv[n].encode("UTF-8")
     inputs.override_tensors = args.overridetensors.encode("UTF-8") if args.overridetensors else "".encode("UTF-8")
     inputs.moecpu = (200 if args.moecpu > 200 else args.moecpu)
     inputs.check_slowness = (not args.highpriority and os.name == 'nt' and 'Intel' in platform.processor())
@@ -5454,8 +5465,8 @@ def show_gui():
     makecheckbox(tokens_tab, "Enable Guidance", enableguidance_var, 43,padx=(200 if corrupt_scaler else 140), tooltiptxt="Enables the use of Classifier-Free-Guidance, which allows the use of negative prompts. Has performance and memory impact.")
     makelabelentry(tokens_tab, "MoE Experts:", moeexperts_var, row=55, padx=(220 if corrupt_scaler else 120), singleline=True, tooltip="Override number of MoE experts.")
     makelabelentry(tokens_tab, "MoE CPU Layers:", moecpu_var, row=55, padx=(490 if corrupt_scaler else 320), singleline=True, tooltip="Keep Mixture of Experts (MoE) weights of the first N layers in the CPU.", labelpadx=(300 if corrupt_scaler else 210))
-    makelabelentry(tokens_tab, "Override KV:", override_kv_var, row=57, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Advanced option to override model metadata by key, same as in llama.cpp. Mainly for debugging, not intended for general use. Types: int, float, bool, str")
-    makelabelentry(tokens_tab, "Override Tensors:", override_tensors_var, row=59, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Advanced option to override tensor backend selection, same as in llama.cpp.")
+    makelabelentry(tokens_tab, "Override KV:", override_kv_var, row=57, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Override metadata value by key. Separate multiple values with commas. Format is name=type:value. Types: int, float, bool, str")
+    makelabelentry(tokens_tab, "Override Tensors:", override_tensors_var, row=59, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Override selected backend for specific tensors matching tensor_name_regex_pattern=buffer_type, same as in llama.cpp.")
 
     # Model Tab
     model_tab = tabcontent["Loaded Files"]
@@ -7885,8 +7896,8 @@ if __name__ == '__main__':
     advparser.add_argument("--nobostoken", help="Prevents BOS token from being added at the start of any prompt. Usually NOT recommended for most models.", action='store_true')
     advparser.add_argument("--enableguidance", help="Enables the use of Classifier-Free-Guidance, which allows the use of negative prompts. Has performance and memory impact.", action='store_true')
     advparser.add_argument("--maxrequestsize", metavar=('[size in MB]'), help="Specify a max request payload size. Any requests to the server larger than this size will be dropped. Do not change if unsure.", type=int, default=32)
-    advparser.add_argument("--overridekv","--override-kv", metavar=('[name=type:value]'), help="Advanced option to override a metadata by key, same as in llama.cpp. Mainly for debugging, not intended for general use. Types: int, float, bool, str", default="")
-    advparser.add_argument("--overridetensors","--override-tensor","-ot", metavar=('[tensor name pattern=buffer type]'), help="Advanced option to override tensor backend selection, same as in llama.cpp.", default="")
+    advparser.add_argument("--overridekv","--override-kv", metavar=('[name=type:value]'), help="Override metadata value by key. Separate multiple values with commas. Format is name=type:value. Types: int, float, bool, str", default="")
+    advparser.add_argument("--overridetensors","--override-tensor","-ot", metavar=('[tensor name pattern=buffer type]'), help="Override selected backend for specific tensors matching tensor_name_regex_pattern=buffer_type, same as in llama.cpp.", default="")
     compatgroup2 = parser.add_mutually_exclusive_group()
     compatgroup2.add_argument("--showgui", help="Always show the GUI instead of launching the model right away when loading settings from a .kcpps file.", action='store_true')
     compatgroup2.add_argument("--skiplauncher", help="Doesn't display or use the GUI launcher. Overrides showgui.", action='store_true')
