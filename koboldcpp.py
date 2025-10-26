@@ -2853,6 +2853,14 @@ def LaunchWebbrowser(target_url, failedmsg):
             print(failedmsg)
             print(f"Please manually open your browser to {target_url}")
 
+def get_my_epurl():
+    global sslvalid
+    httpsaffix = ("https" if sslvalid else "http")
+    epurl = f"{httpsaffix}://localhost:{args.port}"
+    if args.host!="":
+        epurl = f"{httpsaffix}://{args.host}:{args.port}"
+    return epurl
+
 #################################################################
 ### A hacky simple HTTP server simulating a kobold api by Concedo
 ### we are intentionally NOT using flask, because we want MINIMAL dependencies
@@ -3236,10 +3244,7 @@ class KcppServerRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 if max_length>512:
                     max_length = 512
-                httpsaffix = ("https" if sslvalid else "http")
-                epurl = f"{httpsaffix}://localhost:{args.port}"
-                if args.host!="":
-                    epurl = f"{httpsaffix}://{args.host}:{args.port}"
+                epurl = get_my_epurl()
                 if imgmode and imgprompt:
                     gen_payload = {"prompt":{"3":{"class_type": "KSampler","inputs":{"cfg":cfg,"steps":steps,"latent_image":["5", 0],"positive": ["6", 0]}},"5":{"class_type": "EmptyLatentImage","inputs":{"height":512,"width":512}},"6":{"class_type": "CLIPTextEncode","inputs":{"text":imgprompt}}}}
                     respjson = make_url_request(f'{epurl}/prompt', gen_payload)
@@ -3492,6 +3497,21 @@ Change Mode<br>
            response_body = (json.dumps([]).encode())
         elif self.path.endswith('/sdapi/v1/upscalers'):
            response_body = (json.dumps([]).encode())
+
+        #vits compatible
+        elif self.path.startswith('/voice/check?'):
+            response_body = (json.dumps({"id":4,"lang":["en"],"name":"KoboldCppTTS","status":"success"}).encode())
+        elif self.path=='/voice/speakers':
+            response_body = (json.dumps({"VITS":[{"id":4,"lang":["en"],"name":"KoboldCppTTS"}]}).encode())
+        elif self.path.startswith('/voice/vits?'):
+            parsed_url = urllib.parse.urlparse(self.path)
+            parsed_dict = urllib.parse.parse_qs(parsed_url.query)
+            prompt = str(parsed_dict['text'][0]) if 'text' in parsed_dict else ""
+            if prompt:
+                epurl = get_my_epurl()
+                content_type = 'audio/wav'
+                response_body = make_url_request(f'{epurl}/api/extra/tts', {"input": prompt})
+            pass
 
         elif self.path.endswith('/speakers_list'): #xtts compatible
             response_body = (json.dumps(["kobo","cheery","sleepy","shouty","chatty"]).encode()) #some random voices for them to enjoy
@@ -6248,9 +6268,13 @@ def make_url_request(url, data, method='POST', headers={}, timeout=300):
             request = urllib.request.Request(url, headers=headers, method=method)
         response_data = ""
         with urllib.request.urlopen(request,timeout=timeout) as response:
-            response_data = response.read().decode('utf-8',"ignore")
-            json_response = json.loads(response_data)
-            return json_response
+            content_type = response.headers.get('Content-Type', '')
+            response_data = response.read()
+            if 'audio/wav' in content_type:
+                return response_data #raw binary
+            else:
+                json_response = json.loads(response_data.decode('utf-8',"ignore"))
+                return json_response
     except urllib.error.HTTPError as e:
         try:
             errmsg = e.read().decode('utf-8',"ignore")
@@ -6265,10 +6289,7 @@ def make_url_request(url, data, method='POST', headers={}, timeout=300):
 #A very simple and stripped down embedded horde worker with no dependencies
 def run_horde_worker(args, api_key, worker_name):
     global friendlymodelname, maxhordectx, maxhordelen, exitcounter, punishcounter, modelbusy, session_starttime, sslvalid
-    httpsaffix = ("https" if sslvalid else "http")
-    epurl = f"{httpsaffix}://localhost:{args.port}"
-    if args.host!="":
-        epurl = f"{httpsaffix}://{args.host}:{args.port}"
+    epurl = get_my_epurl()
 
     def submit_completed_generation(url, jobid, sessionstart, submit_dict):
         global exitcounter, punishcounter, session_kudos_earned, session_jobs, rewardcounter
