@@ -742,6 +742,12 @@ class TextModel(ModelBase):
         if (n_experts_used := self.hparams.get("num_experts_per_tok")) is not None:
             self.gguf_writer.add_expert_used_count(n_experts_used)
             logger.info(f"gguf: experts used count = {n_experts_used}")
+        if (n_expert_groups := self.hparams.get("n_group")) is not None:
+            self.gguf_writer.add_expert_group_count(n_expert_groups)
+            logger.info(f"gguf: expert groups count = {n_expert_groups}")
+        if (n_group_used := self.hparams.get("topk_group")) is not None:
+            self.gguf_writer.add_expert_group_used_count(n_group_used)
+            logger.info(f"gguf: expert groups used count = {n_group_used}")
 
         if (head_dim := self.hparams.get("head_dim")) is not None:
             self.gguf_writer.add_key_length(head_dim)
@@ -1496,6 +1502,17 @@ class MmprojModel(ModelBase):
 
     def set_type(self):
         self.gguf_writer.add_type(gguf.GGUFType.MMPROJ)
+
+    def prepare_metadata(self, vocab_only: bool):
+        super().prepare_metadata(vocab_only=vocab_only)
+
+        output_type: str = self.ftype.name.partition("_")[2]
+
+        if self.fname_out.is_dir():
+            fname_default: str = gguf.naming_convention(self.metadata.name, self.metadata.basename, self.metadata.finetune, self.metadata.version, size_label=None, output_type=output_type, model_type=None)
+            self.fname_out = self.fname_out / f"mmproj-{fname_default}.gguf"
+        else:
+            self.fname_out = self.fname_out.parent / gguf.fill_templated_filename(self.fname_out.name, output_type)
 
     def set_gguf_parameters(self):
         self.gguf_writer.add_file_type(self.ftype)
@@ -8222,8 +8239,6 @@ class BailingMoeV2Model(TextModel):
         self.gguf_writer.add_expert_weights_scale(hparams["routed_scaling_factor"])
         self.gguf_writer.add_expert_count(hparams["num_experts"])
         self.gguf_writer.add_expert_shared_count(hparams["num_shared_experts"])
-        self.gguf_writer.add_expert_group_count(hparams["n_group"])
-        self.gguf_writer.add_expert_group_used_count(hparams["topk_group"])
         self.gguf_writer.add_expert_weights_norm(hparams["norm_topk_prob"])
 
         if hparams["score_function"] == "sigmoid":
@@ -9728,10 +9743,6 @@ def main() -> None:
         fname_out = dir_model
 
     logger.info(f"Loading model: {dir_model.name}")
-
-    if args.mmproj:
-        if "mmproj" not in fname_out.name:
-            fname_out = ModelBase.add_prefix_to_filename(fname_out, "mmproj-")
 
     is_mistral_format = args.mistral_format
     if is_mistral_format and not _mistral_common_installed:
