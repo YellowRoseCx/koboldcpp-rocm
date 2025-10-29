@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 292;
+	const LITEVER = 293;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -2935,7 +2935,12 @@ Current version indicated by LITEVER below.
 	const get_instructsysplaceholder_end = ()=>{if(localsettings.raw_instruct_tags){return get_instruct_systag_end(false);};return instructsysplaceholder_end;}
 	function is_on_mobile()
 	{
-		return (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1 || window.innerWidth <= 768);
+		const hasTouch = 'ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0;
+		const isCoarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : hasTouch;
+		const isSmallScreen = window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth <= 768;
+		const isLikelyMobile = hasTouch && (isCoarsePointer || isSmallScreen);
+		const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+		return isLikelyMobile || isMobileUA;
 	}
 
 	// list of all preinstalled quick start scenarios
@@ -3502,8 +3507,10 @@ Current version indicated by LITEVER below.
 	const dummy_api_key = "kobo";
 
 	//for optionally uploading content to share on dpaste
-	const dpaste_submit_endpoint = "https://dpaste.org/api/";
-	const dpaste_fetch_endpoint = "https://dpaste.org/";
+	const dpaste_org_submit_endpoint = "https://dpaste.org/api/";
+	const dpaste_com_submit_endpoint = "https://dpaste.com/api/";
+	const dpaste_org_fetch_endpoint = "https://dpaste.org/";
+	const dpaste_com_fetch_endpoint = "https://dpaste.com/";
 
 	//support for quick news updates
 	const horde_news_endpoint = "https://hordenews.concedo.workers.dev"
@@ -6095,7 +6102,7 @@ Current version indicated by LITEVER below.
 					}
 					if(was_empty && synchro_pending_stream!="")
 					{
-						render_gametext(false);
+						render_gametext(false,false);
 					}
 					else
 					{
@@ -6471,7 +6478,7 @@ Current version indicated by LITEVER below.
 					}
 					if(was_empty && synchro_pending_stream!="")
 					{
-						render_gametext(false);
+						render_gametext(false,false);
 					}
 					else
 					{
@@ -7055,7 +7062,11 @@ Current version indicated by LITEVER below.
 			window.history.replaceState(null, null, window.location.pathname);
 		} else if (foundDpaste && foundDpaste != "") {
 			avoidwelcome = true;
-			let dpurl = `${dpaste_fetch_endpoint}${foundDpaste}`;
+			let dpurl = `${dpaste_org_fetch_endpoint}${foundDpaste}`;
+			if(foundDpaste.length>=8) //dpaste.com urls are longer
+			{
+				dpurl = `${dpaste_com_fetch_endpoint}${foundDpaste}`;
+			}
 			if(foundDpaste.includes(".")||foundDpaste.includes("/"))
 			{
 				dpurl = `${foundDpaste}`;
@@ -7065,7 +7076,7 @@ Current version indicated by LITEVER below.
 				}
 			}
 
-			if(foundDpaste.toLowerCase().includes("dpaste.com"))
+			if(dpurl.toLowerCase().includes("dpaste.com"))
 			{
 				dpurl = `${dpurl}.txt`
 			}
@@ -8053,6 +8064,10 @@ Current version indicated by LITEVER below.
 			const params = new URLSearchParams();
 			params.append("content", cstoryjson);
 			params.append("expires", expiry);
+			if(serverurl.toLowerCase().includes("dpaste.com"))
+			{
+				params.append("expiry_days",Math.ceil(expiry/86400));
+			}
 			fetch(serverurl, {
 				method: 'POST',
 				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -8069,7 +8084,7 @@ Current version indicated by LITEVER below.
 			})
 			.then((text) => {
 				let pasteurl = replaceAll(text,"\"","");
-				if(dpaste_submit_endpoint==serverurl)
+				if(dpaste_org_submit_endpoint==serverurl || dpaste_com_submit_endpoint==serverurl)
 				{
 					pasteurl = pasteurl.split("/");
 					pasteurl = pasteurl[pasteurl.length-1];
@@ -20940,7 +20955,7 @@ Current version indicated by LITEVER below.
 											synchro_pending_stream = data.results[0].text;
 											if(was_empty && synchro_pending_stream!="")
 											{
-												render_gametext(false); // don't autosave while streaming
+												render_gametext(false,false); // don't autosave while streaming
 											}
 											else
 											{
@@ -20993,7 +21008,7 @@ Current version indicated by LITEVER below.
 						last_stop_reason = "";
 						synchro_pending_stream = "";
 						show_abort_button(false);
-						render_gametext();
+						render_gametext(true,false); //only scroll to bottom if autoscroll is on
 						sync_multiplayer(false);
 					}
 					if(synchro_polled_respimg)
@@ -21602,7 +21617,7 @@ Current version indicated by LITEVER below.
 			let box2 = document.getElementById("chat_msg_body");
 			let box3 = document.getElementById("corpostylemain");
 			function isScrolledToBottom(element) {
-				return element.scrollHeight - element.scrollTop - element.clientHeight <= 120;
+				return element.scrollHeight - element.scrollTop - element.clientHeight <= 100;
 			}
 			if(alwaysscroll || isScrolledToBottom(box1))
 			{
@@ -28100,17 +28115,17 @@ Current version indicated by LITEVER below.
 			<div id="shareasurl" class="hidden">
 			<div class="inlinelabel">
 			<h3>Please Note</h3>
-			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.org/about/" target="_blank" class="color_blueurl">dpaste.org</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
+			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.com/about/" target="_blank" class="color_blueurl">dpaste.com</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
 			<p>Once shared, the file will be available online, and cannot be removed until it expires! Therefore, you're not recommended to use this service for any senstive content.</p>
-			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.org, you are personally responsible for whatever you upload or share to their service.</p>
+			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.com, you are personally responsible for whatever you upload or share to their service.</p>
 			<div style="width:100%">
-			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.org/api/" id="dpaste_server_url">
+			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.com/api/" id="dpaste_server_url">
 			<select class="form-control" id="dpaste_duration" style="width:100%">
 				<option value="3600">Expires in 1 hour</option>
 				<option value="86400" selected>Expires in 1 day</option>
 				<option value="604800">Expires in 1 week</option>
 				<option value="2592000">Expires in 1 month</option>
-				<option value="never">Permanent</option>
+				<option value="31536000">Expires in 1 year</option>
 			</select>
 			</div>
 			<div class="popupfooter">
