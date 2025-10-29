@@ -164,13 +164,19 @@ CXXV := $(shell $(CXX) --version | head -n 1)
 # For x86 based architectures
 ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686 amd64))
 ifdef LLAMA_PORTABLE
-SIMPLECFLAGS += -mavx -msse3 -mssse3
 SIMPLERCFLAGS += -msse3 -mssse3
+ifdef LLAMA_NOAVX1
+FULLCFLAGS += -msse3 -mssse3
+SIMPLECFLAGS += -msse3 -mssse3
+else
 ifdef LLAMA_NOAVX2
-FULLCFLAGS += -msse3 -mssse3 -mavx
+FULLCFLAGS += -mavx -msse3 -mssse3
+SIMPLECFLAGS += -mavx -msse3 -mssse3
 else
 FULLCFLAGS += -mavx2 -msse3 -mssse3 -mfma -mf16c -mavx
+SIMPLECFLAGS += -mavx -msse3 -mssse3
 endif # LLAMA_NOAVX2
+endif # LLAMA_NOAVX1
 else
 CFLAGS += -march=native -mtune=native
 SIMPLECFLAGS += -march=native -mtune=native
