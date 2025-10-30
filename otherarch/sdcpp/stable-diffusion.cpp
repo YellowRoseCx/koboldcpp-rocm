@@ -336,11 +336,10 @@ public:
         // kcpp fallback to separate diffusion model passed as model
         if (version == VERSION_COUNT &&
             strlen(SAFE_STR(sd_ctx_params->model_path)) > 0 &&
-            strlen(SAFE_STR(sd_ctx_params->diffusion_model_path)) == 0 &&
-            t5_path_fixed!="" )
+            strlen(SAFE_STR(sd_ctx_params->diffusion_model_path)) == 0)
         {
-            bool endswithsafetensors = ends_with(sd_ctx_params->model_path, ".safetensors");
-            if(endswithsafetensors && !model_loader.has_diffusion_model_tensors())
+            // bool endswithsafetensors = ends_with(sd_ctx_params->model_path, ".safetensors");
+            if(!model_loader.has_diffusion_model_tensors())
             {
                 LOG_INFO("SD Diffusion Model tensors missing! Fallback trying alternative tensor names...\n");
                 if (!model_loader.init_from_file(sd_ctx_params->model_path, "model.diffusion_model.")) {
