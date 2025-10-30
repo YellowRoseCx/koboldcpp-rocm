@@ -2243,7 +2243,7 @@ bool llama_model::load_tensors(llama_model_loader & ml) {
     // define a comparator for the buft -> ctx map to ensure that the order is well-defined:
     struct ggml_backend_buft_comparator {
         bool operator()(const ggml_backend_buffer_type_t & lhs, const ggml_backend_buffer_type_t & rhs) const {
-            return ggml_backend_buft_name(lhs) < ggml_backend_buft_name(rhs);
+            return strcmp(ggml_backend_buft_name(lhs), ggml_backend_buft_name(rhs)) < 0;
         }
     };
     std::map<ggml_backend_buffer_type_t, ggml_context_ptr, ggml_backend_buft_comparator> ctx_map;
@@ -19703,7 +19703,7 @@ struct llm_build_apertus : public llm_graph_context {
     }
 };
 
-llama_memory_i * llama_model::create_memory(const llama_memory_params & params, llama_cparams & cparams) const {
+llama_memory_i * llama_model::create_memory(const llama_memory_params & params, const llama_cparams & cparams) const {
     llama_memory_i * res;
 
     switch (arch) {
@@ -19754,17 +19754,13 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                         };
                     }
 
-                    const auto padding = llama_kv_cache::get_padding(cparams);
-
-                    cparams.n_ctx = GGML_PAD(cparams.n_ctx, padding);
-
                     res = new llama_memory_hybrid(
                         /* model             */ *this,
                         /* attn_type_k       */ params.type_k,
                         /* attn_type_v       */ params.type_v,
                         /* attn_v_trans      */ !cparams.flash_attn,
                         /* attn_kv_size      */ cparams.n_ctx,
-                        /* attn_n_pad        */ padding,
+                        /* attn_n_pad        */ 1,
                         /* attn_n_swa        */ hparams.n_swa,
                         /* attn_swa_type     */ hparams.swa_type,
                         /* recurrent_type_k  */ GGML_TYPE_F32,
@@ -19776,22 +19772,11 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                         /* filter_attn       */ std::move(filter_attn),
                         /* filter_recr       */ std::move(filter_recr));
                 } else {
-                    const auto padding = llama_kv_cache::get_padding(cparams);
-
                     uint32_t n_ctx_per_stream = cparams.n_ctx;
 
                     if (!cparams.kv_unified) {
                         n_ctx_per_stream = (cparams.n_ctx + cparams.n_seq_max - 1)/cparams.n_seq_max;
-                        n_ctx_per_stream = GGML_PAD(n_ctx_per_stream, padding);
-
-                        cparams.n_ctx = n_ctx_per_stream*cparams.n_seq_max;
-                    } else {
-                        n_ctx_per_stream = GGML_PAD(n_ctx_per_stream, padding);
-
-                        cparams.n_ctx = n_ctx_per_stream;
                     }
-
-                    LLAMA_LOG_DEBUG("%s: n_ctx = %u (padded)\n", __func__, cparams.n_ctx);
 
                     llama_memory_i::layer_reuse_cb reuse = nullptr;
 
@@ -19819,7 +19804,7 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                                 n_ctx_per_stream,
                                 cparams.n_seq_max,
                                 cparams.n_ubatch,
-                                padding,
+                                1,
                                 nullptr,
                                 reuse);
                     } else {
@@ -19834,7 +19819,7 @@ llama_memory_i * llama_model::create_memory(const llama_memory_params & params, 
                                 cparams.kv_unified,
                                 n_ctx_per_stream,
                                 cparams.n_seq_max,
-                                padding,
+                                1,
                                 hparams.n_swa,
                                 hparams.swa_type,
                                 nullptr,
