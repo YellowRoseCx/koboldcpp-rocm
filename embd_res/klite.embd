@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 293;
+	const LITEVER = 294;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -4426,8 +4426,9 @@ Current version indicated by LITEVER below.
 			// Find the next delimiter occurrence at or after i
 			let nextIndex = -1;
 			let nextDelimiter = null;
-			for (const d of delimiters) {
-				const idx = text.indexOf(d, i);
+			for (let j = 0; j < delimiters.length; j++) {
+				let d = delimiters[j];
+				let idx = text.indexOf(d, i);
 				if (idx !== -1 && (nextIndex === -1 || idx < nextIndex)) {
 					nextIndex = idx;
 					nextDelimiter = d;
@@ -4448,8 +4449,9 @@ Current version indicated by LITEVER below.
 
 			// Now find the next delimiter after this one to mark end of this segment
 			let nextAfter = -1;
-			for (const d of delimiters) {
-				const idx = text.indexOf(d, nextIndex + nextDelimiter.length);
+			for (var j = 0; j < delimiters.length; j++) {
+				var d = delimiters[j];
+				var idx = text.indexOf(d, nextIndex + nextDelimiter.length);
 				if (idx !== -1 && (nextAfter === -1 || idx < nextAfter)) {
 					nextAfter = idx;
 				}
@@ -6857,7 +6859,7 @@ Current version indicated by LITEVER below.
 			.replace(/~~(\w.*?)~~/gm, "<del>$1</del>")
 			.replace(/\^\^(\w.*?)\^\^/gm, "<ins>$1</ins>")
 			.replace(/\{\{(\w.*?)\}\}/gm, "<mark>$1</mark>")
-			.replace(/^((?:\|[^|\r\n]*[^|\r\n\s]\s*)+\| {0,2}(?:\r?\n|\r|))+/gm,
+			.replace(/^((?:(?:\|[^|\r\n]+)*\|[^|\r\n]*[^\s|\r\n][^|\r\n]*(?:\|[^|\r\n]+)*\| {0,2}(?:\r?\n|\r|$))+)/gm,
 				(matchedTable) => convertMarkdownTableToHtml(matchedTable));
 			//.replace(/  \n/g, "\n<br/>"); //this is the reddit behavior where spacespacenewline generates extra newline
 
