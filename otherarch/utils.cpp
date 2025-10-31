@@ -20,7 +20,7 @@
 #define MA_NO_NODE_GRAPH
 #define MA_NO_ENGINE
 #define MA_NO_GENERATION
-#define MA_API static
+// #define MA_API static
 #include "miniaudio/miniaudio.h"
 
 void utreplace(std::string & str, const std::string & needle, const std::string & replacement) {

@@ -229,21 +229,15 @@ static clip_image_f32 * reshape_by_patch(clip_image_f32 * image, int patch_size)
     return patch;
 }
 
-static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, const clip_image_u8 * img, float * image_embd, int * n_img_pos) {
-    // std::vector<clip_image_f32*> img_res_v; // format VectN x H x W x RGB (N x 336 x 336 x 3), so interleaved RGB - different to the python implementation which is N x 3 x 336 x 336
-    clip_image_f32_batch_ptr img_res_v(clip_image_f32_batch_init());
-    if (!clip_image_preprocess(ctx_clip, img, img_res_v.get())) {
-        LOG_ERR("%s: unable to preprocess image\n", __func__);
-        return false;
-    }
+static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, struct clip_image_f32_batch * preprocessed_img, float * image_embd, int * n_img_pos) {
 
     const int64_t t_img_enc_start_us = ggml_time_us();
 
     const char * mm_patch_merge_type = clip_patch_merge_type(ctx_clip);
 
-    const size_t n_imgs = clip_image_f32_batch_n_images(img_res_v.get());
+    const size_t n_imgs = clip_image_f32_batch_n_images(preprocessed_img);
 
-    clip_image_f32 * img_res = clip_image_f32_get_img(img_res_v.get(), 0);
+    clip_image_f32 * img_res = clip_image_f32_get_img(preprocessed_img, 0);
     *n_img_pos = clip_n_output_tokens(ctx_clip, img_res);
     bool encoded = clip_image_encode(ctx_clip, n_threads, img_res, image_embd); // image_embd shape is 576 x 4096
     if (!encoded) {
@@ -282,9 +276,25 @@ bool llava_image_embed_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, co
         num_max_patches = 1;
     }
     float * image_embd;
+    clip_image_f32_batch_ptr preprocessed_img(clip_image_f32_batch_init());
+    if (!clip_image_preprocess(ctx_clip, img, preprocessed_img.get())) {
+        LOG_ERR("%s: unable to preprocess image\n", __func__);
+        return false;
+    }
+
     if (clip_is_qwen2vl(ctx_clip)) {
         // qwen2vl don't split image into chunks, so `num_max_patches` is not needed.
-        image_embd = (float *)malloc(clip_embd_nbytes_by_img(ctx_clip, img->nx, img->ny));
+        //sometimes they resize the image LARGER than before (padding up), so we must account for that
+        int max_nx = img->nx;
+        int max_ny = img->ny;
+        for(int i=0;i<preprocessed_img->entries.size();++i)
+        {
+            int a = preprocessed_img->entries[i].get()->nx;
+            int b = preprocessed_img->entries[i].get()->ny;
+            max_nx = std::max(max_nx,a);
+            max_ny = std::max(max_ny,b);
+        }
+        image_embd = (float *)malloc(clip_embd_nbytes_by_img(ctx_clip, max_nx, max_ny));
     } else {
         image_embd = (float *)malloc(clip_embd_nbytes(ctx_clip)*num_max_patches); // TODO: base on gridsize/llava model
     }
@@ -294,7 +304,7 @@ bool llava_image_embed_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, co
     }
 
     int n_img_pos;
-    if (!encode_image_with_clip(ctx_clip, n_threads, img, image_embd, &n_img_pos)) {
+    if (!encode_image_with_clip(ctx_clip, n_threads, preprocessed_img.get(), image_embd, &n_img_pos)) {
         LOG_ERR("%s: cannot encode image, aborting\n", __func__);
         free(image_embd);
         return false;
