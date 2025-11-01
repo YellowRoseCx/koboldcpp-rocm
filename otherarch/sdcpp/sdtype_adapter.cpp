@@ -568,33 +568,8 @@ static enum sample_method_t sampler_from_name(const std::string& sampler)
     }
 }
 
-uint8_t* load_image_from_b64(const std::string & b64str, int& width, int& height, int expected_width = 0, int expected_height = 0, int expected_channel = 3)
+uint8_t* resize_image(uint8_t * image_buffer, int& width, int& height, int expected_width = 0, int expected_height = 0, int expected_channel = 3)
 {
-    std::vector<uint8_t> decoded_buf = kcpp_base64_decode(b64str);
-    int c = 0;
-    uint8_t* image_buffer = (uint8_t*)stbi_load_from_memory(decoded_buf.data(), decoded_buf.size(), &width, &height, &c, expected_channel);
-
-    if (image_buffer == NULL) {
-        fprintf(stderr, "load_image_from_b64 failed\n");
-        return NULL;
-    }
-    if (c < expected_channel) {
-        fprintf(stderr, "load_image_from_b64: the number of channels for the input image must be >= %d, but got %d channels\n", expected_channel, c);
-        free(image_buffer);
-        return NULL;
-    }
-    if (width <= 0) {
-        fprintf(stderr, "load_image_from_b64 error: the width of image must be greater than 0\n");
-        free(image_buffer);
-        return NULL;
-    }
-    if (height <= 0) {
-        fprintf(stderr, "load_image_from_b64 error: the height of image must be greater than 0\n");
-        free(image_buffer);
-        return NULL;
-    }
-
-    // Resize input image ...
     if ((expected_width > 0 && expected_height > 0) && (height != expected_height || width != expected_width)) {
         float dst_aspect = (float)expected_width / (float)expected_height;
         float src_aspect = (float)width / (float)height;
@@ -658,7 +633,37 @@ uint8_t* load_image_from_b64(const std::string & b64str, int& width, int& height
         image_buffer = resized_image_buffer;
     }
     return image_buffer;
+}
 
+uint8_t* load_image_from_b64(const std::string & b64str, int& width, int& height, int expected_width = 0, int expected_height = 0, int expected_channel = 3)
+{
+    std::vector<uint8_t> decoded_buf = kcpp_base64_decode(b64str);
+    int c = 0;
+    uint8_t* image_buffer = (uint8_t*)stbi_load_from_memory(decoded_buf.data(), decoded_buf.size(), &width, &height, &c, expected_channel);
+
+    if (image_buffer == NULL) {
+        fprintf(stderr, "load_image_from_b64 failed\n");
+        return NULL;
+    }
+    if (c < expected_channel) {
+        fprintf(stderr, "load_image_from_b64: the number of channels for the input image must be >= %d, but got %d channels\n", expected_channel, c);
+        free(image_buffer);
+        return NULL;
+    }
+    if (width <= 0) {
+        fprintf(stderr, "load_image_from_b64 error: the width of image must be greater than 0\n");
+        free(image_buffer);
+        return NULL;
+    }
+    if (height <= 0) {
+        fprintf(stderr, "load_image_from_b64 error: the height of image must be greater than 0\n");
+        free(image_buffer);
+        return NULL;
+    }
+
+    // Resize input image ...
+    image_buffer = resize_image(image_buffer,width,height,expected_width,expected_height,expected_channel);
+    return image_buffer;
 }
 
 static enum scheduler_t scheduler_from_name(const char * scheduler)
@@ -830,13 +835,32 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
                 uint8_t * loaded = load_image_from_b64(extra_image_data[i],nx2,ny2);
                 if(loaded)
                 {
-                    input_extraimage_buffers.push_back(loaded);
-                    sd_image_t extraimage_reference;
-                    extraimage_reference.width = nx2;
-                    extraimage_reference.height = ny2;
-                    extraimage_reference.channel = desiredchannels;
-                    extraimage_reference.data = loaded;
-                    reference_imgs.push_back(extraimage_reference);
+                    //kcpp fix: qwen image can stack overflow and crash when ref images exceed
+                    // a total res of 512x512 = 262144, so we downscale if that's the case
+                    int tgtx = nx2;
+                    int tgty = ny2;
+                    int res_lim_crash = 512 * 512;
+                    if (nx2 * ny2 > res_lim_crash)
+                    {
+                        float factor = sqrtf((float)res_lim_crash / ((float)nx2 * (float)ny2));
+                        tgtx = (int)(nx2 * factor);
+                        tgty = (int)(ny2 * factor);
+                        if (!sd_is_quiet && sddebugmode == 1)
+                        {
+                            printf("\nResized RefImg %dx%d to %dx%d", nx2, ny2, tgtx, tgty);
+                        }
+                        loaded = resize_image(loaded, nx2, ny2, tgtx, tgty);
+                    }
+                    if(loaded)
+                    {
+                        input_extraimage_buffers.push_back(loaded);
+                        sd_image_t extraimage_reference;
+                        extraimage_reference.width = nx2;
+                        extraimage_reference.height = ny2;
+                        extraimage_reference.channel = desiredchannels;
+                        extraimage_reference.data = loaded;
+                        reference_imgs.push_back(extraimage_reference);
+                    }
                 }
             }
             else if (is_kontext || photomaker_enabled)
@@ -881,9 +905,8 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
 
     sd_img_gen_params_t params = {};
     sd_img_gen_params_init (&params);
-
     params.batch_count = 1;
-
+    params.auto_resize_ref_image = true;
     params.prompt = sd_params->prompt.c_str();
     params.negative_prompt = sd_params->negative_prompt.c_str();
     params.clip_skip = sd_params->clip_skip;
