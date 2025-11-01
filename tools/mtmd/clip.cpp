@@ -2587,7 +2587,10 @@ struct clip_model_loader {
                 }
             }
 
-            model.proj_type = clip_projector_type_from_string(proj_type);
+            if (!proj_type.empty())
+            {
+                model.proj_type = clip_projector_type_from_string(proj_type);
+            }
 
             if (model.proj_type == PROJECTOR_TYPE_UNKNOWN) {
                 throw std::runtime_error(string_format("%s: unknown projector type: %s\n", __func__, proj_type.c_str()));
