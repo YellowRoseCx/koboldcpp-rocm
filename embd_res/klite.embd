@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 294;
+	const LITEVER = 296;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -999,6 +999,9 @@ Current version indicated by LITEVER below.
 	.nspopup.moderate {
 		margin-top: 170px;
 	}
+	.nspopup.high {
+		margin-top: 150px;
+	}
 	.nspopup.higher {
 		margin-top: 120px;
 	}
@@ -1242,7 +1245,7 @@ Current version indicated by LITEVER below.
 
 	/* Scenario menu */
 	.scenariopopup {
-		width: 600px;
+		width: 660px;
 		background-color:  var(--theme_color_bg);
 		margin-top: 60px;
 	}
@@ -1274,14 +1277,14 @@ Current version indicated by LITEVER below.
 	}
 	.scenariogrid
 	{
-		height: 240px;
+		height: 246px;
 		overflow-y: auto;
 		margin-top: 4px;
 		padding: 8px;
 		display: grid;
 		gap: 8px;
 		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-		grid-auto-rows: 55px;
+		grid-auto-rows: 50px;
 	}
 	.scenariodesc
 	{
@@ -1293,13 +1296,13 @@ Current version indicated by LITEVER below.
 	}
 	.scenarioitem
 	{
-		font-size: 14px;
+		font-size: 13px;
 		color: white;
 		font-weight: 500;
 		font-family: 'Segoe UI', Tahoma;
 		background-repeat: no-repeat;
-		background-position: top 4px left 4px, center;
-		background-size: 24px, 100%;
+		background-position: top 3px left 3px, center;
+		background-size: 16px, 100%;
 		padding: 2px 2px;
 		text-wrap: wrap;
 	}
@@ -3482,6 +3485,8 @@ Current version indicated by LITEVER below.
 	const default_gemini_suffix = ":generateContent?key=";
 	const default_gemini_stream_suffix = ":streamGenerateContent?alt=sse&key=";
 	const default_cohere_base = "https://api.cohere.ai/v1/chat";
+
+	const openrouter_credits_endpoint = "/credits";
 
 	const a1111_models_endpoint = "/sdapi/v1/sd-models";
 	const a1111_options_endpoint = "/sdapi/v1/options";
@@ -7920,6 +7925,10 @@ Current version indicated by LITEVER below.
 	{
 		return (custom_kobold_endpoint!="" && koboldcpp_version && koboldcpp_version!="" && compare_version_str(koboldcpp_version, "1.90") >= 0 && koboldcpp_has_guidance);
 	}
+	function is_using_kcpp_with_lcppui()
+	{
+		return (custom_kobold_endpoint!="" && koboldcpp_version && koboldcpp_version!="" && compare_version_str(koboldcpp_version, "1.102") >= 0);
+	}
 	function is_using_web_lite()
 	{
 		return (window.location.hostname.includes("koboldai.net") || window.location.hostname.includes("lostruins.github.io"));
@@ -10314,11 +10323,13 @@ Current version indicated by LITEVER below.
 		document.getElementById("quickstartcontainer").classList.remove("hidden");
 
 		let scenarios = ``;
+		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="hide_popups();document.getElementById('loadfileinput').click()">Load Save File or Character Card</button>`;
+		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="character_creator()">New Character Creator</button>`;
+		
 		for(let i=0;i<scenario_sources.length;++i) {
 			scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="import_scenario(scenario_sources[${i}])">${scenario_sources[i].name}</button>`
 		}
 
-		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="character_creator()">New Character Creator</button>`;
 		for(let i=0;i<scenario_db.length;++i)
 		{
 			let curr = scenario_db[i];
@@ -10834,6 +10845,10 @@ Current version indicated by LITEVER below.
 	function go_to_stableui()
 	{
 		window.open('./sdui','_blank');
+	}
+	function go_to_lcppui()
+	{
+		window.open('./lcpp','_blank');
 	}
 
 	var pendinggrammar = "";
@@ -11592,6 +11607,42 @@ Current version indicated by LITEVER below.
 			}
 		}
 	}
+	function fetch_openrouter_balance()
+	{		
+		let desired_oai_key = document.getElementById("custom_oai_key").value.trim();
+		
+		let oaiheaders = {};
+		if(desired_oai_key!="" && desired_oai_key!=dummy_api_key){
+			oaiheaders["Authorization"] = "Bearer " + desired_oai_key;
+		};
+
+		let fetchurl = default_openrouter_base + openrouter_credits_endpoint;
+
+		fetch(fetchurl, {
+			method: 'GET',
+			headers: oaiheaders,
+			referrerPolicy: 'no-referrer',
+		})
+		.then((response) => response.json())
+		.then((data) => {
+			console.log(data);
+			if(data.data)
+			{
+				msgbox(`Total Credits: $${data.data.total_credits.toFixed(2)}\nCredits Used: $${data.data.total_usage.toFixed(2)}\nBalance: $${(data.data.total_credits-data.data.total_usage).toFixed(2)}`,"OpenRouter Balances")
+			}
+			else
+			{
+				msgbox("Error fetching credit balance: " + JSON.stringify(data),"Error Encountered");
+			}
+		})
+		.catch(error => {
+			console.log("Error: " + error);
+			msgbox("Error fetching credit balance: " + error,"Error Encountered",false,false,()=>{
+				hide_msgbox();
+			});
+		});
+	}
+
 	function customapi_dropdown(force_autotoggle_chatcompl = false)
 	{
 		let epchoice = document.getElementById("customapidropdown").value;
@@ -14122,6 +14173,15 @@ Current version indicated by LITEVER below.
 		{
 			document.getElementById("btn_open_stableui").classList.add("hidden");
 		}
+
+		if(is_using_kcpp_with_lcppui())
+		{
+			document.getElementById("btn_open_lcppui").classList.remove("hidden");
+		}
+		else
+		{
+			document.getElementById("btn_open_lcppui").classList.add("hidden");
+		}
 	}
 
 	function update_websearch_button_visibility()
@@ -14838,6 +14898,13 @@ Current version indicated by LITEVER below.
 		mainmenu_untab(true);
 		document.getElementById("keep_ai_selected").checked = true;
 		document.getElementById("newgamecontainer").classList.remove("hidden");
+		if(localflag)
+		{
+			document.getElementById("keep_ai_selected_row").classList.add("hidden");
+		}else
+		{
+			document.getElementById("keep_ai_selected_row").classList.remove("hidden");
+		}
 	}
 
 	function confirm_newgame() {
@@ -27492,9 +27559,9 @@ Current version indicated by LITEVER below.
 			<div style="overflow: auto;">
 				<div id="saveloadentries" class="menutext saveloadgrid">
 					<div style="display:flex">
-						<button type="button" style="font-size:12px; margin:2px;width:33%" name="localsave" class="btn btn-primary" onclick="hide_popups();save_file_button()">💾<br>Download File</button>
-						<button type="button" style="font-size:12px; margin:2px;width:33%" name="localload" class="btn btn-primary" onclick="hide_popups();load_file_button()">📁<br>Open File</button>
-						<button type="button" style="font-size:12px; margin:2px;width:34%" name="shareurl" class="btn btn-primary" onclick="hide_popups();share_story_button()">🌐<br>Share</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localsave" class="btn btn-primary" onclick="hide_popups();save_file_button()">💾<br>Download SaveFile</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localload" class="btn btn-primary" onclick="hide_popups();load_file_button()">📁<br>Open File</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:34%" name="shareurl" class="btn btn-primary" onclick="hide_popups();share_story_button()">🌐<br>Share</button>
 					</div>
 					<div style="margin-top:3px; text-align: center; align-self: center; width: 100%">
 						<span style="font-weight:bold;text-decoration: underline;">Slot Storage Option</span>
@@ -27620,7 +27687,7 @@ Current version indicated by LITEVER below.
 				</span>
 				<span id="openrouterdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://openrouter.ai/settings/keys">OpenRouter API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><a class="color_blueurl" onclick="fetch_openrouter_balance()" href="#">Click here to see your credit balance.</a><br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenRouter Key.</span><br><br>
 				</span>
 				<span id="mistralaidesc" class="hidden">
@@ -27987,7 +28054,7 @@ Current version indicated by LITEVER below.
 				Unsaved data will be lost.<br><br>
 				<div>
 					<div style="vertical-align: middle;">
-						<div title="If disabled, brings you back to the start page">
+						<div id="keep_ai_selected_row" title="If disabled, brings you back to the start page">
 							<span>Keep AI Selected? </span>
 							<input type="checkbox" id="keep_ai_selected" style=" vertical-align: top;" checked>
 						</div>
@@ -28208,7 +28275,7 @@ Current version indicated by LITEVER below.
 
 	<div class="popupcontainer flex hidden" id="addmediacontainer">
 		<div class="popupbg flex"></div>
-		<div class="nspopup flexsizevsmall moderate">
+		<div class="nspopup flexsizevsmall high">
 			<div class="popuptitlebar">
 				<div class="popuptitletext">Add Audio or Image</div>
 			</div>
@@ -28231,7 +28298,10 @@ Current version indicated by LITEVER below.
 				<button type="button" class="btn btn-primary" onclick="hide_popups();display_settings();display_settings_tab(2);">Customize Media Settings</button>
 			</div>
 			<div class="menutext hidden" id="btn_open_stableui">
-				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_stableui()">Go To StableUI</button>
+				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_stableui()">Launch StableUI</button>
+			</div>
+			<div class="menutext hidden" id="btn_open_lcppui">
+				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_lcppui()">Launch llama.cpp UI</button>
 			</div>
 			<br>
 			<input type="file" id="addimgfileinput" style="display:none" accept="image/*,audio/mpeg,audio/wav,audio/ogg,audio/aac,audio/flac,audio/opus,audio/mp4">
