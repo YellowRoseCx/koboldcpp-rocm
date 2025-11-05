@@ -39,6 +39,7 @@ from datetime import datetime, timezone
 from typing import Tuple
 import shutil
 import subprocess
+import gzip
 
 # constants
 sampler_order_max = 7
@@ -121,8 +122,12 @@ preloaded_story = None
 chatcompl_adapter = None
 chatcompl_adapter_list = None #if using autoguess, will populate this will potential adapters
 embedded_kailite = None
+embedded_kailite_gz = None
 embedded_kcpp_docs = None
+embedded_kcpp_docs_gz = None
 embedded_kcpp_sdui = None
+embedded_kcpp_sdui_gz = None
+embedded_lcpp_ui_gz = None
 sslvalid = False
 nocertify = False
 start_time = time.time()
@@ -2575,6 +2580,8 @@ ws ::= | " " | "\n" [ \t]{0,20}
         adapter_obj = genparams.get('adapter', default_adapter)
         default_max_tok = (adapter_obj.get("max_length", args.defaultgenamt) if (api_format==4 or api_format==7) else args.defaultgenamt)
         genparams["max_length"] = tryparseint(genparams.get('max_tokens', genparams.get('max_completion_tokens', default_max_tok)),default_max_tok)
+        if genparams["max_length"] <= 0:
+            genparams["max_length"] = default_max_tok
         presence_penalty = genparams.get('presence_penalty', genparams.get('frequency_penalty', 0.0))
         genparams["presence_penalty"] = tryparsefloat(presence_penalty,0.0)
         # openai allows either a string or a list as a stop sequence
@@ -3358,19 +3365,31 @@ Change Mode<br>
         self.wfile.write(finalhtml)
 
     def do_GET(self):
-        global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui
+        global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz
         global last_req_time, start_time
         global savedata_obj, has_multiplayer, multiplayer_turn_major, multiplayer_turn_minor, multiplayer_story_data_compressed, multiplayer_dataformat, multiplayer_lastactive, maxctx, maxhordelen, friendlymodelname, lastuploadedcomfyimg, lastgeneratedcomfyimg, KcppVersion, totalgens, preloaded_story, exitcounter, currentusergenkey, friendlysdmodelname, fullsdmodelpath, password, friendlyembeddingsmodelname
         self.path = self.path.rstrip('/')
         response_body = None
         content_type = 'application/json'
+        content_encoding = None
+
+        # Check if browser supports gzip
+        accept_encoding = self.headers.get('Accept-Encoding', '')
+        supports_gzip = 'gzip' in accept_encoding.lower()
+
+        if self.path!="/lcpp" and self.path.startswith("/lcpp/"):
+            self.path = self.path[5:] #adapt lcpp paths to the root
 
         if self.path in ["", "/?"] or self.path.startswith(('/?','?')): #it's possible for the root url to have ?params without /
             content_type = 'text/html'
-            if embedded_kailite is None:
-                response_body = (f"Embedded KoboldAI Lite is not found.<br>You will have to connect via the main KoboldAI client, or <a href='https://lite.koboldai.net?local=1&port={self.port}'>use this URL</a> to connect.").encode()
-            else:
+            if supports_gzip and embedded_kailite_gz is not None:
+                response_body = embedded_kailite_gz
+                content_encoding = 'gzip'
+            elif embedded_kailite is not None:
                 response_body = embedded_kailite
+            else:
+                response_body = (f"Embedded KoboldAI Lite is not found.<br>You will have to connect via the main KoboldAI client, or <a href='https://lite.koboldai.net?local=1&port={self.port}'>use this URL</a> to connect.").encode()
+            
 
         elif self.path in ["/noscript", "/noscript?"] or self.path.startswith(('/noscript?','noscript?')): #it's possible for the root url to have ?params without /
             self.noscript_webui()
@@ -3578,25 +3597,50 @@ Change Mode<br>
             chat_template = ctypes.string_at(ctbytes).decode("UTF-8","ignore")
             response_body = (json.dumps({
                 "chat_template": chat_template,
+                "id": 0,
+		        "id_task": -1,
                 "total_slots": 1,
+                "model_path": "local_model.gguf",
+                "n_ctx": maxctx,
                 "default_generation_settings": {
                     "n_ctx": maxctx,
                 },
             }).encode())
 
+        elif self.path=="/slots":
+            self.send_response(501)
+            self.end_headers(content_type='application/json')
+            self.wfile.write(json.dumps({"error":{"code":501,"message":"This server does not support slots endpoint.","type":"not_supported_error"}}).encode())
+            return
+
         elif self.path=="/api" or self.path=="/docs" or self.path.startswith(('/api/?json=','/api?json=','/docs/?json=','/docs?json=')):
             content_type = 'text/html'
-            if embedded_kcpp_docs is None:
-                response_body = ("KoboldCpp API is running!\n\nAPI usage reference can be found at the wiki: https://github.com/LostRuins/koboldcpp/wiki").encode()
-            else:
+            if supports_gzip and embedded_kcpp_docs_gz is not None:
+                response_body = embedded_kcpp_docs_gz
+                content_encoding = 'gzip'
+            elif embedded_kcpp_docs is not None:
                 response_body = embedded_kcpp_docs
-
+            else:
+                response_body = ("KoboldCpp API is running!\n\nAPI usage reference can be found at the wiki: https://github.com/LostRuins/koboldcpp/wiki").encode()
+           
+        elif self.path=="/lcpp":
+            content_type = 'text/html'
+            # IMPORTANT: svelte needs a patch to accept this as a non-redirect path. Search for `r.pathname === e + "/index.html"` and add desired path there.
+            if supports_gzip and embedded_lcpp_ui_gz is not None:
+                response_body = embedded_lcpp_ui_gz
+                content_encoding = 'gzip'           
+            else:
+                response_body = ("Llama.cpp UI is not available. Please use the KoboldAI Lite UI instead.").encode()
+           
         elif self.path.startswith(("/sdui")):
             content_type = 'text/html'
-            if embedded_kcpp_sdui is None:
-                response_body = ("KoboldCpp API is running, but KCPP SDUI is not loaded").encode()
-            else:
+            if supports_gzip and embedded_kcpp_sdui_gz is not None:
+                response_body = embedded_kcpp_sdui_gz
+                content_encoding = 'gzip'
+            elif embedded_kcpp_sdui is not None:
                 response_body = embedded_kcpp_sdui
+            else:
+                response_body = ("KoboldCpp API is running, but KCPP SDUI is not loaded").encode()               
 
         elif self.path=="/v1":
             content_type = 'text/html'
@@ -3622,6 +3666,8 @@ Change Mode<br>
         else:
             self.send_response(200)
             self.send_header('content-length', str(len(response_body)))
+            if content_encoding:
+                self.send_header('Content-Encoding', content_encoding)
             self.end_headers(content_type=content_type)
             self.wfile.write(response_body)
         return
@@ -4350,8 +4396,7 @@ Change Mode<br>
         return super(KcppServerRequestHandler, self).end_headers()
 
 def RunServerMultiThreaded(addr, port, server_handler):
-    global exitcounter, sslvalid
-    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, global_memory
+    global exitcounter, sslvalid, global_memory
     if is_port_in_use(port):
         print(f"Warning: Port {port} already appears to be in use by another program.")
 
@@ -7081,7 +7126,7 @@ def main(launch_args, default_args):
                 input()
 
 def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
-    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, start_time, exitcounter, global_memory, using_gui_launcher
+    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz, start_time, exitcounter, global_memory, using_gui_launcher
     global libname, args, friendlymodelname, friendlysdmodelname, fullsdmodelpath, password, fullwhispermodelpath, ttsmodelpath, embeddingsmodelpath, friendlyembeddingsmodelname, has_audio_support, has_vision_support
 
     start_server = True
@@ -7603,6 +7648,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
             for p in patches:
                 embedded_kailite = embedded_kailite.replace(p["find"], p["replace"])
             embedded_kailite = embedded_kailite.encode()
+            embedded_kailite_gz = gzip.compress(embedded_kailite)
             print("Embedded KoboldAI Lite loaded.")
     except Exception:
         print("Could not find KoboldAI Lite. Embedded KoboldAI Lite will not be available.")
@@ -7610,6 +7656,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
     try:
         with open(os.path.join(embddir, "kcpp_docs.embd"), mode='rb') as f:
             embedded_kcpp_docs = f.read()
+            embedded_kcpp_docs_gz = gzip.compress(embedded_kcpp_docs)
             print("Embedded API docs loaded.")
     except Exception:
         print("Could not find Embedded KoboldCpp API docs.")
@@ -7617,10 +7664,18 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
     try:
         with open(os.path.join(embddir, "kcpp_sdui.embd"), mode='rb') as f:
             embedded_kcpp_sdui = f.read()
+            embedded_kcpp_sdui_gz = gzip.compress(embedded_kcpp_sdui)
             if args.sdmodel:
                 print("Embedded SDUI loaded.")
     except Exception:
         print("Could not find Embedded SDUI.")
+
+    try:
+        with open(os.path.join(embddir, "lcpp.gz.embd"), mode='rb') as f:
+            embedded_lcpp_ui_gz = f.read()
+            print("Llama.cpp UI loaded.")
+    except Exception:
+        print("Could not find Embedded llama.cpp UI.")
 
     # print enabled modules
     caps = get_capabilities()
