@@ -6593,6 +6593,7 @@ def setuptunnel(global_memory, has_sd):
                         if global_memory and global_memory["load_complete"]:
                             print(f"Your remote Kobold API can be found at {tunneloutput}/api")
                             print(f"Your remote OpenAI Compatible API can be found at {tunneloutput}/v1")
+                            print(f"Your remote llama.cpp secondary WebUI at {tunneloutput}/lcpp/")
                             if has_sd:
                                 print(f"StableUI is available at {tunneloutput}/sdui/")
                             print("======\n")
@@ -7733,6 +7734,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
         if not args.remotetunnel:
             print(f"Starting Kobold API on port {args.port} at {endpoint_url}/api/")
             print(f"Starting OpenAI Compatible API on port {args.port} at {endpoint_url}/v1/")
+            print(f"Starting llama.cpp secondary WebUI at {endpoint_url}/lcpp/")
             if args.sdmodel:
                 print(f"StableUI is available at {endpoint_url}/sdui/")
         elif global_memory:
@@ -7742,6 +7744,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
                 remote_url = val
                 print(f"Your remote Kobold API can be found at {endpoint_url}/api")
                 print(f"Your remote OpenAI Compatible API can be found at {endpoint_url}/v1")
+                print(f"Starting llama.cpp secondary WebUI at {endpoint_url}/lcpp/")
                 if args.sdmodel:
                     print(f"StableUI is available at {endpoint_url}/sdui/")
             global_memory["load_complete"] = True
