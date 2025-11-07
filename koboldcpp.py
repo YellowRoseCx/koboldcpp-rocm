@@ -935,8 +935,9 @@ def get_capabilities():
     has_tts = (ttsmodelpath!="")
     has_embeddings = (embeddingsmodelpath!="")
     has_guidance = True if args.enableguidance else False
+    has_jinja = True if args.jinja else False
     admin_type = (2 if args.admin and args.admindir and args.adminpassword else (1 if args.admin and args.admindir else 0))
-    return {"result":"KoboldCpp", "version":KcppVersion, "protected":has_password, "llm":has_llm, "txt2img":has_txt2img,"vision":has_vision_support,"audio":has_audio_support,"transcribe":has_whisper,"multiplayer":has_multiplayer,"websearch":has_search,"tts":has_tts, "embeddings":has_embeddings, "savedata":(savedata_obj is not None), "admin": admin_type, "guidance": has_guidance}
+    return {"result":"KoboldCpp", "version":KcppVersion, "protected":has_password, "llm":has_llm, "txt2img":has_txt2img,"vision":has_vision_support,"audio":has_audio_support,"transcribe":has_whisper,"multiplayer":has_multiplayer,"websearch":has_search,"tts":has_tts, "embeddings":has_embeddings, "savedata":(savedata_obj is not None), "admin": admin_type, "guidance": has_guidance, "jinja": has_jinja}
 
 def dump_gguf_metadata(file_path): #if you're gonna copy this into your own project at least credit concedo
     chunk_size = 1024*1024*12  # read first 12mb of file
