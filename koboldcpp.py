@@ -3394,7 +3394,7 @@ Change Mode<br>
 
     def do_GET(self):
         global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz
-        global last_req_time, start_time, cached_chat_template
+        global last_req_time, start_time, cached_chat_template, has_vision_support, has_audio_support
         global savedata_obj, has_multiplayer, multiplayer_turn_major, multiplayer_turn_minor, multiplayer_story_data_compressed, multiplayer_dataformat, multiplayer_lastactive, maxctx, maxhordelen, friendlymodelname, lastuploadedcomfyimg, lastgeneratedcomfyimg, KcppVersion, totalgens, preloaded_story, exitcounter, currentusergenkey, friendlysdmodelname, fullsdmodelpath, password, friendlyembeddingsmodelname
         self.path = self.path.rstrip('/')
         response_body = None
@@ -3626,6 +3626,10 @@ Change Mode<br>
                 "id": 0,
 		        "id_task": -1,
                 "total_slots": 1,
+                "modalities": {
+                    "vision": has_vision_support,
+                    "audio": has_audio_support
+                },
                 "model_path": "local_model.gguf",
                 "n_ctx": maxctx,
                 "default_generation_settings": {
