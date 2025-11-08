@@ -2872,17 +2872,19 @@ struct clip_model_loader {
                         get_u32(KEY_SPATIAL_MERGE_SIZE, hparams.n_merge, false);
                         get_u32(KEY_WIN_ATTN_PATTERN, hparams.n_wa_pattern, model.proj_type == PROJECTOR_TYPE_QWEN25VL); // only 2.5 requires it
                         // ref: https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/blob/main/preprocessor_config.json
-			if (model.proj_type==PROJECTOR_TYPE_QWEN25VL && q25vl_migrated) {
+			            if (model.proj_type==PROJECTOR_TYPE_QWEN25VL && q25vl_migrated) {
                             hparams.n_wa_pattern = 8;
                         }
-                        hparams.set_limit_image_tokens(8, 4096);
-                        hparams.set_warmup_n_tokens(46*46); // avoid OOM on warmup
-                        const int warn_min_pixels = 1024 * hparams.n_merge * hparams.n_merge * hparams.patch_size * hparams.patch_size;
-                        if (hparams.image_min_pixels < warn_min_pixels) {
-                            LOG_WRN("%s: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks\n", __func__);
-                            LOG_WRN("%s: if you encounter problems with accuracy, try adding --image-min-tokens 1024\n", __func__);
-                            LOG_WRN("%s: more info: https://github.com/ggml-org/llama.cpp/issues/16842\n\n", __func__);
-                        }
+                        // hparams.set_limit_image_tokens(8, 4096);
+                        // hparams.set_warmup_n_tokens(46*46); // avoid OOM on warmup
+                        hparams.set_limit_image_tokens(8, 2048);
+                        hparams.set_warmup_n_tokens(256); // kcpp revert qwen vision size
+                        // const int warn_min_pixels = 1024 * hparams.n_merge * hparams.n_merge * hparams.patch_size * hparams.patch_size;
+                        // if (hparams.image_min_pixels < warn_min_pixels) {
+                        //     LOG_WRN("%s: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks\n", __func__);
+                        //     LOG_WRN("%s: if you encounter problems with accuracy, try adding --image-min-tokens 1024\n", __func__);
+                        //     LOG_WRN("%s: more info: https://github.com/ggml-org/llama.cpp/issues/16842\n\n", __func__);
+                        // }
                     } break;
                 case PROJECTOR_TYPE_LLAMA4:
                     {
