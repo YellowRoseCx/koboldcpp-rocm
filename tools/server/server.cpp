@@ -2400,7 +2400,7 @@ struct server_context {
 
         add_bos_token = llama_vocab_get_add_bos(vocab);
 
-        if (!params_base.speculative.model.path.empty() || !params_base.speculative.model.hf_repo.empty()) {
+        if (params_base.has_speculative()) {
             SRV_INF("loading draft model '%s'\n", params_base.speculative.model.path.c_str());
 
             auto params_dft = params_base;
@@ -2476,7 +2476,7 @@ struct server_context {
                 SRV_WRN("%s\n", "cache_reuse is not supported by multimodal, it will be disabled");
             }
 
-            if (!params_base.speculative.model.path.empty()) {
+            if (params_base.has_speculative()) {
                 SRV_ERR("%s\n", "err: speculative decode is not supported by multimodal");
                 return false;
             }
@@ -2520,6 +2520,7 @@ struct server_context {
             if (model_dft) {
                 slot.batch_spec = llama_batch_init(params_base.speculative.n_max + 1, 0, 1);
 
+                // TODO: rework speculative decoding [TAG_SERVER_SPEC_REWORK]
                 slot.ctx_dft = llama_init_from_model(model_dft, cparams_dft);
                 if (slot.ctx_dft == nullptr) {
                     SRV_ERR("%s", "failed to create draft context\n");
@@ -2822,9 +2823,12 @@ struct server_context {
                 send_error(task, "Failed to parse grammar", ERROR_TYPE_INVALID_REQUEST);
                 return false;
             }
+
+            SLT_INF(slot, "sampler chain: %s\n", common_sampler_print(slot.smpl).c_str());
         }
 
         // initialize draft batch
+        // TODO: rework speculative decoding [TAG_SERVER_SPEC_REWORK]
         if (slot.ctx_dft) {
             llama_batch_free(slot.batch_spec);
 
@@ -3074,7 +3078,7 @@ struct server_context {
             res->progress.total     = slot.task->n_tokens();
             res->progress.cache     = slot.n_prompt_tokens_cache;
             res->progress.processed = slot.prompt.tokens.size();
-            res->progress.time_ms   = (ggml_time_us() - slot.t_start_process_prompt / 1000);
+            res->progress.time_ms   = (ggml_time_us() - slot.t_start_process_prompt) / 1000;
         } else {
             res->content = tkn.text_to_send;
             res->tokens  = { tkn.tok };
@@ -3830,7 +3834,9 @@ struct server_context {
                             // the largest pos_min required for a checkpoint to be useful
                             const auto pos_min_thold = std::max(0, n_past - n_swa);
 
-                            if (n_past > 0 && n_past < slot.prompt.n_tokens()) {
+                            // note: disallow with mtmd contexts for now
+                            //       https://github.com/ggml-org/llama.cpp/issues/17043
+                            if (!mctx && n_past > 0 && n_past < slot.prompt.n_tokens()) {
                                 const auto pos_min = llama_memory_seq_pos_min(llama_get_memory(ctx), slot.id);
                                 if (pos_min == -1) {
                                     SLT_ERR(slot, "n_past = %d, slot.prompt.tokens.size() = %d, seq_id = %d, pos_min = %d\n", n_past, (int) slot.prompt.tokens.size(), slot.id, pos_min);
@@ -4291,6 +4297,8 @@ struct server_context {
             }
 
             // do speculative decoding
+            // TODO: rework to have a single draft llama_context shared across all slots [TAG_SERVER_SPEC_REWORK]
+            //       perform the speculative drafting for all sequences at the same time in a single batch
             for (auto & slot : slots) {
                 if (!slot.is_processing() || !slot.can_speculate()) {
                     continue;
@@ -4445,8 +4453,10 @@ int main(int argc, char ** argv) {
 
     // TODO: should we have a separate n_parallel parameter for the server?
     //       https://github.com/ggml-org/llama.cpp/pull/16736#discussion_r2483763177
-    if (params.n_parallel == 1 && params.kv_unified == false) {
-        LOG_WRN("%s: setting n_parallel = 4 and kv_unified = true\n", __func__);
+    // TODO: this is a common configuration that is suitable for most local use cases
+    //       however, overriding the parameters is a bit confusing - figure out something more intuitive
+    if (params.n_parallel == 1 && params.kv_unified == false && !params.has_speculative()) {
+        LOG_WRN("%s: setting n_parallel = 4 and kv_unified = true (add -kvu to disable this)\n", __func__);
 
         params.n_parallel = 4;
         params.kv_unified = true;
