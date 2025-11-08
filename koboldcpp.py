@@ -2338,10 +2338,13 @@ def format_jinja(messages):
     try:
         def strftime_now(format='%Y-%m-%d %H:%M:%S'):
             return datetime.now().strftime(format)
+        def tojson(x, ensure_ascii=False, indent=None, separators=None, sort_keys=False):
+            return json.dumps(x, ensure_ascii=ensure_ascii, indent=indent, separators=separators, sort_keys=sort_keys)
         global cached_chat_template
         from jinja2.sandbox import ImmutableSandboxedEnvironment
         jinja_env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
         jinja_env.globals['strftime_now'] = strftime_now
+        jinja_env.filters["tojson"] = tojson
         jinja_compiled_template = jinja_env.from_string(cached_chat_template)
         text = jinja_compiled_template.render(messages=messages, add_generation_prompt=True, bos_token="", eos_token="")
         return text if text else None
@@ -3158,6 +3161,7 @@ class KcppServerRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if streamDone:
                     if api_format == 4 or api_format == 3:  # if oai chat, send last [DONE] message consistent with openai format
                         await self.send_oai_sse_event('[DONE]')
+                        await asyncio.sleep(async_sleep_short)
                     break
         except Exception as ex:
             print("Token streaming was interrupted or aborted!")
@@ -3394,7 +3398,7 @@ Change Mode<br>
 
     def do_GET(self):
         global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz
-        global last_req_time, start_time, cached_chat_template, has_vision_support, has_audio_support
+        global last_req_time, start_time, cached_chat_template, has_vision_support, has_audio_support, has_whisper, friendlymodelname
         global savedata_obj, has_multiplayer, multiplayer_turn_major, multiplayer_turn_minor, multiplayer_story_data_compressed, multiplayer_dataformat, multiplayer_lastactive, maxctx, maxhordelen, friendlymodelname, lastuploadedcomfyimg, lastgeneratedcomfyimg, KcppVersion, totalgens, preloaded_story, exitcounter, currentusergenkey, friendlysdmodelname, fullsdmodelpath, password, friendlyembeddingsmodelname
         self.path = self.path.rstrip('/')
         response_body = None
@@ -3630,7 +3634,7 @@ Change Mode<br>
                     "vision": has_vision_support,
                     "audio": has_audio_support
                 },
-                "model_path": "local_model.gguf",
+                "model_path": friendlymodelname,
                 "n_ctx": maxctx,
                 "default_generation_settings": {
                     "n_ctx": maxctx,
