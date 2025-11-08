@@ -6,6 +6,7 @@
 #include "clip-impl.h"
 #include "ggml.h"
 #include "ggml-cpp.h"
+#include "ggml-cpu.h"
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
 #include "gguf.h"
@@ -32,6 +33,9 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <regex>
+#include <sstream>
+#include <numeric>
 #include <stdexcept>
 #include <unordered_set>
 #include <vector>
