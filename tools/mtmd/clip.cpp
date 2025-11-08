@@ -187,8 +187,8 @@ struct clip_hparams {
     int32_t n_layer;
     // idefics3
     int32_t image_longest_edge = 0;
-    int32_t image_min_pixels = 0;
-    int32_t image_max_pixels = 0;
+    int32_t image_min_pixels = -1;
+    int32_t image_max_pixels = -1;
     int32_t n_merge = 0; // number of patch merges **per-side**
 
     float image_mean[3];
@@ -221,11 +221,15 @@ struct clip_hparams {
     int minicpmv_version = 0;
     int32_t minicpmv_query_num = 0;         // MiniCPM-V query number
 
+    // custom value provided by user, can be undefined if not set
+    int32_t custom_image_min_tokens = -1;
+    int32_t custom_image_max_tokens = -1;
+
     void set_limit_image_tokens(int n_tokens_min, int n_tokens_max) {
         const int cur_merge = n_merge == 0 ? 1 : n_merge;
         const int patch_area = patch_size * patch_size * cur_merge * cur_merge;
-        image_min_pixels = n_tokens_min * patch_area;
-        image_max_pixels = n_tokens_max * patch_area;
+        image_min_pixels = (custom_image_min_tokens > 0 ? custom_image_min_tokens : n_tokens_min) * patch_area;
+        image_max_pixels = (custom_image_max_tokens > 0 ? custom_image_max_tokens : n_tokens_max) * patch_area;
         warmup_image_size = static_cast<int>(std::sqrt(image_max_pixels));
     }
 
@@ -234,6 +238,7 @@ struct clip_hparams {
         GGML_ASSERT(n_tok_per_side * n_tok_per_side == n_tokens && "n_tokens must be n*n");
         const int cur_merge = n_merge == 0 ? 1 : n_merge;
         warmup_image_size = n_tok_per_side * patch_size * cur_merge;
+        // TODO: support warmup size for custom token numbers
     }
 };
 
@@ -455,7 +460,7 @@ struct clip_ctx {
 
     clip_ctx(clip_context_params & ctx_params) {
         flash_attn_type = ctx_params.flash_attn_type;
-	backend_cpu = ggml_backend_cpu_init(); //always has CPU backend
+	    backend_cpu = ggml_backend_cpu_init(); //always has CPU backend
         if (!backend_cpu) {
             throw std::runtime_error("failed to initialize CPU backend");
         }
@@ -480,6 +485,13 @@ struct clip_ctx {
         } else {
             backend = backend_cpu;
             LOG_INF("%s: CLIP using CPU backend\n", __func__);
+        }
+
+        if (ctx_params.image_min_tokens > 0) {
+            model.hparams.custom_image_min_tokens = ctx_params.image_min_tokens;
+        }
+        if (ctx_params.image_max_tokens > 0) {
+            model.hparams.custom_image_max_tokens = ctx_params.image_max_tokens;
         }
 
         backend_ptrs.push_back(backend_cpu);
@@ -611,6 +623,15 @@ struct clip_graph {
             cur = ggml_gelu(ctx0, cur);
             cur = ggml_mul_mat(ctx0, model.mm_2_w, cur);
             cur = ggml_add(ctx0, cur, model.mm_2_b);
+
+        } else if (ctx->proj_type() == PROJECTOR_TYPE_JANUS_PRO) {
+            cur = build_ffn(cur,
+                model.mm_0_w, model.mm_0_b,
+                nullptr, nullptr,
+                model.mm_1_w, model.mm_1_b,
+                hparams.ffn_op,
+                -1);
+
         } else {
             GGML_ABORT("SigLIP: Unsupported projector type");
         }
@@ -774,6 +795,15 @@ struct clip_graph {
             window_mask = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_pos, n_pos);
             ggml_set_name(window_mask, "window_mask");
             ggml_set_input(window_mask);
+
+            // if flash attn is used, we need to pad the mask and cast to f16
+            if (ctx->flash_attn_type == CLIP_FLASH_ATTN_TYPE_ENABLED) {
+                int n_pad = GGML_PAD(window_mask->ne[1], GGML_KQ_MASK_PAD) - window_mask->ne[1];
+                if (n_pad > 0) {
+                    window_mask = ggml_pad(ctx0, window_mask, 0, n_pad, 0, 0);
+                }
+                window_mask = ggml_cast(ctx0, window_mask, GGML_TYPE_F16);
+            }
 
             // inpL shape: [n_embd, n_patches_x * n_patches_y, batch_size]
             GGML_ASSERT(batch_size == 1);
@@ -1752,7 +1782,6 @@ struct clip_graph {
 
         return gf;
     }
-
     // whisper encoder with custom projector
     ggml_cgraph * build_whisper_enc() {
         const int n_frames = img.nx;
@@ -2480,6 +2509,10 @@ static ggml_cgraph * clip_image_build_graph(clip_ctx * ctx, const clip_image_f32
             {
                 res = graph.build_kimivl();
             } break;
+        case PROJECTOR_TYPE_JANUS_PRO:
+            {
+                res = graph.build_siglip();
+            } break;
         case PROJECTOR_TYPE_COGVLM:
             {
                 res = graph.build_cogvlm();
@@ -2815,6 +2848,12 @@ struct clip_model_loader {
                         }
                         hparams.set_limit_image_tokens(8, 2048);
                         hparams.set_warmup_n_tokens(256); // avoid OOM on warmup
+                        const int warn_min_pixels = 1024 * hparams.n_merge * hparams.n_merge * hparams.patch_size * hparams.patch_size;
+                        if (hparams.image_min_pixels < warn_min_pixels) {
+                            LOG_WRN("%s: Qwen-VL models require at minimum 1024 image tokens to function correctly on grounding tasks\n", __func__);
+                            LOG_WRN("%s: if you encounter problems with accuracy, try adding --image-min-tokens 1024\n", __func__);
+                            LOG_WRN("%s: more info: https://github.com/ggml-org/llama.cpp/issues/16842\n\n", __func__);
+                        }
                     } break;
                 case PROJECTOR_TYPE_LLAMA4:
                     {
@@ -2839,6 +2878,13 @@ struct clip_model_loader {
                     break;
             }
 
+            // sanity check
+            {
+                if (hparams.image_max_pixels < hparams.image_min_pixels) {
+                    throw std::runtime_error(string_format("%s: image_max_pixels (%d) is less than image_min_pixels (%d)\n", __func__, hparams.image_max_pixels, hparams.image_min_pixels));
+                }
+            }
+
             LOG_INF("%s: projector:          %s\n", __func__, proj_type.c_str());
             LOG_INF("%s: n_embd:             %d\n", __func__, hparams.n_embd);
             LOG_INF("%s: n_head:             %d\n", __func__, hparams.n_head);
@@ -2855,10 +2901,10 @@ struct clip_model_loader {
                 LOG_INF("%s: n_merge:            %d\n", __func__, hparams.n_merge);
                 LOG_INF("%s: n_wa_pattern:       %d\n", __func__, hparams.n_wa_pattern);
                 if (hparams.image_min_pixels > 0) {
-                    LOG_INF("%s: image_min_pixels:   %d\n", __func__, hparams.image_min_pixels);
+                    LOG_INF("%s: image_min_pixels:   %d%s\n", __func__, hparams.image_min_pixels, hparams.custom_image_min_tokens > 0 ? " (custom value)" : "");
                 }
                 if (hparams.image_max_pixels > 0) {
-                    LOG_INF("%s: image_max_pixels:   %d\n", __func__, hparams.image_max_pixels);
+                    LOG_INF("%s: image_max_pixels:   %d%s\n", __func__, hparams.image_max_pixels, hparams.custom_image_max_tokens > 0 ? " (custom value)" : "");
                 }
             } else if (is_audio) {
                 LOG_INF("\n--- audio hparams ---\n");
@@ -3207,6 +3253,13 @@ struct clip_model_loader {
                     model.mm_4h_to_h_w      = get_tensor(string_format(TN_MM_4H_TO_H,      "weight"));
                     model.mm_boi            = get_tensor(TN_TOK_BOI);
                     model.mm_eoi            = get_tensor(TN_TOK_EOI);
+                } break;
+            case PROJECTOR_TYPE_JANUS_PRO:
+                {
+                    model.mm_0_w = get_tensor(string_format(TN_LLAVA_PROJ, 0, "weight"));
+                    model.mm_0_b = get_tensor(string_format(TN_LLAVA_PROJ, 0, "bias"));
+                    model.mm_1_w = get_tensor(string_format(TN_LLAVA_PROJ, 1, "weight"));
+                    model.mm_1_b = get_tensor(string_format(TN_LLAVA_PROJ, 1, "bias"));
                 } break;
             default:
                 GGML_ASSERT(false && "unknown projector type");
@@ -4316,7 +4369,7 @@ bool clip_image_preprocess(struct clip_ctx * ctx, const clip_image_u8 * img, str
         case PROJECTOR_TYPE_QWEN25VL:
         case PROJECTOR_TYPE_QWEN3VL:
             {
-                // step 1: make a blank canvas which aligns to the grid
+                GGML_ASSERT(params.image_min_pixels > 0 && params.image_max_pixels > 0);
                 clip_image_u8 resized;
                 const clip_image_size new_size = img_tool::calc_size_preserved_ratio(
                     original_size,
@@ -4394,10 +4447,22 @@ bool clip_image_preprocess(struct clip_ctx * ctx, const clip_image_u8 * img, str
                 res_imgs->entries.push_back(std::move(img_f32));
             } break;
 
+        case PROJECTOR_TYPE_JANUS_PRO:
+            {
+                // Janus Pro preprocessing: pad to square with gray(127), resize to 384x384
+                const std::array<uint8_t, 3> pad_color = {127, 127, 127};
+                clip_image_u8 resized_image;
+                int sz = params.image_size;
+                img_tool::resize(*img, resized_image, {sz, sz}, img_tool::RESIZE_ALGO_BILINEAR, true, pad_color);
+                clip_image_f32_ptr img_f32(clip_image_f32_init());
+                normalize_image_u8_to_f32(resized_image, *img_f32, params.image_mean, params.image_std);
+                res_imgs->entries.push_back(std::move(img_f32));
+            } break;
+
         case PROJECTOR_TYPE_PIXTRAL:
         case PROJECTOR_TYPE_LIGHTONOCR:
             {
-                GGML_ASSERT(params.image_min_pixels && params.image_max_pixels);
+                GGML_ASSERT(params.image_min_pixels > 0 && params.image_max_pixels > 0);
                 clip_image_u8 resized_image;
                 // the original pixtral model doesn't have n_merge
                 const int cur_merge = params.n_merge == 0 ? 1 : params.n_merge;
@@ -4431,7 +4496,7 @@ bool clip_image_preprocess(struct clip_ctx * ctx, const clip_image_u8 * img, str
         case PROJECTOR_TYPE_LFM2:
         case PROJECTOR_TYPE_KIMIVL:
             {
-                GGML_ASSERT(params.image_min_pixels && params.image_max_pixels);
+                GGML_ASSERT(params.image_min_pixels > 0 && params.image_max_pixels > 0);
                 const clip_image_size target_size = img_tool::calc_size_preserved_ratio(
                     original_size,
                     params.patch_size * params.n_merge,
@@ -4570,6 +4635,7 @@ int clip_n_output_tokens(const struct clip_ctx * ctx, struct clip_image_f32 * im
     switch (proj) {
         case PROJECTOR_TYPE_MLP:
         case PROJECTOR_TYPE_MLP_NORM:
+        case PROJECTOR_TYPE_JANUS_PRO:
             {
                 // do nothing
             } break;
@@ -5080,6 +5146,7 @@ bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_ima
         case PROJECTOR_TYPE_ULTRAVOX:
         case PROJECTOR_TYPE_LFM2:
         case PROJECTOR_TYPE_VOXTRAL:
+        case PROJECTOR_TYPE_JANUS_PRO:
         case PROJECTOR_TYPE_COGVLM:
             {
                 // do nothing
@@ -5348,6 +5415,7 @@ int clip_n_mmproj_embd(const struct clip_ctx * ctx) {
             return ctx->model.mm_model_mlp_3_w->ne[1];
         case PROJECTOR_TYPE_QWEN2VL:
         case PROJECTOR_TYPE_QWEN25VL:
+        case PROJECTOR_TYPE_JANUS_PRO:
             return ctx->model.mm_1_b->ne[0];
         case PROJECTOR_TYPE_QWEN3VL:
             // main path + deepstack paths
