@@ -2706,9 +2706,9 @@ struct clip_model_loader {
             get_u32(string_format(KEY_PROJ_DIM,       prefix), hparams.projection_dim);
             get_f32(string_format(KEY_LAYER_NORM_EPS, prefix), hparams.eps);
 
+            get_u32(KEY_PATCH_SIZE, hparams.patch_size,false);
             if (is_vision) {
-                get_u32(KEY_IMAGE_SIZE, hparams.image_size);
-                get_u32(KEY_PATCH_SIZE, hparams.patch_size);
+                get_u32(KEY_IMAGE_SIZE, hparams.image_size);                
                 get_u32(KEY_IMAGE_CROP_RESOLUTION, hparams.image_crop_resolution, false);
                 get_i32(KEY_MINICPMV_VERSION, hparams.minicpmv_version, false); // legacy
                 get_u32(KEY_MINICPMV_QUERY_NUM, hparams.minicpmv_query_num, false);
