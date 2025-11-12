@@ -4207,6 +4207,10 @@ Change Mode<br>
             is_embeddings = False
             response_body = None
             use_jinja = args.jinja
+            if use_jinja and not args.jinja_tools:
+                tmptools = genparams.get('tools', [])
+                if tmptools and len(tmptools) > 0:
+                    use_jinja = False # not allowed to use tools with jinja
 
             if self.path.endswith('/api/admin/check_state'):
                 if global_memory and args.admin and args.admindir and os.path.exists(args.admindir) and self.check_header_password(args.adminpassword):
@@ -4902,6 +4906,7 @@ def show_gui():
                     togglectxshift(1,1,1)
                     togglehorde(1,1,1)
                     toggletaesd(1,1,1)
+                    togglejinja(1,1,1)
                     tabbuttonaction(tabnames[curr_tab_idx])
 
     if sys.platform=="darwin":
@@ -5001,6 +5006,7 @@ def show_gui():
     customrope_nativectx = ctk.StringVar(value=str(default_native_ctx))
     chatcompletionsadapter_var = ctk.StringVar(value="AutoGuess")
     jinja_var = ctk.IntVar(value=0)
+    jinja_tools_var = ctk.IntVar(value=0)
     moeexperts_var = ctk.StringVar(value=str(-1))
     moecpu_var = ctk.StringVar(value=str(0))
     defaultgenamt_var = ctk.StringVar(value=str(768))
@@ -5713,7 +5719,16 @@ def show_gui():
     quantkv_var.trace_add("write", toggleflashattn)
     makecheckbox(tokens_tab, "No BOS Token", nobostoken_var, 43, tooltiptxt="Prevents BOS token from being added at the start of any prompt. Usually NOT recommended for most models.")
     makecheckbox(tokens_tab, "Enable Guidance", enableguidance_var, 43,padx=(200 if corrupt_scaler else 140), tooltiptxt="Enables the use of Classifier-Free-Guidance, which allows the use of negative prompts. Has performance and memory impact.")
-    makecheckbox(tokens_tab, "Use Jinja", jinja_var, row=45, tooltiptxt="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected.")
+    def togglejinja(a,b,c):       
+        if jinja_var.get()==1:
+            jinjatoolsbox.grid()
+        else:
+            jinja_tools_var.set(0)
+            jinjatoolsbox.grid_remove()
+        changed_gpulayers_estimate()    
+    makecheckbox(tokens_tab, "Use Jinja", jinja_var, row=45, command=togglejinja, tooltiptxt="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected.")
+    jinjatoolsbox = makecheckbox(tokens_tab, "Jinja for Tools", jinja_tools_var, row=45 ,padx=(200 if corrupt_scaler else 140), tooltiptxt="Allows jinja even with tool calls. If unchecked, jinja will be disabled when tools are used.")
+    jinja_var.trace_add("write", togglejinja)
     makelabelentry(tokens_tab, "MoE Experts:", moeexperts_var, row=55, padx=(220 if corrupt_scaler else 120), singleline=True, tooltip="Override number of MoE experts.")
     makelabelentry(tokens_tab, "MoE CPU Layers:", moecpu_var, row=55, padx=(490 if corrupt_scaler else 320), singleline=True, tooltip="Force Mixture of Experts (MoE) weights of the first N layers to the CPU.\nSetting it higher than GPU layers has no effect.", labelpadx=(300 if corrupt_scaler else 210))
     makelabelentry(tokens_tab, "Override KV:", override_kv_var, row=57, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Override metadata value by key. Separate multiple values with commas. Format is name=type:value. Types: int, float, bool, str")
@@ -5914,6 +5929,7 @@ def show_gui():
     toggleflashattn(1,1,1)
     togglectxshift(1,1,1)
     togglehorde(1,1,1)
+    togglejinja(1,1,1)
 
     # launch
     def guilaunch():
@@ -6026,6 +6042,7 @@ def show_gui():
         args.genlimit = int(genlimit_var.get()) if genlimit_var.get()!="" else 0
         args.nobostoken = (nobostoken_var.get()==1)
         args.jinja = (jinja_var.get()==1)
+        args.jinja_tools = (jinja_tools_var.get()==1)
         args.enableguidance = (enableguidance_var.get()==1)
         args.overridekv = None if override_kv_var.get() == "" else override_kv_var.get()
         args.overridetensors = None if override_tensors_var.get() == "" else override_tensors_var.get()
@@ -6266,6 +6283,7 @@ def show_gui():
             genlimit_var.set(str(0))
         nobostoken_var.set(dict["nobostoken"] if ("nobostoken" in dict) else 0)
         jinja_var.set(dict["jinja"] if ("jinja" in dict) else 0)
+        jinja_tools_var.set(dict["jinja_tools"] if ("jinja_tools" in dict) else 0)
         enableguidance_var.set(dict["enableguidance"] if ("enableguidance" in dict) else 0)
         if "overridekv" in dict and dict["overridekv"]:
             override_kv_var.set(dict["overridekv"])
@@ -6725,6 +6743,8 @@ def convert_invalid_args(args):
         dict["sdclip1"] = dict["sdclipl"]
     if "sdclipg" in dict and "sdclip2" not in dict:
         dict["sdclip2"] = dict["sdclipg"]
+    if "jinja_tools" in dict and dict["jinja_tools"]:
+        dict["jinja"] = True
     return args
 
 def setuptunnel(global_memory, has_sd):
@@ -8156,7 +8176,8 @@ if __name__ == '__main__':
     advparser.add_argument("--ratelimit", metavar=('[seconds]'), help="If enabled, rate limit generative request by IP address. Each IP can only send a new request once per X seconds.", type=int, default=0)
     advparser.add_argument("--ignoremissing", help="Ignores all missing non-essential files, just skipping them instead.", action='store_true')
     advparser.add_argument("--chatcompletionsadapter", metavar=('[filename]'), help="Select an optional ChatCompletions Adapter JSON file to force custom instruct tags.", default="AutoGuess")
-    advparser.add_argument("--jinja", help="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected.", action='store_true')
+    advparser.add_argument("--jinja", help="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected. Tool calls are done without jinja.", action='store_true')
+    advparser.add_argument("--jinja_tools","--jinja-tools", help="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected. Tool calls are done with jinja.", action='store_true')
     advparser.add_argument("--flashattention","--flash-attn","-fa", help="Enables flash attention.", action='store_true')
     advparser.add_argument("--lowvram","-nkvo","--no-kv-offload", help="If supported by the backend, do not offload KV to GPU (lowvram mode). Not recommended, will be slow.", action='store_true')
     advparser.add_argument("--quantkv", help="Sets the KV cache data type quantization, 0=f16, 1=q8, 2=q4. Requires Flash Attention for full effect, otherwise only K cache is quantized.",metavar=('[quantization level 0/1/2]'), type=int, choices=[0,1,2], default=0)
