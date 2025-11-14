@@ -198,9 +198,20 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     cfg_square_limit = inputs.img_soft_limit;
     printf("\nImageGen Init - Load Model: %s\n",inputs.model_filename);
 
+    int lora_apply_mode = std::max(0, std::min(2, inputs.lora_apply_mode));
+
+    if (inputs.quant > 0)
+    {
+        lora_apply_mode = LORA_APPLY_AT_RUNTIME;
+    }
+
     if(lorafilename!="")
     {
-        printf("With LoRA: %s at %f power\n",lorafilename.c_str(),inputs.lora_multiplier);
+        const char* lora_apply_mode_name = lora_apply_mode == 1 ? "immediately"
+                                         : lora_apply_mode == 2 ? "at runtime"
+                                         : "auto";
+        printf("With LoRA: %s at %f power, apply mode: %s\n",
+            lorafilename.c_str(),inputs.lora_multiplier,lora_apply_mode_name);
     }
     if(inputs.taesd)
     {
@@ -334,6 +345,7 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     params.offload_params_to_cpu = inputs.offload_cpu;
     params.keep_vae_on_cpu = inputs.vae_cpu;
     params.keep_clip_on_cpu = inputs.clip_cpu;
+    params.lora_apply_mode = (lora_apply_mode_t)lora_apply_mode;
     // params.flow_shift = 5.0f;
 
     if (params.chroma_use_dit_mask && params.diffusion_flash_attn) {
