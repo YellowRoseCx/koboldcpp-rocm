@@ -7394,16 +7394,20 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
         if isinstance(args.chatcompletionsadapter, str) and os.path.exists(args.chatcompletionsadapter):
             ccadapter_path = os.path.abspath(args.chatcompletionsadapter)
         elif isinstance(args.chatcompletionsadapter, str) and adapt_dir:
-            filename = args.chatcompletionsadapter
-            if filename.lower().strip()=="autoguess":
-                filename = "AutoGuess"
+            filename = args.chatcompletionsadapter          
             if not filename.endswith(".json"):
                 filename += ".json"
             #strip to just the filename
             filename = os.path.basename(filename)
-            premade_adapt_path = os.path.join(adapt_dir,filename)
-            if premade_adapt_path and os.path.exists(premade_adapt_path):
-                ccadapter_path = os.path.abspath(premade_adapt_path)
+            # Case-insensitive match inside adapt_dir
+            matched = None
+            if adapt_dir:
+                for f in os.listdir(adapt_dir):
+                    if f.lower().strip() == filename.lower().strip():
+                        matched = os.path.join(adapt_dir, f)
+                        break
+            if matched and os.path.exists(matched):
+                ccadapter_path = os.path.abspath(matched)
         if ccadapter_path:
             print(f"Loading Chat Completions Adapter: {ccadapter_path}")
             with open(ccadapter_path, 'r', encoding='utf-8', errors='replace') as f:
