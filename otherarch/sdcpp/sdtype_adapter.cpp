@@ -200,11 +200,6 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
 
     int lora_apply_mode = std::max(0, std::min(2, inputs.lora_apply_mode));
 
-    if (inputs.quant > 0)
-    {
-        lora_apply_mode = LORA_APPLY_AT_RUNTIME;
-    }
-
     if(lorafilename!="")
     {
         const char* lora_apply_mode_name = lora_apply_mode == 1 ? "immediately"

@@ -31,6 +31,7 @@ extern "C" {
 enum rng_type_t {
     STD_DEFAULT_RNG,
     CUDA_RNG,
+    CPU_RNG,
     RNG_TYPE_COUNT
 };
 
@@ -166,11 +167,13 @@ typedef struct {
     const char* lora_model_dir;
     const char* embedding_dir;
     const char* photo_maker_path;
+    const char* tensor_type_rules;
     bool vae_decode_only;
     bool free_params_immediately;
     int n_threads;
     enum sd_type_t wtype;
     enum rng_type_t rng_type;
+    enum rng_type_t sampler_rng_type;
     enum prediction_t prediction;
     enum lora_apply_mode_t lora_apply_mode;
     bool offload_params_to_cpu;
