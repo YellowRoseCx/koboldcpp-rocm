@@ -571,7 +571,7 @@ extern "C" {
         GGML_OP_RECIPROCAL,
         GGML_OP_TTSROUND,
         GGML_OP_MOD,
-        GGML_OP_CUMSUM,
+        GGML_OP_CUMSUM_TTS,
         GGML_OP_STFT,
         GGML_OP_AA_STFT,
         GGML_OP_ISTFT,
@@ -2658,7 +2658,7 @@ extern "C" {
             struct ggml_context * ctx,
             struct ggml_tensor  * a);
         // cumulative sums along first axis (ne0)
-    GGML_API struct ggml_tensor * ggml_cumsum(
+    GGML_API struct ggml_tensor * ggml_cumsum_tts(
             struct ggml_context * ctx,
             struct ggml_tensor  * a);
     GGML_API struct ggml_tensor * ggml_conv_1d_dw_tts(

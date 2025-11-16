@@ -7489,11 +7489,11 @@ struct ggml_tensor * ggml_mod_inplace(
         float                 mod_val) {
     return ggml_mod_impl(ctx, a, mod_val, true);
 }
-struct ggml_tensor * ggml_cumsum(
+struct ggml_tensor * ggml_cumsum_tts(
         struct ggml_context * ctx,
         struct ggml_tensor  * a) {
     struct ggml_tensor * result =  ggml_dup_tensor(ctx, a);
-    result->op     = GGML_OP_CUMSUM;
+    result->op     = GGML_OP_CUMSUM_TTS;
     result->src[0] = a;
     return result;
 }

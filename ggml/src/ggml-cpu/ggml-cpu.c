@@ -1717,7 +1717,7 @@ static void ggml_compute_forward_reciprocal(
             }
     }
 }
-static void ggml_compute_forward_cumsum_f32(
+static void ggml_compute_forward_cumsum_f32_tts(
         const struct ggml_compute_params * params,
         struct ggml_tensor * dst) {
     const struct ggml_tensor * src0 = dst->src[0];
@@ -1751,7 +1751,7 @@ static void ggml_compute_forward_cumsum_f32(
         }
     }
 }
-static void ggml_compute_forward_cumsum(
+static void ggml_compute_forward_cumsum_tts(
         const struct ggml_compute_params * params,
         struct ggml_tensor * dst) {
 
@@ -1760,7 +1760,7 @@ static void ggml_compute_forward_cumsum(
     switch (src0->type) {
         case GGML_TYPE_F32:
             {
-                ggml_compute_forward_cumsum_f32(params, dst);
+                ggml_compute_forward_cumsum_f32_tts(params, dst);
             } break;
         default:
             {
@@ -2839,9 +2839,9 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             {
                 ggml_compute_forward_ttsround(params, tensor);
             } break;
-        case GGML_OP_CUMSUM:
+        case GGML_OP_CUMSUM_TTS:
             {
-                ggml_compute_forward_cumsum(params, tensor);
+                ggml_compute_forward_cumsum_tts(params, tensor);
             } break;
         case GGML_OP_MOD:
             {
@@ -3188,7 +3188,7 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
         case GGML_OP_RECIPROCAL: //kcpp: dirtypatch tts cpp
         case GGML_OP_MOD:
         case GGML_OP_TTSROUND:
-        case GGML_OP_CUMSUM:
+        case GGML_OP_CUMSUM_TTS:
         case GGML_OP_STFT:
         case GGML_OP_AA_STFT:
         case GGML_OP_ISTFT:
