@@ -8976,7 +8976,7 @@ Current version indicated by LITEVER below.
 			}
 		});
 	}
-	
+
 	function kai_scenario_load(storyobj) //retain all current settings, but overwrite story and a few key items
 	{
 		temp_scenario = {
@@ -9009,9 +9009,9 @@ Current version indicated by LITEVER below.
 				temp_scenario.opmode = storyobj.savedsettings.opmode;
 			}
 			if(temp_scenario.opmode==1) //story
-			{				
+			{
 				temp_scenario.gui_type = storyobj.savedsettings.gui_type_story?storyobj.savedsettings.gui_type_story:0;
-			}		
+			}
 			else if(temp_scenario.opmode==2) //adventure
 			{
 				temp_scenario.adventure_context_mod = storyobj.savedsettings.adventure_context_mod?true:false;
@@ -9019,11 +9019,11 @@ Current version indicated by LITEVER below.
 				temp_scenario.gui_type = storyobj.savedsettings.gui_type_adventure?storyobj.savedsettings.gui_type_adventure:0;
 			}
 			else if(temp_scenario.opmode==3) //chat
-			{				
-				temp_scenario.gui_type = storyobj.savedsettings.gui_type_chat?storyobj.savedsettings.gui_type_chat:0;				
+			{
+				temp_scenario.gui_type = storyobj.savedsettings.gui_type_chat?storyobj.savedsettings.gui_type_chat:0;
 			}
 			else if(temp_scenario.opmode==4) //instruct
-			{				
+			{
 				temp_scenario.gui_type = storyobj.savedsettings.gui_type_instruct?storyobj.savedsettings.gui_type_instruct:0;
 			}
 
@@ -10429,7 +10429,7 @@ Current version indicated by LITEVER below.
 		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="hide_popups();document.getElementById('loadfileinput').click()">Load Character Card or JSON File</button>`;
 		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="hide_popups();display_scenariolibrary();">Load or Save Custom Scenario</button>`;
 		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="character_creator()">New Character Creator</button>`;
-		
+
 		for(let i=0;i<scenario_sources.length;++i) {
 			scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="import_scenario(scenario_sources[${i}])">${scenario_sources[i].name}</button>`
 		}
@@ -11712,9 +11712,9 @@ Current version indicated by LITEVER below.
 		}
 	}
 	function fetch_openrouter_balance()
-	{		
+	{
 		let desired_oai_key = document.getElementById("custom_oai_key").value.trim();
-		
+
 		let oaiheaders = {};
 		if(desired_oai_key!="" && desired_oai_key!=dummy_api_key){
 			oaiheaders["Authorization"] = "Bearer " + desired_oai_key;
@@ -12821,7 +12821,7 @@ Current version indicated by LITEVER below.
 				let slotname = (testslot?`Server Slot `+(lbl)+` - `+tsdesc+``:`Server Slot `+(lbl)+` - [ Empty ]`);
 				choices += `<option value=${i}${(selectedslot==i)?" selected":""}>${slotname}</option>`;
 			}
-		} 
+		}
 		else if(selectedlocation=="3") //local scenario
 		{
 			locationdesc.innerText = "Local Scenario Library stores your story as a Custom Scenario, without any generation settings.\nData is saved to a temporary cache and can be deleted by your browser. To avoid losing data, use the download save button.";
@@ -13090,10 +13090,10 @@ Current version indicated by LITEVER below.
 						}
 						else
 						{
-							import_compressed_story(loadedstorycompressed,false);					
+							import_compressed_story(loadedstorycompressed,false);
 							last_used_saveslot = slot;
 						}
-						
+
 						if(switch_to_corpo)
 						{
 							localsettings.gui_type_chat = 3;
@@ -13301,7 +13301,7 @@ Current version indicated by LITEVER below.
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
 		let selectedlocation = document.getElementById("saveslotlocationdropdown").value;
 		let islocal = (selectedlocation=="1");
-		let isscenario = (selectedlocation=="3");		
+		let isscenario = (selectedlocation=="3");
 		download_from_slot(selectedslot,islocal,isscenario);
 	}
 	function delete_from_curr_slot()
@@ -14308,7 +14308,7 @@ Current version indicated by LITEVER below.
 			{
 				document.body.classList.add(`theme-${i}`);
 			}
-		}	
+		}
 	}
 
 	function update_genimg_button_visiblility()
@@ -17612,7 +17612,7 @@ Current version indicated by LITEVER below.
 							pending_context_preinjection += endmatcher;
 						}
 					}
-					
+
 					if (force_new_turn || ends_with_assistant_tag) {
 						if (localsettings.inject_timestamps) {
 							pending_context_preinjection += get_current_timestamp();
@@ -18112,7 +18112,7 @@ Current version indicated by LITEVER below.
 				{
 					seqs.push(me + "\:");
 				}
-				if(localsettings.chatopponent!="") 
+				if(localsettings.chatopponent!="")
 				{
 					//NOTE: we do not add our opponents name as a stop sequence IF thinking is forced
 					//the model just gets too confused and is likely to repeat the tag.
@@ -22500,14 +22500,14 @@ Current version indicated by LITEVER below.
 	}
 
 	function classic_delete_turn(idx)
-	{		
+	{
 		edit_chunk_save(idx,"",true);
 	}
 	function classic_edit_turn(idx)
 	{
 		let chatunits = []; //todo: eventually refactor
 		let currctx = concat_gametext(false, "", "", "", false);
-		currctx = replace_instruct_placeholders(currctx);		
+		currctx = replace_instruct_placeholders(currctx);
 		if(localsettings.opmode==3)
 		{
 			chatunits = repack_chat_history(currctx);
@@ -22527,20 +22527,20 @@ Current version indicated by LITEVER below.
 
 		let currmsg = chatunits[idx].msg;
 		currmsg = stash_image_placeholders(currmsg, false);
-		
+
 		inputBoxOkCancel("Quickly edit a previous turn message","Quick Edit Turn",currmsg,"(Delete Turn)",()=>{
 			let userinput = getInputBoxValue();
 			edit_chunk_save(idx,userinput,true);
 		},()=>{
 			//do nothing on cancel
-		},true,true);		
+		},true,true);
 	}
 
 	function classic_click_turn(button,idx,toggleopen = true)
 	{
 		let incomplete_resp = (synchro_pending_stream != "" || pending_response_id != "");
 		if (incomplete_resp) { return; }
-		
+
 		function handleOutsideClickClassicTurn(event) {
 			popupMenu.style.display = 'none';
 			document.removeEventListener('click', handleOutsideClickClassicTurn);
@@ -22548,7 +22548,7 @@ Current version indicated by LITEVER below.
 
 		const rect = button.getBoundingClientRect();
 		const popupMenu = document.getElementById('classicturnmenu');
-		
+
 		let popcontent = `<button type="button" onclick="classic_edit_turn(${idx})">Edit Turn</button>`;
 		popcontent += `<button type="button" onclick="classic_delete_turn(${idx})">Delete Turn</button>`;
 		popcontent += `<button type="button" onclick="">Cancel</button>`;
@@ -22843,7 +22843,7 @@ Current version indicated by LITEVER below.
 
 		let chatunits = [];
 		let currctx = concat_gametext(false, "", "", "", false);
-		currctx = replace_instruct_placeholders(currctx);		
+		currctx = replace_instruct_placeholders(currctx);
 		if(localsettings.opmode==3)
 		{
 			chatunits = repack_chat_history(currctx);
@@ -22960,7 +22960,7 @@ Current version indicated by LITEVER below.
 		let idx = modified_turn;
 		let chatunits = [];
 		let currctx = concat_gametext(false, "", "", "", false);
-		currctx = replace_instruct_placeholders(currctx);		
+		currctx = replace_instruct_placeholders(currctx);
 		if(localsettings.opmode==3)
 		{
 			chatunits = repack_chat_history(currctx);
@@ -22977,7 +22977,7 @@ Current version indicated by LITEVER below.
 		{
 			chatunits = repack_instruct_history(currctx, allow_blank);
 		}
-		
+
 		let needsave = false;
 
 		let existing_msg_compare = stash_image_placeholders(chatunits[idx].msg,false);
@@ -23077,7 +23077,7 @@ Current version indicated by LITEVER below.
 		let textarea = document.getElementById("corpo_edit_inp");
 		let modified_message = textarea.value;
 		edit_chunk_save(corpo_editing_turn, modified_message);
-		
+
 	}
 	function corpo_edit_chunk_resend(idx)
 	{
@@ -25052,7 +25052,7 @@ Current version indicated by LITEVER below.
 
 		//refactor - repack as turns
 		let chatunits = [];
-		input = replace_instruct_placeholders(input);		
+		input = replace_instruct_placeholders(input);
 		if(localsettings.opmode==3) //chat mode
 		{
 			chatunits = repack_chat_history(input);
@@ -27848,8 +27848,8 @@ Current version indicated by LITEVER below.
 						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localsave" class="btn btn-primary" onclick="hide_popups();save_file_button()">💾<br>Download Save</button>
 						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localload" class="btn btn-primary" onclick="hide_popups();load_file_button()">📁<br>Open File</button>
 						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:34%" name="shareurl" class="btn btn-primary" onclick="hide_popups();share_story_button()">🌐<br>Share</button>
-					</div>				
-					
+					</div>
+
 					<div style="margin-top:3px; text-align: center; align-self: center; width: 100%">
 						<span style="font-weight:bold;text-decoration: underline;">Slot Storage Option</span>
 						<span style="float:right; text-align: right;">

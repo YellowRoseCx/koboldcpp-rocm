@@ -268,7 +268,7 @@ std::string gguf_get_model_arch(const std::string & gguf_filename)
                     }
                 }
            }
-       } 
+       }
        else if (vocabsiz>=51864 && vocabsiz<=51865)
        {
             printf("\nWhisper model detected - you should load it as a whisper model instead, not a text model!\n");
