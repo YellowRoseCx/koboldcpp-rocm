@@ -6610,6 +6610,7 @@ def run_horde_worker(args, api_key, worker_name):
                 print_with_time(f"Horde Worker Paused for {penaltytime} min - Too many errors. It will resume automatically, but you should restart it.")
                 print_with_time("Caution: Too many failed jobs may lead to entering maintenance mode.")
                 time.sleep(60 * penaltytime)
+                print_with_time("Horde Worker Resumed")
             else:
                  print_with_time("Horde Worker Exit limit reached, too many errors.")
 
