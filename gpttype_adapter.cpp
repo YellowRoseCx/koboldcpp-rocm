@@ -1811,7 +1811,7 @@ static void load_grammar(const std::string & gammarstr)
 }
 
 static bool kcpp_eval_image(llama_context * ctx_llama, float * img_embd, int num_img_tokens, int n_batch, int * n_past) {
-    int n_embd  = llama_n_embd(llama_get_model(ctx_llama));
+    int n_embd  = llama_model_n_embd_inp(llama_get_model(ctx_llama));
 
     for (int i = 0; i < num_img_tokens; i += n_batch) {
         int n_eval = num_img_tokens - i;
@@ -2489,7 +2489,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
                 fprintf(stderr, "%s: error: failed to load mmproj model!\n", __func__);
                 return ModelLoadResult::FAIL;
             }
-            const int n_embd_llm  = llama_n_embd(llamamodel);
+            const int n_embd_llm  = llama_model_n_embd_inp(llamamodel);
             int n_embd_clip_a = -1;
             int n_embd_clip_v = -1;
             if (clp_ctx_v)
