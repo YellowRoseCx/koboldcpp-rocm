@@ -300,43 +300,51 @@ void llm_graph_input_attn_no_cache::set_input(const llama_ubatch * ubatch) {
     const int64_t n_kv     = ubatch->n_tokens;
     const int64_t n_tokens = ubatch->n_tokens;
 
+    const auto fill_mask = [&](float * data, int n_swa, llama_swa_type swa_type) {
+        for (int h = 0; h < 1; ++h) {
+            for (int i1 = 0; i1 < n_tokens; ++i1) {
+                const llama_seq_id s1 = ubatch->seq_id[i1][0];
+                const llama_pos    p1 = ubatch->pos[i1];
+
+                const uint64_t idst = h*(n_kv*n_tokens) + i1*n_kv;
+
+                for (int i0 = 0; i0 < n_tokens; ++i0) {
+                    const llama_seq_id s0 = ubatch->seq_id[i0][0];
+                    const llama_pos p0    = ubatch->pos[i0];
+
+                    // mask different sequences
+                    if (s0 != s1) {
+                        continue;
+                    }
+
+                    // mask future tokens
+                    if (cparams.causal_attn && p0 > p1) {
+                        continue;
+                    }
+
+                    // apply SWA if any
+                    if (llama_hparams::is_masked_swa(n_swa, swa_type, p0, p1)) {
+                        continue;
+                    }
+
+                    data[idst + i0] = hparams.use_alibi ? -std::abs(p0 - p1) : 0.0f;
+                }
+            }
+        }
+    };
+
     {
         GGML_ASSERT(self_kq_mask);
         GGML_ASSERT(ggml_backend_buffer_is_host(self_kq_mask->buffer));
 
         float * data = (float *) self_kq_mask->data;
 
-        for (int h = 0; h < 1; ++h) {
-            for (int i1 = 0; i1 < n_tokens; ++i1) {
-                const llama_seq_id s1 = ubatch->seq_id[i1][0];
+        std::fill(data, data + ggml_nelements(self_kq_mask), -INFINITY);
 
-                for (int i0 = 0; i0 < n_tokens; ++i0) {
-                    float f = -INFINITY;
+        fill_mask(data, 0, LLAMA_SWA_TYPE_NONE);
 
-                    for (int s = 0; s < ubatch->n_seq_id[i0]; ++s) {
-                        const llama_seq_id s0 = ubatch->seq_id[i0][0];
-
-                        if (s0 != s1) {
-                            continue; // skip different sequences
-                        }
-
-                        if (cparams.causal_attn && ubatch->pos[i0] > ubatch->pos[i1]) {
-                            continue; // skip future tokens for causal attention
-                        }
-
-                        // TODO: reimplement this like in llama_kv_cache_unified
-                        if (hparams.use_alibi) {
-                            f = -std::abs(ubatch->pos[i0] - ubatch->pos[i1]);
-                        } else {
-                            f = 0.0f;
-                        }
-                    }
-                    data[h*(n_kv*n_tokens) + i1*n_kv + i0] = f;
-                }
-            }
-        }
         if (debug) {
-            print_mask(data, n_tokens, n_kv, hparams.n_swa, hparams.swa_type);
+            print_mask(data, n_tokens, n_kv, 0, LLAMA_SWA_TYPE_NONE);
         }
     }
 
@@ -346,39 +354,10 @@ void llm_graph_input_attn_no_cache::set_input(const llama_ubatch * ubatch) {
 
         float * data = (float *) self_kq_mask_swa->data;
 
-        for (int h = 0; h < 1; ++h) {
-            for (int i1 = 0; i1 < n_tokens; ++i1) {
-                const llama_seq_id s1 = ubatch->seq_id[i1][0];
+        std::fill(data, data + ggml_nelements(self_kq_mask_swa), -INFINITY);
 
-                for (int i0 = 0; i0 < n_tokens; ++i0) {
-                    float f = -INFINITY;
+        fill_mask(data, hparams.n_swa, hparams.swa_type);
 
-                    for (int s = 0; s < ubatch->n_seq_id[i0]; ++s) {
-                        const llama_seq_id s0 = ubatch->seq_id[i0][0];
-
-                        if (s0 != s1) {
-                            continue; // skip different sequences
-                        }
-
-                        if (cparams.causal_attn && ubatch->pos[i0] > ubatch->pos[i1]) {
-                            continue; // skip future tokens for causal attention
-                        }
-
-                        if (llama_hparams::is_masked_swa(hparams.n_swa, hparams.swa_type, ubatch->pos[i0], ubatch->pos[i1])) {
-                            continue; // skip masked tokens for SWA
-                        }
-
-                        // TODO: reimplement this like in llama_kv_cache_unified
-                        if (hparams.use_alibi) {
-                            f = -std::abs(ubatch->pos[i0] - ubatch->pos[i1]);
-                        } else {
-                            f = 0.0f;
-                        }
-                    }
-                    data[h*(n_kv*n_tokens) + i1*n_kv + i0] = f;
-                }
-            }
-        }
         if (debug) {
             print_mask(data, n_tokens, n_kv, hparams.n_swa, hparams.swa_type);
         }
@@ -971,6 +950,31 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         cb(selection_probs, "ffn_moe_probs_biased", il);
     }
 
+    // select top n_group_used expert groups
+    // https://huggingface.co/deepseek-ai/DeepSeek-V3/blob/e815299b0bcbac849fa540c768ef21845365c9eb/modeling_deepseek.py#L440-L457
+    if (hparams.n_expert_groups > 1 && n_tokens > 0) {
+        const int64_t n_exp_per_group = n_expert / hparams.n_expert_groups;
+
+        // organize experts into n_expert_groups
+        ggml_tensor * selection_groups = ggml_reshape_3d(ctx0, selection_probs, n_exp_per_group, hparams.n_expert_groups, n_tokens); // [n_exp_per_group, n_expert_groups, n_tokens]
+
+        ggml_tensor * group_scores = ggml_top_k(ctx0, selection_groups, 2); // [2, n_expert_groups, n_tokens]
+        group_scores = ggml_get_rows(ctx0, ggml_reshape_4d(ctx0, selection_groups, 1, selection_groups->ne[0], selection_groups->ne[1], selection_groups->ne[2]), group_scores); // [1, 2, n_expert_groups, n_tokens]
+
+        // get top n_group_used expert groups
+        group_scores = ggml_sum_rows(ctx0, ggml_reshape_3d(ctx0, group_scores, group_scores->ne[1], group_scores->ne[2], group_scores->ne[3])); // [1, n_expert_groups, n_tokens]
+        group_scores = ggml_reshape_2d(ctx0, group_scores, group_scores->ne[1], group_scores->ne[2]); // [n_expert_groups, n_tokens]
+
+        ggml_tensor * expert_groups = ggml_top_k(ctx0, group_scores, hparams.n_group_used); // [n_group_used, n_tokens]
+        cb(expert_groups, "ffn_moe_group_topk", il);
+
+        // mask out the other groups
+        selection_probs = ggml_get_rows(ctx0, selection_groups, expert_groups); // [n_exp_per_group, n_group_used, n_tokens]
+        selection_probs = ggml_set_rows(ctx0, ggml_scale_bias(ctx0, selection_groups, 0.0f, -INFINITY), selection_probs, expert_groups); // [n_exp_per_group, n_expert_groups, n_tokens]
+        selection_probs = ggml_reshape_2d(ctx0, selection_probs, n_expert, n_tokens); // [n_expert, n_tokens]
+        cb(selection_probs, "ffn_moe_probs_masked", il);
+    }
+
     // select experts
     ggml_tensor * selected_experts = ggml_top_k(ctx0, selection_probs, n_expert_used); // [n_expert_used, n_tokens]
     cb(selected_experts->src[0], "ffn_moe_argsort", il);
@@ -1001,6 +1005,10 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
 
         ggml_tensor * weights_sum = ggml_sum_rows(ctx0, weights); // [1, n_tokens]
         cb(weights_sum, "ffn_moe_weights_sum", il);
+
+        // Avoid division by zero, clamp to smallest number representable by F16
+        weights_sum = ggml_clamp(ctx0, weights_sum, 6.103515625e-5, INFINITY);
+        cb(weights_sum, "ffn_moe_weights_sum_clamped", il);
 
         weights = ggml_div(ctx0, weights, weights_sum); // [n_expert_used, n_tokens]
         cb(weights, "ffn_moe_weights_norm", il);
@@ -1344,7 +1352,6 @@ ggml_tensor * llm_graph_context::build_attn_mha(
 
     ggml_tensor * cur;
 
-    // TODO: replace hardcoded padding with ggml-provided padding
     if (cparams.flash_attn && kq_b == nullptr) {
         GGML_ASSERT(kq_b == nullptr && "Flash attention does not support KQ bias yet");
 
@@ -2022,7 +2029,7 @@ int32_t llama_relative_position_bucket(llama_pos x, llama_pos y, uint64_t n_buck
 
     if (bidirectional) {
         relative_bucket += (relative_position > 0) * n_buckets;
-        relative_position = abs(relative_position);
+        relative_position = std::abs(relative_position);
     } else {
         relative_position = -std::min<int32_t>(relative_position, 0);
     }

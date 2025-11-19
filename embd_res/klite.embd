@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 288;
+	const LITEVER = 294;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -855,14 +855,18 @@ Current version indicated by LITEVER below.
 		border-radius: 8px;
 	}
 	#actionmenuitems button,#actionmenuitems2 button {
-		width: 78px;
+		width: 68px;
+		padding-left: 6px;
+		padding-right: 6px;
 	}
 	#actionmenuitems button.slim,#actionmenuitems2 button.slim {
 		width: 38px;
+		padding-left: 4px;
+		padding-right: 4px;
 	}
 	@media (max-width: 666px) {
 		#actionmenuitems button,#actionmenuitems2 button {
-			width: 60px;
+			width: 56px;
 			padding: 4px 4px;
 			font-size: 12px;
 		}
@@ -1344,6 +1348,42 @@ Current version indicated by LITEVER below.
 	}
 	.scenarioitem.yellow:focus {
 		background-image: var(--img_compass),linear-gradient(to right, #6b5530, #6b5530);
+	}
+
+	.branchmenu {
+      position: absolute;
+      background: var(--theme_color_main);
+      border: 1px solid var(--theme_color_border);;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      display:none;
+      flex-direction: column;
+      min-width: 100px;
+      padding: 4px;
+    }
+	.branchmenu button {
+      padding: 2px 5px;
+	  background: var(--theme_color_main);
+	  color: var(--theme_color_text);
+	  border-color: var(--theme_color_main);
+      border: none;
+      text-align: left;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .branchmenu button:hover {
+      background: var(--theme_color_highlight);
+    }
+	.branchmenu .xbtn {
+		background: var(--theme_color_topbtn);
+		color: var(--theme_color_text);
+		font-size: 12px;
+		height: 24px;
+		font-weight: bolder;
+	}
+	.branchmenu .xbtn:hover {
+		color: var(--theme_color_text);
+		background-color: #c9302c;
 	}
 
 	/* Welcome splash */
@@ -2876,7 +2916,6 @@ Current version indicated by LITEVER below.
 	const corpo_greeter_square = niko_square;
 	const favicon_busy = rootStyles.getPropertyValue('--img_favicon_busy').match(/url\("(.*)"\)/)[1];
 	const favivon_normal =rootStyles.getPropertyValue('--img_favicon_normal').match(/url\("(.*)"\)/)[1];
-	const compressed_scenario_db = ["XQAAAQCkKgAAAAAAAAA9iIqG1FTp3Td41VnWyuXTp3Lb95KmIEizGvJcmkqrV2FY5cKEeSxCwbqBRjHVjL7PUH9wCoW89dPxjDNZvgp6okMOelpy7_1P6GV-mfJV4jz42_DXqYfET4aYlAT13M95gkcA14f0NLvI_p6B9CyG8EbkhRxsk3uyf_KgTV5kwqzAcr5C4JQ_pJr77GnYCHQI8h6F765-lcqrvw1Xu1GHhcN3lj7s9PhMvLnmGPZbQMrTo5sqPJDzYO6lytxmNSHSXMICpN2kFJB6kqyL5lBxNAH3Au_F_JIC85GqwLXWEy8wZms5KmAdp1s3EA1yabPGqqF0G5RxBp3aXzm7h6QUJPy1qSr6JJAo4fi2gCPaLkdn2pKqNDR1Ww8FA6AVHOyMgCTmmrQxWVYgXY9TdhHKcRcrIsoHNXEeWSqMGJNQ8lzVfc26teZdBdPLhqcClG8wUThPtyobTMz8Fgom88nTv7VT-mZhwH9Nc4ghoCL8dMR0Skf-EYDZ0Uvz03_GTn5OB8yuX6FmsD1XQJv_CKBAUHeDKd7n_bC7WOnlAINHPX9Bh5TnwjeLYO-UAL2ClMJTFzR-k2cjVHGQnLB7hZ48L1nToRG1gSVN7dP3Zysw7riwIxnfG4MMNXtEbHyxrCvz2zRTUEqbHLrwIzdJRpJ5s5XfTlY1CPZkQCwxbA6rrUt27D6a-YDKavbg0hubpViPRYbnEDXr9gL-7in4f_K2cOZdQ26Q--hk0xzEtgBNFI6inHA2nA4LofUpWjl835qg6CUyz9EzQkw0cDgPVjYXehC9oC_3H0U2O9YC-Ah8VpdPdCHUFuaQr7oXgePUub_Be1XQyCA5TaqrJxVxUG2hZA4rOVJHZ_AahfiJN7z6QcVEp-8xf-wHcv1lpWjjNdXFWDqVQZkdOaKf63dtjP35SmC5eCw2_BNX_t-db_FCCAhm2Vn2WI3q4k00p4l_ocCrJIdRID6muBVZQXCzxcRf5m8kcGwrTB-XVS-XSSPZInaBxZjgimOl5bLwJvdMC-HNYtU-yUDjXvDjPraZ_7ZV_-knU1GbHf1BpI9-rNbl_3bbA7KbmL7Q_goV1Clvi6gLYgjbXGQMTFjQEoodZX3fK_bDhVsrA1fWMJMWwfY3ua-j8HNuyRDfhPBpbTK0Gvz5-GWbIRF3v4zwR9HzIjz2frY7luy3ApQ6QJw7K6ITvD80u5VLfpHYReVCLpgs-lvPStklgnGXj3j5vuaH9f-wFohB19vwzRnthvgdplXPQ9jMy3ieb80sELS0WiGD-E2L_HhNXUcpTdeBp3HQFK4QubJOiIeKuZDVR7PxvtwBj26m-pLXLzKc6WqQlt07TsRo_72SlAaZodyyFRXf8636HCAyEHcVEhR6uZ1lDu00BHvsyVe6BdG7zvjNdmLluA0qBJQ9FO3ipHezadlwCPnEBDQAAZRgHKUvRCJNOQH_jcqFLLtmDADXoLvcK8_lN0LEeisA4B1LH0X2x0Q6NqLgngh9M1y_cBEBaazMa_UIZwoL6eZGU0QhlpvysBi1wKDybNcF_uKrIxdQwn8L_QRFHtDn39-hw-GDs_6zbnRlwrBEwrMtAQfc62FLSzGUMAzww-aTGvUuQvP-D9m0r-eDbSATlSsrIYobVUDUdDWsMDUsjKfYOW_Rp0GMjk40BQxcdzjNjLCYaTEN5cMhsWyfTbhIHDP7-wfbvJG7Al7Z-nH2Pa-QXPte687xVanKT0d3Er07vOV9HoI09mtuhxE4g0VaLm4TMqxSMRBX3EB60W1U2sX9sHjAgmwfpUNXRNj03QeJe4cg0pndf-hhKkTsfNQMU_N6-Zt8IrM2xtzFfvKB4BpFyWmaYu_X7bGwgSZjzrBNE10fx001fMr2fmrVy_sj7mW7WhlWXa3N5eMe4pqkA4EawmGzhuIwAqZNmtvnL_N2nt4T4ZyqkAAyXMMKb60UJAXkqLjUisD1bnNt1qD9otg8mGNzQxlaY5Bfm7286vNmjyxGY4UVrn0RV0DSFFb5_NYEW5y5YYxiabWABr8k0ezTM8R_qQ7NxdUOj0qhBKOqGyzyuVgKNnB6-ZzpKVGbB7RYJXwfEtkKNuUc3UWmbwxcsCTuW4TOScqJUh4dA5vlgLjB3-Q79yEMRYB8n6jetkR4z25RkYRXvTxkHIVQd2qr8BchdUcmHsZvG_tXI0-bxx_f_TGyfgi8ol7L5SRfWfOtYHCXSVHOCwnDj7GN4rIrwt3qWRcPkdTMw1RguDZW0eTpCpZyCJH_z3xVfpVh5lgf7Nu4tH-CpFRrOaJc79K1lSuIZs8yvjh5dbYAH4rKQ28OOFRu2MmU7Ko8Of4CECcJMhohFtVW6nTCB48-Pl8owiGM5_2uBJOJRAsyu3fHHbKqKvZ-0kYmN9ypyTAxQjgDiCOE3J1txPiqRRRRSaFZgLPNacdyjGO2y2SpWwzYudx8tEq3tBDAPBCXwWqwefcG__iN5OMRgCIAvr-9qfl2iSaVR5LZ-kBluVoW27o0hIUtgdry03bmUN50ob4hwCz8xVoupcHjI3Cy0nLpgiGixjo4afafQPE_TXJf-NixlWN-cH2a4ZzU6Qc5KKzIciwnt6Hx-iRQzB_uK-pBDjC8boVXolOsFyaqWsoLgkghTo2qCFZuxP2GKzS9wQ5sBWxTMEPGryHxaylpXXmUjlBJ-j9p4vJN9YxjQEbyuTVYy0PxmtDbyh6g_n3Lr09ttCg40hqfWBhCT9P4-uFoAjozUciHQFBfI8t04dKZnobLbVq-f_HJGzUZu5zHRHsPI939tJxODDJxiflfHLwxXjQS2cq9Vj-kvn1pgXAN5unYh8Y7-nqepxc0KkO2v8mU-r8fYFmUFJdZu6HR23P2y7ndsozZEKdUAVay36pmW_gvVQuSA_jzLwXn3Ee2y-A7G-w96bTe82gJG95PsSOt2L6AcuF8mqWL_EVBjIZJMN63T__0UHh9VPDCRTUITwn35t7Z0aGYHnssPVAxXLh7y2LhCaIN0u6lnbiDlKAdKc1-4qYbr1sHORC8tjSG8cjWLkgBcNkFo7rqhKQSNtU1H44aT8ceG08a8cSpze8aC6dMVaz6DxEaFIZ-aRqfqO0QV6ty2-6hrcRVedypt1Twd7UEkXZM5Erjb-_8jq4RzshqXVzKEqPfIYpmtHqkmeJq8BLfc1GT9UGrmPpYO4-K8LM-u7aOpcxcagPn2S3McsWI3a8CWkU9t4g9WEPNH-5s8VqF-3rSmgi5kk40Y7HjEyA-6clhNhl9lbP6hIbf9TKHO9fWwzTz8NieUPNZZPgrBrULggzHXPrfJIxl8eLSrKuD8n2Pbumu2k4ljMV_WIq9qCJ1wPofdIoWHWiz7oV2snLve1CFPUCdAhLkHQ8KpO6xvSi6mKY9WsOhOLxKm92vsWLv-rfM2CW4XUja5arRpGynr7cF9CDuEGWIxkPjOF_5x8ZXg2x1TJcrgvLDO_S4u2zKl2tQGRW4NHU1zF9h_3SQkpbwWH5KOPisP6c8vb5rg_rZ5laFedxQQSpguSq5el9-ddzvlr4C8Q22eDQvwUEO_P6c6VZN5A2QWBGZsJoaZ4gZ8UArmGLxSihBj_5oOdDdUcbUOhGUIWrtYrs4PJKxpnHDFUZaYwIbtnLyAoORKYvq8LgAH0SP57KeeYkZzUGP1f0jkDzAmwV4ZHE0pnZhEo3XkXVuIHc6MXZ-RniZaS_vaoY3Bq6XHrKoWZdLiCoU6aqPc-ZpPnvXmnKHyLLs4e96M1wGKIyT28_VCR6EDRJPxbZ9Ig1kN8TIHCF3tE8y2It5hkz1-zNYT6uw3SDkFSdrV_DRiAVqUhxrQdUPhpD92zVgsWdJR0TZLU7CBLlOuBVwyfmtHMUBL6dIvYie47Kr47nOJ5i2ka8EZGZf-Y8aD6xv6hpBbybU_5oGfYLRG4MiNRhML4u90tQ3hBxBbGYK8sWOzui2UEx0ynB_a8jz8eEs7u_9ylTD1v1f-gC8JYQMNAZIm46pvl2s1X07B8Gf7Laj4aozcWqg8DgC_8aLypoTffyxjWw4Fpd8LWn1fRPsFOdeV0UrS7FNtUakvYq_qxphGu5mNuINIJIMJzgI3giGnyCbr2IrsJ1ITmEGnggLQYes1t3j44v1quvVwQXqHX6HhSnoJlN2IlT5DuZ2kx6-pb68nK62xVJaOS-wDeeJnQ8zzhqJACstuF7g-jidRoJmGc8yChHfCN8ZFOhT0poNQB-Jf5IUZ7aSCXmceYN4VUhmB_w-Db1XZUNHOJqGiTgcT1KzejzNpN49b0QUjcRJiOpEhJp_LzBUiRQSnweOSFrWlTs5Jf9p3wqN9zFYZ_3Xz6IR2klwyLQXc-LbBd1QFwkB17HTYMspUXjrSpJULdQ90OxzbSEafF4RKvgIL4sAU1pCMTa2bVrcUmY2MiECVIbwPNN0CjZeoEAd1dP5FFjlwGG7xUNRO1E20CqHZJ1oqeEur06ZXvPK1zy3SlF-_lKF6eRfNClzR2ERGYqf-zEQwwkPNiMNnURPcdt64pw4kcjTKBIkorum3ruuqJZMitcZx0YiANx7ssy8dMuVteEFFCQnmglgTCsEZTK_xzigPie_f8Q5p1vsJPje5Z2cugsaW-vOXbuOE471n6LuIyoII2dWq0m8H3_8pxlErkZ5E7OY--w3InCuSCv2ubxaZ9AbaNuuyGw49fI3zvRurTYespYO-Aj1FcjDrxqRB3bihJm_u3a56fwnoyOeE0071TY_AlVlq1RYauV4-7L-RAFJZo0wKnPZM9Hs7VB_cCwJ_oPe1y0XBF95agtAQdicj42KdstIlpjWtdGb4LpHgVQI_56G3As0H81-uj47VuBourA2hUay0BpHAvcwbNLyu8OcZB31I6dfy2797wGlrWwAN-Xt3M3CVW9SvIN_GMlg0RB75rUEtgPkR-VPRdPH_Jb19wVoFPPpwjP6cYzVW1U_iRymFKaNpMo4CWFN6t54wshlCVwkfZKbhSP14z74oMKxy-qqt-WKNhkOr1uh_sevNa57iHBnFlHzt_eaZoPNTsCmzqnC4boOlK9o5_hFn8hiw33R3NQC-RD-w1XEl8-hpdZYdCcnexwRYd9sH2LMHySL59Kp_09yIwAE_ukVMDa6Yd9OHrbSCycQNZSI_0fMnF5s9oWTXnsxecDpRKgSWJQIQPUb6dlOdGOT0-MnebivpKgbDxzx52Zr0EMS7aU5eJxEdO9rdiFda8kQk5IeBgr1QcqIFs_1UIp6oQneXgwTlpXXxLHs16ShDG1qkLmDZjb4vrb_Ha2YCBIqid6wVKjec-UwEwWyvfV4UAPFgiNRJN7TdQNRxbSZJ8XWeA2gor9PN5JkMS0l_qGKoke3sbWDsp-G_B0KUjwUBTtPsKRhdnc0JyV_akuZ8jxAmXDDydxOy_EqNMgrDGN_4FuSY7XNLy2OXXJG3bB9a_lxEzdVNPWzM0cijTQFLzIiAKAyWTfwPNagcvgLUAeHxlQ22E0V37-sFwkstvpJ-s8C2yqxQKcv4GfMZOfSYEaZAhiO_y8EXgFknGGwjLB7K3CgvGwBRWWcgx-eqXYs9rAygf_X2_7-rBG_7Rxj3GW957PwwzwZjZDkdRHik8sj0htIkDRAyHo2EsPwObKXK-W32JKUX3VSgiY8AzCUhUUIWwFVVLXEvB1jtU7G7wRaj5_z9QywvgoIqnOTmpm4TTRA0cCJkiYoJcl8BOIHoWuYznL89zWjWy_ZQDKaYAsHugQYXaKI_UaaLV4gVFjDNqZCgqjAFyMjG4qZR64jkaI71mefUaDLLwsqIiLpOWZi8BlvP0YcOVeTyo2mJbq3EXfjXyDvPuZuZ9SAjqwCdLr902yzLm4DdzYRyfPbpt8rGUu-Uw27Ix2oZRe_zj0G_3FdCw0"];
 
 	// whitelisted auto selected horde model names
 	const defaultmodels = ["gpt4all","supercot","pygmalion-6","pygmalion-v8","pygmalion-2","hermes","airoboros","chrono","wizard","mantis","vicuna","manticore","alpaca","myth","xwin","spicyboros","mlewd","mxlewd","westlake","anubis","skyfall","llama2","llama3","llama-2","llama-3-","llama-3.","mistral","maid","mixtral","estopia","fighter","fimbul","euryale","nemo","gemma","lunaris","stheno","magnum","cydonia","qwen2.5-32b","behemoth","exaone","glm4","glm-4","tutu","deepseek"];
@@ -2896,7 +2935,12 @@ Current version indicated by LITEVER below.
 	const get_instructsysplaceholder_end = ()=>{if(localsettings.raw_instruct_tags){return get_instruct_systag_end(false);};return instructsysplaceholder_end;}
 	function is_on_mobile()
 	{
-		return (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1 || window.innerWidth <= 768);
+		const hasTouch = 'ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0;
+		const isCoarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : hasTouch;
+		const isSmallScreen = window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth <= 768;
+		const isLikelyMobile = hasTouch && (isCoarsePointer || isSmallScreen);
+		const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+		return isLikelyMobile || isMobileUA;
 	}
 
 	// list of all preinstalled quick start scenarios
@@ -3281,6 +3325,18 @@ Current version indicated by LITEVER below.
 		"worldinfo": []
 	},
 	{
+		"title": "Julius Caesar",
+		"author": "Fateseeker",
+		"desc": "49 B.C.E. - Join Julius Caesar as Fabius, his trusted centurion, on the precipice of crossing the Rubicon and declaring the civil war that will ultimately shape the future of the world. Alea iacta est!",
+		"opmode": 2,
+		"prompt": "The shrill cry of a rooster crowing wrenches you from sleep within the confines of your modest canvas tent on the banks of the Rubicon. Just as you groggily start to gather your gear, a messenger legionnaire arrives, his eyes gleaming with anticipation. \"My esteemed Centurion, General Julius Caesar requests your presence, along with the other officers. There is a matter of great import he wishes to discuss.\"\n\nYou nod wearily, rubbing bleary eyes. \"Allow me to prepare first.\" Thoughts swirl like a maelstrom in your mind, as whispers of stalled negotiations between Caesar and the Senate echo through the camp's grapevine. It seems an opportune moment to seize control, to launch a rebellion, and your heart races with the prospect. Steadying yourself, you don your uniform and stride forth to meet the general.\n\nAs you enter the opulent tent, its opalescent silks rippling softly in the tentative morning light, Caesar greets you with an amiable smile. \"Greetings, Fabius,\" he intones, his voice every bit as commanding as his towering presence. \"I am grateful for your attendance so that we may deliberate on the matters at hand.\"\n\nCaesar then looks at the other officers inside the tent. \"Thank you for coming, centurions. As you know, the Senate has refused to negotiate in good faith. They demand I disband my army and return to Rome unarmed, where they aim to prosecute me. I cannot comply. After so many conquests, so much spilled blood, they would strip me of my dignitas. The time has come to choose a course of action that honors my men's sacrifices.\"\n\n\"There are no easy paths forward. We stand at the Rubicon river, the point of no return. Crossing it would mean civil war. But my honor, and the honor of the 13th Legion, is at stake. I ask you now, as my most trusted officers - shall we cross the Rubicon?\"\n\nCaesar pauses, letting his words sink in. Your heart hammers in your chest. Is he suggesting open rebellion? What will you do next?\n",
+		"adventure_context_mod": false,
+		"adventure_switch_mode": 1,
+		"memory": "[You are Lucius Fabius Marcellus, a centurion on the 13th Legion. You saved Caesar's life once during the battle of Alesia, earning you his trust and a part of his inner circle]\n[49 B.C.E: Julius Caesar crosses the Rubicon, triggers a civil war and the downfall of the Roman Republic]\n[Caesarean legions: In Gaul for the winter; Pompeian legions: in Iberia, Greece, Africa]\n[Labienus will join Pompey if Caesar declares Civil War; Pompey and the senate will flee to Greece if Caesar march towards Rome; Pompey will be killed by Ptolemy XIII if he flees to Egypt]",
+		"authorsnote": "",
+		"worldinfo": [{"key":"Gaius Julius Caesar, Caesarean","content":"[Gaius Julius Caesar: Pominent Roman general, statesman, writer; greatest military mind of his time; starts Civil war and defies the Senate]"},{"key":"Rubicon River, Rubicon","content":"[Rubicon: Shallow river in Northern Italy; illegal to cross with army]"},{"key":"Roman Senate, SPQR, Senate","content":"[Roman Senate: Governing body of the Republic; elected officials]"},{"key":"Gnaeus Pompey Magnus, Pompeian, Pompey the Great","content":"[Gnaeus Pompey Magnus (Pompey the Great): Powerful rival of Julius Caesar; former ally of Caesar; Aligned with the Senate; If Caesar crosses the Rubicon, Pompey flees to Greece; if Greece is lost, he will seek refuge in Egypt]"},{"key":"Mark Antony, Marcus Antonius","content":"[Mark Antony: Key ally of Julius Caesar, powerful figure, urges Caesar to cross the Rubicon]"},{"key":"Cleopatra, Cleopatra VII","content":"[Cleopatra: Will form alliance and romance with Julius Caesar, is in conflict with King Ptolemy XIII, in hiding]"},{"key":"Titus Labienus","content":"[Titus Labienus: Right hand man of Caeasar, skilled military commander on par with Caesar, joins Pompey against Caesar]"},{"key":"Rome, Eternal City","content":"[Rome: Capital city of the Roman Republic, Bustling metropolis, plagued by political unrest and social inequality]"},{"key":"Ariminum","content":"[Arminium: Key military outpost and transportation hub]"},{"key":"Ravenna","content":"[Ravenna: City in northern Italy, strategically important, large naval port]"},{"key":"Massilia","content":"[Massilia: City in southern Gaul, important trading center, will ally with Pompey]"},{"key":"Alexandria","content":"[Alexandria: Capital city of Egypt, Important cultural and intellectual site, Home of the Pharoah of Egypt]"},{"key":"Gaul","content":"[Gaul: Huge region in western Europe, conquered by Julius Caesar during his military campaigns in the 50s BCE, home of his vast legions]"},{"key":"Hispania","content":"[Hispania: Rich in resources, strategic location on the west, controlled by Pompey, Home of Pompeian legions]"},{"key":"Greece","content":"[Greece: Lesser allied power of Rome; center of trade, culture, intellectual inquiry; home to many famous intellectuals]"},{"key":"Ilyria","content":"[Ilyria: Region located along the eastern coast of the Adriatic Sea, controlled by Caesar]"},{"key":"Numidia, Juba I","content":"[Numidia: region located in North Africa, King Juba I will betray Caesar and join Pompey]"},{"key":"Legion","content":"[Legion: large military unit; consists of 4,800 to 6,000 legionnaires; supported by cavalry and auxiliary troops; divided into cohorts, centuries, and maniples]"},{"key":"Legionary, Legionnaire","content":"[Legionnaire: highly trained professional soldier in legions; Roman citizens enlisted for a specific term; disciplined, skillful]"},{"key":"Centurion, Century","content":"[Centurion: High-ranking officer; commanded a century within a legion; experienced and respected leaders; maintainins discipline, trains soldiers, leads them into battle, leads a Century of 80 men."},{"key":"Legionary Eagle, Aquila. aquilifer","content":"[Legionary eagle (Aquila): sacred standard and symbol of a legion's honor; carried by aquilifer: responsible for protecting and displaying the eagle during battles]"},{"key":"Legatus, Legate, General","content":"[Legatus (legate): high-ranking officer; commanded a legion; appointed by the Roman Senate or dictator; held authority and responsibility in military strategy and administration]"},{"key":"Signifer","content":"[Signifer: soldier who carried signum, a banner that identified the cohort or century they belonged to; crucial role in communication and coordination]"},{"key":"Decurion, turma","content":"[Decurion: officer; commanded cavalry turma; responsible for leading cavalry charges, reconnaissance. Turma is a Roman cavalry unit; 30 to 32 horsemen;led by a decurion]"},{"key":"Scorpion, Scorpio","content":"[Scorpion (scorpio): Roman large crossbow; launch large bolts; effective against infantry and cavalry]"},{"key":"Onager","content":"[Onager: large Roman siege engine; large catapult; torsion-powered; hurls large stones; demolishes walls, large fortifications and buildings]"},{"key":"Testudo","content":"[Testudo: Military formation; used by Roman legionnaries; interlocked shields above heads, and sides; protective shell; excellent defense against projectiles, allows soldiers to advance under cover]"},{"key":"Corvus","content":"[Corvus: Roman boarding device; naval warfare; large boarding bridge with spiked end; dropped onto enemy ships; allows legionnaries to get to enemy ships]"},{"key":"Ptolemy XIII, Ptolemy","content":"[Ptolemy XIII: young pharaoh; rules over Egypt; Has future uneasy relationship with Caesar; ongoing power struggle with sister Cleopatra VII]"},{"key":"Marcus Junius Brutus, Brutus","content":"[Marcus Junius Brutus: Prominent Roman senator; renowned military leader; close friend to Julius Caesar; will kill Caesar if he wins the civil war]"},{"key":"Octavian","content":"[Octavian: Young and ambitious grandnephew of Julius Caesar]"},{"key":"Legio XIII, 13th legion","content":"[Legio XIII (13th Legion): battle-hardened; highly disciplined loyal to Caesar; Formidable; Legion Caesar is in during his crossing of the Rubicon]"},{"key":"Imperator","content":"[Imperator: Title bestowed upon victorious Roman generals; honorific; symbol of military prowess; given a triumph by the Senate]"},{"key":"Marcus Licinius Crassus","content":"[Marcus Licinius Crassuss: Prominent Roman general and politician; former ally of Caesar and Pompey; former richest man in Rome; killed by the Parthian Empire in the Battle of Carrhae]"}]
+	},
+	{
 		"title":"Coding Assistant",
 		"author":"Concedo",
 		"desc":"Provides coding examples and instructions, and completes programming tasks.",
@@ -3356,6 +3412,7 @@ Current version indicated by LITEVER below.
 	const poll_interval_base_img = 3800;
 	const poll_interval_idle = 1000;
 	const poll_interval_multiplayer = 1000; //every 1s
+	const max_branches = 6;
 
 	const horde_base_url = "https://aihorde.net"
 	const horde_perf_endpoint = horde_base_url + "/api/v2/status/performance";
@@ -3411,13 +3468,13 @@ Current version indicated by LITEVER below.
 	const default_oai_embeddings_endpoint = "/embeddings";
 	const default_dalle_model_name = "dall-e-3";
 
-	const claude_submit_endpoint = "/complete";
 	const claude_submit_endpoint_v3 = "/messages";
-	const claude_models_endpoint = "/v1/models";
+	const claude_models_endpoint = "/models";
 
 	const default_openrouter_base = "https://openrouter.ai/api/v1";
 	const default_mistralai_base = "https://api.mistral.ai/v1";
 	const default_featherless_base = "https://api.featherless.ai/v1";
+	const default_nvidianim_base = "https://integrate.api.nvidia.com/v1";
 	const default_grok_base = "https://api.x.ai/v1";
 	const default_oai_base = "https://api.openai.com/v1";
 	const default_claude_base = "https://api.anthropic.com";
@@ -3450,8 +3507,10 @@ Current version indicated by LITEVER below.
 	const dummy_api_key = "kobo";
 
 	//for optionally uploading content to share on dpaste
-	const dpaste_submit_endpoint = "https://dpaste.org/api/";
-	const dpaste_fetch_endpoint = "https://dpaste.org/";
+	const dpaste_org_submit_endpoint = "https://dpaste.org/api/";
+	const dpaste_com_submit_endpoint = "https://dpaste.com/api/";
+	const dpaste_org_fetch_endpoint = "https://dpaste.org/";
+	const dpaste_com_fetch_endpoint = "https://dpaste.com/";
 
 	//support for quick news updates
 	const horde_news_endpoint = "https://hordenews.concedo.workers.dev"
@@ -3476,7 +3535,6 @@ Current version indicated by LITEVER below.
 	const OAI_TTS_ID = 5;
 	const POLLINATIONS_TTS_ID = 6;
 
-
 	const HD_RES_PX = 768;
 	const VHD_RES_PX = 960;
 	const NO_HD_RES_PX = 512;
@@ -3495,6 +3553,7 @@ Current version indicated by LITEVER below.
 	var selected_workers = [];
 	//gametext_arr stores images inline, with the special format [<|p|id|p|>] or [<|h|hash|h|>], which is either a hash for loaded media data, or an ID for pending requests
 	var gametext_arr = []; //array of texts currently displayed
+	var alt_gametext_branches = []; //array of arrays of alternative history branches
 	var redo_arr = []; //array of texts that are in the redo stack
 	var retry_prev_text = []; //when we retry, save the last 3 versions in case they want to undo
 	var retry_preserve_last = false; //if true, retrying does not delete any old text
@@ -3633,6 +3692,7 @@ Current version indicated by LITEVER below.
 		saved_openrouter_key: "",
 		saved_mistralai_key: "",
 		saved_featherless_key: "",
+		saved_nvidianim_key: "",
 		saved_pollinations_key: "", //this is a dummy key and isnt needed
 		saved_grok_key:"",
 		saved_claude_key: "", //do not ever share this in save files!
@@ -3648,7 +3708,8 @@ Current version indicated by LITEVER below.
 		saved_cohere_preamble: "", //cohere preamble
 		saved_palm_jailbreak:"", //gemini system prompt
 		saved_palm_jailbreak2:"", //gemini postfix
-		saved_openrouter_provider:"",
+		saved_openrouter_provider:"", //for overriding provider
+		saved_openrouter_reasoning:0, //enable or disable openrouter thinking, 0=default, 1=disable, 2=enable
 		saved_oai_custommodel: "", //customized oai custom model
 		saved_oai_role: 3, //0=user,1=assistant,2=system, 3=auto
 		saved_a1111_url: default_a1111_base,
@@ -4350,6 +4411,65 @@ Current version indicated by LITEVER below.
 		return input;
 	}
 
+	//written by AI. splits a long string by provided delimiters in an array, returns an array
+	function splitByDelimiters(text, delimiters) {
+		const result = [];
+		const n = text.length;
+		let i = 0;
+
+		if(!text)
+		{
+			return [""];
+		}
+
+		while (i < n) {
+			// Find the next delimiter occurrence at or after i
+			let nextIndex = -1;
+			let nextDelimiter = null;
+			for (let j = 0; j < delimiters.length; j++) {
+				let d = delimiters[j];
+				let idx = text.indexOf(d, i);
+				if (idx !== -1 && (nextIndex === -1 || idx < nextIndex)) {
+					nextIndex = idx;
+					nextDelimiter = d;
+				}
+			}
+
+			if (nextIndex === -1) { // If no delimiter found at all, push the rest and finish
+				if (i < n) {
+					result.push(text.slice(i));
+				}
+				break;
+			}
+
+			// If there's text before the found delimiter, push that leading text first
+			if (nextIndex > i) {
+				result.push(text.slice(i, nextIndex));
+			}
+
+			// Now find the next delimiter after this one to mark end of this segment
+			let nextAfter = -1;
+			for (var j = 0; j < delimiters.length; j++) {
+				var d = delimiters[j];
+				var idx = text.indexOf(d, nextIndex + nextDelimiter.length);
+				if (idx !== -1 && (nextAfter === -1 || idx < nextAfter)) {
+					nextAfter = idx;
+				}
+			}
+
+			// Take from the delimiter start up to the next delimiter (or end)
+			if (nextAfter === -1) {
+				result.push(text.slice(nextIndex));
+				break;
+			} else {
+				result.push(text.slice(nextIndex, nextAfter));
+				i = nextAfter;
+			}
+		}
+
+		return result;
+	}
+
 	function asyncRunner(generatorFn) { //allows async/await like syntax before it exists
 		return function (...args) {
 			const generator = generatorFn.apply(this, args);
@@ -4505,24 +4625,19 @@ Current version indicated by LITEVER below.
 
 	polyfills();
 
+	document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
+
 	document.getElementById("lastreq1").innerHTML =
 	document.getElementById("lastreq2").innerHTML =
 	document.getElementById("lastreq3").innerHTML =
 	`<a href="#" class="color_grayurl mainnav" title="KoboldAI Lite Information"
-    onclick="msgbox('Source code is available at <a class=&quot;color_blueurl&quot; href=&quot;https://github.com/LostRuins/lite.koboldai.net&quot;>https://github.com/LostRuins/lite.koboldai.net</a><br>Please report any bugs you find there.<br><br>For local use, check out <a class=&quot;color_blueurl&quot; title=&quot;KoboldCpp Github&quot; href=&quot;https://github.com/LostRuins/koboldcpp&quot;>KoboldCpp</a>. For help, visit our <a class=&quot;color_blueurl&quot; title=&quot;KoboldAI Discord&quot; href=&quot;https://koboldai.org/discord&quot;>Discord</a>.','Information',true)">
+    onclick="msgbox('Source code is available at <a class=&quot;color_blueurl&quot; target=&quot;_blank&quot; href=&quot;https://github.com/LostRuins/lite.koboldai.net&quot;>https://github.com/LostRuins/lite.koboldai.net</a><br>Please report any bugs you find there.<br><br>For local use, check out <a class=&quot;color_blueurl&quot; target=&quot;_blank&quot; title=&quot;KoboldCpp Github&quot; href=&quot;https://github.com/LostRuins/koboldcpp&quot;>KoboldCpp</a>. For help, visit our <a class=&quot;color_blueurl&quot; target=&quot;_blank&quot; title=&quot;KoboldAI Discord&quot; href=&quot;https://koboldai.org/discord&quot;>Discord</a>.','Information',true)">
     KoboldAI Lite</a> v${LITEVER} Web - Frontend for
     <a href="#" class="color_grayurl mainnav" title="KoboldAI Lite Disclaimer"
     onclick="msgbox('KoboldAI Lite allows you to connect to various third-party AI services. We do not control or assume responsibility for the models or content generated by these services. The user is responsible for ensuring that their usage of this software is legal in their country, and complies with the terms of service of the service they are connected to. Use at your own discretion. ','Disclaimer', true)">
     External LLM APIs</a>.`;
 
 	trigger_abort_controller(); //first trigger sets it up
-
-	//uncompress compacted scenarios
-	for(let i=0;i<compressed_scenario_db.length;++i)
-	{
-		let decom = lz_d.decompress(b64_to_buf(compressed_scenario_db[i]));
-		scenario_db.push(JSON.parse(decom));
-	}
 
 	//disable debug log if not local
 	let dbgmode = urlParams.get('dbg');
@@ -4932,7 +5047,7 @@ Current version indicated by LITEVER below.
 			return replaceAll(instag, "\\n", "\n");
 		}
 	}
-	function get_instruct_latest_end(doTrim=true)
+	function get_instruct_latest_end()
 	{
 		//scan history for the newest end tag. if none, return empty
 		let truncated_context = concat_gametext(true, "");
@@ -4949,6 +5064,23 @@ Current version indicated by LITEVER below.
 		if (maxIndex === lastA) return get_instructstartplaceholder_end();
 		if (maxIndex === lastB) return get_instructendplaceholder_end();
 		return instructsysplaceholder_end;
+	}
+	function is_instruct_latest_human_turn() //returns true if current latest turn is from the user
+	{
+		//scan history for the newest end tag. if none, return empty
+		let truncated_context = concat_gametext(true, "");
+		let strA = get_instructstartplaceholder().trim();
+		let strB = get_instructendplaceholder().trim();
+		let strC = get_instructsysplaceholder().trim();
+		let lastA = strA?truncated_context.lastIndexOf(strA):-1;
+		let lastB = strB?truncated_context.lastIndexOf(strB):-1;
+		let lastC = strC?truncated_context.lastIndexOf(strC):-1;
+
+		const maxIndex = Math.max(lastA, lastB, lastC);
+
+		if (maxIndex === -1 || lastA === -1) return false;
+		if (maxIndex === lastA) return true;
+		return false;
 	}
 	function get_current_timestamp()
 	{
@@ -5401,6 +5533,34 @@ Current version indicated by LITEVER below.
 			&& x.data.length > 6
 			&& String.fromCharCode(x.data[0]) == 'c')
 			&& String.fromCharCode(x.data[4]) == 'a');
+
+		if(!found || found.length==0)
+		{
+			let found2 = chunks.filter(x => (
+			x.name == "tEXt"
+			&& x.data.length > 6
+			&& String.fromCharCode(x.data[0]) == 'c')
+			&& String.fromCharCode(x.data[1]) == 'c'
+			&& String.fromCharCode(x.data[2]) == 'v'
+			&& String.fromCharCode(x.data[3]) == '3'); //its a stupid new v3 card
+
+			if(found2 && found2.length>0)
+			{
+				try {
+					let b64buf = "";
+					let bytes = found2[0].data; //skip the chara
+					for (var i = 5; i < bytes.length; i++) {
+						b64buf += String.fromCharCode(bytes[i]);
+					}
+					var decoded = JSON.parse(b64_decode_unicode(b64buf));
+					console.log(decoded);
+					return decoded;
+				} catch (e) {
+					console.log("Error decoding b64 in image: " + e);
+					return null;
+				}
+			}
+		}
 
 		//remove ext asset
 		found = found.filter(x => (
@@ -5944,7 +6104,7 @@ Current version indicated by LITEVER below.
 					}
 					if(was_empty && synchro_pending_stream!="")
 					{
-						render_gametext(false);
+						render_gametext(false,false);
 					}
 					else
 					{
@@ -6157,6 +6317,7 @@ Current version indicated by LITEVER below.
 	{
 		synchro_pending_stream = "";
 		streaming_was_thinking = false;
+		let logprobs_content_arr = [];
 		let reqOpt =
 		{method: 'POST',
 		headers: submit_headers,
@@ -6269,6 +6430,12 @@ Current version indicated by LITEVER below.
 									synchro_pending_stream += event.data.choices[0].delta.reasoning;
 								}
 
+								//collect logprobs if detected
+								if(event.data.choices[0].logprobs && event.data.choices[0].logprobs.content && event.data.choices[0].logprobs.content.length>0)
+								{
+									logprobs_content_arr = logprobs_content_arr.concat(event.data.choices[0].logprobs.content);
+								}
+
 								//mistral prefill interception
 								if(oaiemulatecompletionscontent!="" && synchro_pending_stream!="" && synchro_pending_stream.startsWith(oaiemulatecompletionscontent))
 								{
@@ -6313,7 +6480,7 @@ Current version indicated by LITEVER below.
 					}
 					if(was_empty && synchro_pending_stream!="")
 					{
-						render_gametext(false);
+						render_gametext(false,false);
 					}
 					else
 					{
@@ -6329,6 +6496,14 @@ Current version indicated by LITEVER below.
 					}
 					synchro_pending_stream = "";
 					streaming_was_thinking = false;
+					if (logprobs_content_arr.length>0 && last_response_obj==null) {
+						//fake a last response obj
+						let fakedresponse = {
+							"artificial_response": true,
+							"results":[{"logprobs":{"content":logprobs_content_arr}}]
+						};
+						last_response_obj = fakedresponse;
+					}
 					poll_pending_response();
 					//handle gen failures
 					if(resp.status==503)
@@ -6489,12 +6664,35 @@ Current version indicated by LITEVER below.
 				latexBlocks.push({ key, value: match });
 				return key;
 			});
-			return { "text":text, "latexBlocks":latexBlocks };
+			return { "text":text, "blocks":latexBlocks };
 		}
 		function unstashLatex(text, latexBlocks) {
 			for(let i=0;i<latexBlocks.length;++i)
 			{
 				text = literalReplace(text,latexBlocks[i].key,latexBlocks[i].value);
+			}
+			return text;
+		}
+		function stashCodeblocks(text)
+		{
+			const codeBlocks = [];
+			let counter = 0;
+			text = text.replace(/``(.*?)``/gm, (match, code) => {
+				const key = `%%ILCODEXBLK${counter++}%%`;
+				codeBlocks.push({ key, value: match });
+				return key;
+			});
+			text = text.replace(/`(.*?)`/gm, (match, code) => {
+				const key = `%%ILCODEXBLK${counter++}%%`;
+				codeBlocks.push({ key, value: match });
+				return key;
+			});
+			return { "text":text, "blocks":codeBlocks };
+		}
+		function unstashCodeblocks(text, codeBlocks) {
+			for(let i=0;i<codeBlocks.length;++i)
+			{
+				text = literalReplace(text,codeBlocks[i].key,codeBlocks[i].value);
 			}
 			return text;
 		}
@@ -6598,12 +6796,14 @@ Current version indicated by LITEVER below.
 				append_spcetg = true;
 			}
 
-			let stashres = null;
+			let stashLatexRes = null;
 			if(renderLatex)
 			{
-				stashres = stashLatex(md);
-				md = stashres.text;
+				stashLatexRes = stashLatex(md);
+				md = stashLatexRes.text;
 			}
+			let stashInlineCodeRes = stashCodeblocks(md);
+			md = stashInlineCodeRes.text;
 
 			md = md.replace(/^###### (.*?)\s*#*$/gm, "<h6>$1</h6>")
 			.replace(/^##### (.*?)\s*#*$/gm, "<h5>$1</h5>")
@@ -6613,9 +6813,6 @@ Current version indicated by LITEVER below.
 			.replace(/^# (.*?)\s*#*$/gm, "<h1>$1</h1>")
 			.replace(/^<h(\d)\>(.*?)\s*{(.*)}\s*<\/h\d\>$/gm,'<h$1 id="$3">$2</h$1>')
 			.replace(/^-{3,}|^\_{3,}|^\*{3,}$/gm, "<hr/>")
-			.replace(/``(.*?)``/gm, (match, code) => {
-				return `<code>${escapeHTML(code).replace(/`/g, "`")}</code>`;})
-			.replace(/`(.*?)`/gm, "<code>$1</code>")
 			.replace(/^\>\> (.*$)/gm, "<blockquote><blockquote>$1</blockquote></blockquote>")
 			.replace(/^&gt;&gt; (.*$)/gm, "<blockquote><blockquote>$1</blockquote></blockquote>")
 			.replace(/^\> (.*$)/gm, "<blockquote>$1</blockquote>")
@@ -6654,15 +6851,28 @@ Current version indicated by LITEVER below.
 			.replace(/\*\*\*([^\s*][\s\S]*?[^\\])\*\*\*/gm, "<b><em>$1</em></b>")
 			.replace(/\*\*(.)\*\*/g, "<b>$1</b>") //handle single char bold
 			.replace(/\*\*([^\s*][\s\S]*?[^\\])\*\*/gm, "<b>$1</b>")
+			.replace(/(^|[\s.,;:!?<>])\*(.)\*(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //handle single char italics
 			.replace(/\*([^\s*][\s\S]*?[^\\])\*/gm, "<em>$1</em>")
 			.replace(/___(\w.*?[^\\])___/gm, "<b><em>$1</em></b>")
 			.replace(/__(\w.*?[^\\])__/gm, "<u>$1</u>")
+			.replace(/(^|[\s.,;:!?<>])_([^_\s](?:[^_]*[^_\s])?)_(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //single underscore italics
 			.replace(/~~(\w.*?)~~/gm, "<del>$1</del>")
 			.replace(/\^\^(\w.*?)\^\^/gm, "<ins>$1</ins>")
 			.replace(/\{\{(\w.*?)\}\}/gm, "<mark>$1</mark>")
-			.replace(/^((?:\|[^|\r\n]*[^|\r\n\s]\s*)+\| {0,2}(?:\r?\n|\r|))+/gm,
+			.replace(/^((?:(?:\|[^|\r\n]+)*\|[^|\r\n]*[^\s|\r\n][^|\r\n]*(?:\|[^|\r\n]+)*\| {0,2}(?:\r?\n|\r|$))+)/gm,
 				(matchedTable) => convertMarkdownTableToHtml(matchedTable));
 			//.replace(/  \n/g, "\n<br/>"); //this is the reddit behavior where spacespacenewline generates extra newline
+
+
+			//unstash inline code
+			if(stashInlineCodeRes!=null)
+			{
+				md = unstashCodeblocks(md,stashInlineCodeRes.blocks);
+			}
+			md = md.replace(/``(.*?)``/gm, (match, code) => {
+				return `<code>${escapeHTML(code).replace(/`/g, "`")}</code>`;})
+			.replace(/`(.*?)`/gm, "<code>$1</code>");
+
 			if(append_spcetg)
 			{
 				append_spcetg = false;
@@ -6672,9 +6882,9 @@ Current version indicated by LITEVER below.
 			md = md.replace(/<\/code\><\/pre\>\n<pre\><code\>/g, "\n");
 			if(renderLatex)
 			{
-				if(stashres!=null)
+				if(stashLatexRes!=null)
 				{
-					md = unstashLatex(md,stashres.latexBlocks);
+					md = unstashLatex(md,stashLatexRes.blocks);
 				}
 				//to aid the latex renderer, we temporarily add newlines between some blocks
 				md = md.replace(/<\/li><li>/gm, "</li>\n<li>");
@@ -6740,7 +6950,7 @@ Current version indicated by LITEVER below.
 			connect_custom_endpoint();
 			document.getElementById("lastreq3").innerHTML = document.getElementById("lastreq2").innerHTML = document.getElementById("lastreq1").innerHTML =
 			`<a href="#" class="color_grayurl" onclick="msgbox('Source code is available at https://github.com/LostRuins/lite.koboldai.net \\nPlease report any bugs you find there.','Information')">KoboldAI Lite</a> v${LITEVER} Embedded`;
-
+			document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
 			read_url_params_data();
 		}
 		else
@@ -6854,7 +7064,11 @@ Current version indicated by LITEVER below.
 			window.history.replaceState(null, null, window.location.pathname);
 		} else if (foundDpaste && foundDpaste != "") {
 			avoidwelcome = true;
-			let dpurl = `${dpaste_fetch_endpoint}${foundDpaste}`;
+			let dpurl = `${dpaste_org_fetch_endpoint}${foundDpaste}`;
+			if(foundDpaste.length>=8) //dpaste.com urls are longer
+			{
+				dpurl = `${dpaste_com_fetch_endpoint}${foundDpaste}`;
+			}
 			if(foundDpaste.includes(".")||foundDpaste.includes("/"))
 			{
 				dpurl = `${foundDpaste}`;
@@ -6864,7 +7078,7 @@ Current version indicated by LITEVER below.
 				}
 			}
 
-			if(foundDpaste.toLowerCase().includes("dpaste.com"))
+			if(dpurl.toLowerCase().includes("dpaste.com"))
 			{
 				dpurl = `${dpurl}.txt`
 			}
@@ -7852,6 +8066,10 @@ Current version indicated by LITEVER below.
 			const params = new URLSearchParams();
 			params.append("content", cstoryjson);
 			params.append("expires", expiry);
+			if(serverurl.toLowerCase().includes("dpaste.com"))
+			{
+				params.append("expiry_days",Math.ceil(expiry/86400));
+			}
 			fetch(serverurl, {
 				method: 'POST',
 				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -7868,7 +8086,7 @@ Current version indicated by LITEVER below.
 			})
 			.then((text) => {
 				let pasteurl = replaceAll(text,"\"","");
-				if(dpaste_submit_endpoint==serverurl)
+				if(dpaste_org_submit_endpoint==serverurl || dpaste_com_submit_endpoint==serverurl)
 				{
 					pasteurl = pasteurl.split("/");
 					pasteurl = pasteurl[pasteurl.length-1];
@@ -8091,6 +8309,24 @@ Current version indicated by LITEVER below.
 					}
 				}
 			}
+			//also bake images from other branches
+			for (let j = 0; j < alt_gametext_branches.length; ++j) {
+				let currbranch = alt_gametext_branches[j];
+				if(!currbranch)
+				{
+					continue;
+				}
+				for (let i = 0; i < currbranch.length; ++i) {
+					let regex = /\[<\|h\|(.+?)\|h\|>\]/g;
+					let match;
+					while ((match = regex.exec(currbranch[i])) !== null) {
+						let imghash = match[1];
+						if (completed_imgs_meta[imghash] != null) {
+							export_hashes[imghash] = completed_imgs_meta[imghash];
+						}
+					}
+				}
+			}
 			new_save_storyobj.completed_imgs_meta = export_hashes;
 		}
 
@@ -8123,6 +8359,7 @@ Current version indicated by LITEVER below.
 		new_save_storyobj.documentdb_searchrange = documentdb_searchrange;
 		new_save_storyobj.documentdb_chunksize = documentdb_chunksize;
 		new_save_storyobj.documentdb_data = documentdb_data;
+		new_save_storyobj.altbranches = alt_gametext_branches;
 
 		if (export_settings) {
 			new_save_storyobj.savedsettings = JSON.parse(JSON.stringify(localsettings));
@@ -8332,6 +8569,7 @@ Current version indicated by LITEVER below.
 		handle_advload_popup((localsettings.show_advanced_load && !force_load_settings),()=>
 		{
 			let old_gametext_arr = gametext_arr;
+			let old_alt_gametext_branches = alt_gametext_branches;
 			let old_current_anote = current_anote;
 			let old_current_anotetemplate = current_anotetemplate;
 			let old_current_memory = current_memory;
@@ -8440,6 +8678,10 @@ Current version indicated by LITEVER below.
 				{
 					documentdb_data = storyobj.documentdb_data;
 				}
+				if(storyobj.altbranches)
+				{
+					alt_gametext_branches = storyobj.altbranches;
+				}
 
 				// adapting legacy fields - these are all now moved to SETTINGS
 				if (storyobj.extrastopseq) {
@@ -8531,6 +8773,7 @@ Current version indicated by LITEVER below.
 				if(!loadmainstory)
 				{
 					gametext_arr = old_gametext_arr;
+					alt_gametext_branches = old_alt_gametext_branches;
 				}
 				if(!loadmemanote)
 				{
@@ -8559,6 +8802,7 @@ Current version indicated by LITEVER below.
 					let tmp_or1 = localsettings.saved_openrouter_key;
 					let tmp_mai = localsettings.saved_mistralai_key;
 					let tmp_fai = localsettings.saved_featherless_key;
+					let tmp_nvai = localsettings.saved_nvidianim_key;
 					let tmp_pol = localsettings.saved_pollinations_key;
 					let tmp_grok = localsettings.saved_grok_key;
 					let tmp_claude1 = localsettings.saved_claude_key;
@@ -8614,6 +8858,7 @@ Current version indicated by LITEVER below.
 					localsettings.saved_openrouter_key = tmp_or1;
 					localsettings.saved_mistralai_key = tmp_mai;
 					localsettings.saved_featherless_key = tmp_fai;
+					localsettings.saved_nvidianim_key = tmp_nvai;
 					localsettings.saved_pollinations_key = tmp_pol;
 					localsettings.saved_grok_key = tmp_grok;
 					localsettings.saved_claude_key = tmp_claude1;
@@ -11031,6 +11276,8 @@ Current version indicated by LITEVER below.
 				return document.getElementById("custom_grok_model");
 			case "10":
 				return document.getElementById("custom_pollinations_model");
+			case "11":
+				return document.getElementById("custom_nvidianim_model");
 			default:
 				return document.getElementById("custom_oai_model"); //just return oai
 		}
@@ -11038,7 +11285,7 @@ Current version indicated by LITEVER below.
 	function ep_should_always_use_chat_completions()
 	{
 		let epchoice = document.getElementById("customapidropdown").value;
-		return (epchoice==7 || epchoice==10);
+		return (epchoice==7 || epchoice==10 || epchoice==11);
 	}
 
 	function select_custom_oai_model()
@@ -11081,15 +11328,18 @@ Current version indicated by LITEVER below.
 	{
 		let desired_claude_key = document.getElementById("custom_claude_key").value.trim();
 		let claude_ep = document.getElementById("custom_claude_endpoint").value.trim();
-		if(claude_ep.toLowerCase().includes("api.anthropic.com"))
-		{
-			//official API has broken cors settings
-			claude_ep = apply_proxy_url(claude_ep,true);
-		}
+
 		if(desired_claude_key=="")
 		{
 			msgbox("Claude requires an API key to fetch model list!");
 			return;
+		}
+
+		if (document.getElementById("claudeaddversion").checked)
+		{
+			if (claude_ep != "" && claude_ep.length > 4 && !claude_ep.slice(-4).toLowerCase().includes("/v")) {
+				claude_ep = claude_ep + "/v1";
+			}
 		}
 
 		let dropdown = document.getElementById("custom_claude_model");
@@ -11098,6 +11348,7 @@ Current version indicated by LITEVER below.
 			headers: {
 				'Content-Type': 'application/json',
 				'anthropic-version':'2023-06-01',
+				'anthropic-dangerous-direct-browser-access':true,
 				'x-api-key': desired_claude_key,
 			},
 			referrerPolicy: 'no-referrer',
@@ -11257,10 +11508,12 @@ Current version indicated by LITEVER below.
 		let dropdown = get_custom_ep_model_dropdown();
 		let fetchurl = desired_oai_ep + oai_models_endpoint;
 		let epchoice = document.getElementById("customapidropdown").value;
-		if(epchoice==2 && !is_local_url(desired_oai_ep) && document.getElementById("corsproxy_oai").checked)
+
+		if((epchoice==2 && !is_local_url(desired_oai_ep) && document.getElementById("corsproxy_oai").checked) || fetchurl.toLowerCase().includes("api.nvidia.com"))
 		{
 			fetchurl = cors_proxy + "?" + fetchurl; //temp cors proxy if selected
 		}
+
 		fetch(fetchurl, {
 			method: 'GET',
 			headers: oaiheaders,
@@ -11309,22 +11562,12 @@ Current version indicated by LITEVER below.
 
 	function toggleclaudemodel()
 	{
-		if (document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-3")
-		|| document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-sonnet-4")
-		|| document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-opus-4"))
-		{
-			document.getElementById("claudesystemprompt").classList.remove("hidden");
-			document.getElementById("claudejailbreakprompt").classList.remove("hidden");
-			document.getElementById("clauderenamecompatdiv").classList.add("hidden");
-		}
-		else
-		{
-			document.getElementById("claudesystemprompt").classList.add("hidden");
-			document.getElementById("claudejailbreakprompt").classList.add("hidden");
-			document.getElementById("clauderenamecompatdiv").classList.remove("hidden");
-		}
+		document.getElementById("claudesystemprompt").classList.remove("hidden");
+		document.getElementById("claudejailbreakprompt").classList.remove("hidden");
+
 		if(document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-3-7")||
 		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-sonnet-4")||
+		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-haiku-4")||
 		document.getElementById("custom_claude_model").value.toLowerCase().includes("claude-opus-4"))
 		{
 			document.getElementById("claudethinkingbox").classList.remove("hidden");
@@ -11360,6 +11603,7 @@ Current version indicated by LITEVER below.
 		document.getElementById("custom_openrouter_model").classList.add("hidden");
 		document.getElementById("custom_mistralai_model").classList.add("hidden");
 		document.getElementById("custom_featherless_model").classList.add("hidden");
+		document.getElementById("custom_nvidianim_model").classList.add("hidden");
 		document.getElementById("custom_grok_model").classList.add("hidden");
 		document.getElementById("custom_pollinations_model").classList.add("hidden");
 		document.getElementById("hordeloadmodelcontainer").classList.add("hidden");
@@ -11379,7 +11623,7 @@ Current version indicated by LITEVER below.
 				document.getElementById("customkoboldkey").value = localsettings.saved_kai_key;
 			}
 		}
-		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10)
+		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10 || epchoice==11)
 		{
 			document.getElementById("oaicustom").classList.remove("hidden");
 			document.getElementById("custom_oai_endpoint").classList.add("hidden");
@@ -11387,6 +11631,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("openrouterdesc").classList.add("hidden");
 			document.getElementById("mistralaidesc").classList.add("hidden");
 			document.getElementById("featherlessdesc").classList.add("hidden");
+			document.getElementById("nvidianimdesc").classList.add("hidden");
 			document.getElementById("grokdesc").classList.add("hidden");
 			document.getElementById("oaidesc").classList.add("hidden");
 			document.getElementById("pollinationsdesc").classList.add("hidden");
@@ -11410,6 +11655,7 @@ Current version indicated by LITEVER below.
 				document.getElementById("openrouterproviderbox").classList.remove("hidden");
 				document.getElementById("custom_oai_endpoint").value = default_openrouter_base;
 				document.getElementById("openrouterproviders").value = localsettings.saved_openrouter_provider;
+				document.getElementById("openrouterreasoning").value = localsettings.saved_openrouter_reasoning;
 				document.getElementById("custom_oai_key").value =(localsettings.saved_openrouter_key==dummy_api_key?"":localsettings.saved_openrouter_key);
 				try_fetch_oai_models_auto();
 			}
@@ -11442,6 +11688,14 @@ Current version indicated by LITEVER below.
 				document.getElementById("custom_oai_key").value = dummy_api_key;
 				document.getElementById("custom_oai_endpoint").value = pollinations_text_endpoint;
 				document.getElementById("custom_oai_key").classList.add("hidden");
+				try_fetch_oai_models_auto();
+			}
+			else if(epchoice==11)
+			{
+				document.getElementById("custom_nvidianim_model").classList.remove("hidden");
+				document.getElementById("nvidianimdesc").classList.remove("hidden");
+				document.getElementById("custom_oai_key").value = (localsettings.saved_nvidianim_key==dummy_api_key?"":localsettings.saved_nvidianim_key);
+				document.getElementById("custom_oai_endpoint").value = default_nvidianim_base;
 				try_fetch_oai_models_auto();
 			}
 			oai_model_change(ep_should_always_use_chat_completions() || force_autotoggle_chatcompl);
@@ -11908,7 +12162,7 @@ Current version indicated by LITEVER below.
 				});
 			}
 		}
-		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10) //connect to OAI / OpenRouter / MistralAI / Featherless / Grok Endpoint
+		else if(epchoice==2 || epchoice==3 || epchoice==7 || epchoice==8 || epchoice==9 || epchoice==10 || epchoice==11) //connect to OAI / OpenRouter / MistralAI / Featherless / Grok Endpoint / NvidiaNim
 		{
 			let desired_oai_key = document.getElementById("custom_oai_key").value.trim();
 			let desired_oai_ep = document.getElementById("custom_oai_endpoint").value.trim();
@@ -11947,7 +12201,7 @@ Current version indicated by LITEVER below.
 					localsettings.saved_oai_key = custom_oai_key;
 					localsettings.saved_oai_addr = custom_oai_endpoint;
 
-					if(!is_local_url(custom_oai_endpoint) && document.getElementById("corsproxy_oai").checked)
+					if((!is_local_url(custom_oai_endpoint) && document.getElementById("corsproxy_oai").checked) || custom_oai_endpoint.toLowerCase().includes("api.nvidia.com"))
 					{
 						uses_cors_proxy = true;
 					}
@@ -11968,10 +12222,16 @@ Current version indicated by LITEVER below.
 				{
 					localsettings.saved_pollinations_key = dummy_api_key; //placeholder key, not actually used
 				}
+				else if(epchoice==11)
+				{
+					localsettings.saved_nvidianim_key = custom_oai_key;
+					uses_cors_proxy = true;
+				}
 				else
 				{
 					localsettings.saved_openrouter_key = custom_oai_key;
 					localsettings.saved_openrouter_provider = document.getElementById("openrouterproviders").value;
+					localsettings.saved_openrouter_reasoning = document.getElementById("openrouterreasoning").value;
 				}
 				localsettings.saved_oai_jailbreak = document.getElementById("jailbreakprompttext").value;
 				if(localsettings.saved_oai_jailbreak=="")
@@ -12039,11 +12299,6 @@ Current version indicated by LITEVER below.
 			if(desired_claude_key!="" && desired_claude_ep!="")
 			{
 				dismiss_endpoint_container();
-
-				if(desired_claude_ep.toLowerCase().includes("api.anthropic.com"))
-				{
-					document.getElementById("connectstatusproxied").classList.remove("hidden");
-				}
 
 				//good to go
 				custom_claude_endpoint = desired_claude_ep;
@@ -13180,7 +13435,7 @@ Current version indicated by LITEVER below.
 						if(uname.toLowerCase()=="anonymous#0")
 						{
 							document.getElementById("kudos_bal").innerHTML = uname + "<br>"+
-							"<a class='color_blueurl' href='https://aihorde.net/register'>(Register New User)</a>";
+							"<a class='color_blueurl' target='_blank' href='https://aihorde.net/register'>(Register New User)</a>";
 						}else{
 							document.getElementById("showownworkerslink").classList.remove("hidden");
 						}
@@ -13190,12 +13445,12 @@ Current version indicated by LITEVER below.
 					}
 				}
 				else {
-					document.getElementById("kudos_bal").innerHTML = "API Key Error<br><a class='color_blueurl' href='https://aihorde.net/register'>(Register New User)</a>";
+					document.getElementById("kudos_bal").innerHTML = "API Key Error<br><a class='color_blueurl' target='_blank' href='https://aihorde.net/register'>(Register New User)</a>";
 				}
 			})
 			.catch((error) => {
 				console.log("Error: " + error);
-				document.getElementById("kudos_bal").innerHTML = "API Key Error<br><a class='color_blueurl' href='https://aihorde.net/register'>(Register New User)</a>";
+				document.getElementById("kudos_bal").innerHTML = "API Key Error<br><a class='color_blueurl' target='_blank' href='https://aihorde.net/register'>(Register New User)</a>";
 			});
 		}
 	}
@@ -15030,6 +15285,7 @@ Current version indicated by LITEVER below.
 		idle_timer = 0;
 		idle_triggered_counter = 0;
 		gametext_arr = [];
+		alt_gametext_branches = [];
 		redo_arr = [];
 		last_request_str = "No Requests Available";
 		last_response_obj = null;
@@ -15256,23 +15512,26 @@ Current version indicated by LITEVER below.
 		return inputtxt;
 	}
 
-	function end_trim_to_sentence(input,include_newline=false) {
+	function end_trim_to_sentence(input, include_newline = false) {
 		let last = -1;
 		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…'];
-		for (let i = 0; i < enders.length; ++i)
-		{
+		for (let i = 0; i < enders.length; ++i) {
 			last = Math.max(last, input.lastIndexOf(enders[i]));
 		}
-
-		if(include_newline)
-		{
+		if (include_newline) {
 			let nl = input.lastIndexOf("\n");
 			last = Math.max(last, nl);
 		}
-		if (last > 0) {
-			return input.substring(0, last + 1).replace(/[\t\r\n ]+$/, '');
+		let cleaned = input.replace(/[\t\r\n ]+$/, '');
+		if (last <= 0) {  // If no valid end found
+			return cleaned;
 		}
-		return input.replace(/[\t\r\n ]+$/, '');
+		let trimmedLength = cleaned.length - (last + 1); // Calculate how many characters would be trimmed
+		if (trimmedLength > 150) {	// If more than 150 chars would be trimmed, skip trimming
+			return cleaned;
+		}
+		// Otherwise, trim up to the last sentence end
+		return cleaned.substring(0, last + 1).replace(/[\t\r\n ]+$/, '');
 	}
 
 	function start_trim_to_sentence(input) {
@@ -15442,6 +15701,34 @@ Current version indicated by LITEVER below.
 		}
 		else if(is_using_kcpp_with_streaming())
 		{
+			//if logprobs used, request last
+			if(localsettings.request_logprobs && last_response_obj==null)
+			{
+				fetch(apply_proxy_url(custom_kobold_endpoint + koboldcpp_logprobs_endpoint), {
+					method: 'POST',
+					headers: get_kobold_header(),
+					body: JSON.stringify({
+					"genkey": lastcheckgenkey
+					}),
+				})
+				.then((response) => response.json())
+				.then((data) => {
+					//makes sure a delayed response doesnt arrive late and mess up
+					if (data && data.logprobs != null && last_response_obj==null) {
+						//fake a last response obj
+						let fakedresponse = {
+							"artificial_response": true,
+							"results":[{"logprobs":data.logprobs}]
+						};
+						last_response_obj = fakedresponse;
+						update_logprobs_link();
+					}
+				})
+				.catch((error) => {
+					console.error('Error:', error);
+				});
+			}
+
 			//we can use abort functions
 			fetch(apply_proxy_url(custom_kobold_endpoint + koboldcpp_abort_endpoint), {
 			method: 'POST', // or 'PUT'
@@ -15476,15 +15763,13 @@ Current version indicated by LITEVER below.
 			sentence = replace_placeholders(sentence)
 		}
 		generate_new_image(sentence, base64img, true);
-		document.getElementById("btn_addmedia").disabled = true;
-		document.getElementById("btn_addmedia2").disabled = true;
-		document.getElementById("btn_addmedia3").disabled = true;
+		document.getElementById("btn_inner_genimg_auto").disabled = true;
+		document.getElementById("btn_inner_genimg_custom").disabled = true;
 		//disable it for 5 sec to prevent spam
 		setTimeout(() => {
-			document.getElementById("btn_addmedia").disabled = false;
-			document.getElementById("btn_addmedia2").disabled = false;
-			document.getElementById("btn_addmedia3").disabled = false;
-		}, 5000);
+			document.getElementById("btn_inner_genimg_auto").disabled = false;
+			document.getElementById("btn_inner_genimg_custom").disabled = false;
+		}, 3000);
 	}
 
 	function do_auto_gen_image(truncated_context)
@@ -16686,7 +16971,7 @@ Current version indicated by LITEVER below.
 		let ist = get_instructstartplaceholder();
 		let iet = get_instructendplaceholder();
 		let iste = get_instructstartplaceholder_end();
-		let prev_et = get_instruct_latest_end(false);
+		let prev_et = get_instruct_latest_end();
 
 		if(newgen != "")
 		{
@@ -16810,6 +17095,21 @@ Current version indicated by LITEVER below.
 			if (localsettings.opmode == 4)
 			{
 				newgen = wrap_newgen_instruct_format(newgen,true);
+				let latest_human = is_instruct_latest_human_turn();
+				if(newgen=="" && latest_human) //assume the user is trying to get the AI to respond even though there's no output tag
+				{
+					//so we force one
+					let iet = get_instructendplaceholder();
+					let iste = get_instructstartplaceholder_end();
+					if(localsettings.separate_end_tags)
+					{
+						newgen = iste + iet;
+					}
+					else
+					{
+						newgen = iet;
+					}
+				}
 			}
 			if (localsettings.opmode == 3 && newgen != "") {
 				newgen = wrap_newgen_chat_format(newgen);
@@ -17908,28 +18208,29 @@ Current version indicated by LITEVER below.
 							//it's an object/array, so repack the text turn
 							let t1 = mainoaibody[0].text;
 							mhistory = repack_instruct_history(t1);
+						}
 
-							//many backends REFUSE to allow the assistant to go first. If the first turn belongs to assistant, we turn it into user
-							if(mhistory.length>0 && !mhistory[0].myturn)
-							{
-								mhistory[0].myturn = true;
-							}
-							//if both first and second turns are from user, merge them into one turn
-							if(mhistory.length>1 && mhistory[0].myturn && mhistory[1].myturn)
-							{
-								mhistory[0].msg += "\n"+mhistory[1].msg;
-								mhistory.splice(1, 1);
-							}
+						//many backends REFUSE to allow the assistant to go first. If the first turn belongs to assistant, we turn it into user
+						if(mhistory.length>0 && !mhistory[0].myturn)
+						{
+							mhistory[0].myturn = true;
+						}
+						//if both first and second turns are from user, merge them into one turn
+						if(mhistory.length>1 && mhistory[0].myturn && mhistory[1].myturn)
+						{
+							mhistory[0].msg += "\n"+mhistory[1].msg;
+							mhistory.splice(1, 1);
+						}
 
-							if(mhistory.length>0 && mainoaibody.length>1 && mainoaibody[1].type && mainoaibody[1].type!="text")
+						if(mhistory.length>0 && mainoaibody.length>1 && mainoaibody[1].type && mainoaibody[1].type!="text")
+						{
+							mhistory[0].msg = [{type: 'text', text: mhistory[0].msg}];
+							for(let i=1;i<mainoaibody.length;++i)
 							{
-								mhistory[0].msg = [{type: 'text', text: mhistory[0].msg}];
-								for(let i=1;i<mainoaibody.length;++i)
-								{
-									mhistory[0].msg.push(mainoaibody[i]);
-								}
+								mhistory[0].msg.push(mainoaibody[i]);
 							}
 						}
+
 
 						for(let i=0;i<mhistory.length;++i)
 						{
@@ -18010,6 +18311,11 @@ Current version indicated by LITEVER below.
 							"allow_fallbacks": false, //always explicitly selected
 						};
 					}
+					let reasonselect = document.getElementById("openrouterreasoning").value;
+					if(reasonselect!=0)
+					{
+						oai_payload.reasoning = {"enabled":(reasonselect==2?true:false)};
+					}
 				}
 
 				//pollinations always uses the exact same url for text gen regardless
@@ -18033,101 +18339,77 @@ Current version indicated by LITEVER below.
 			}
 			else if (custom_claude_key != "")//handle for Claude
 			{
-				let claudev3mode = custom_claude_model.toLowerCase().includes("claude-3")
-				|| custom_claude_model.toLowerCase().includes("claude-sonnet-4")
-				|| custom_claude_model.toLowerCase().includes("claude-opus-4");
-				let actualep = (custom_claude_endpoint + (claudev3mode?claude_submit_endpoint_v3:claude_submit_endpoint));
+
+				let actualep = (custom_claude_endpoint + claude_submit_endpoint_v3);
 				let targetep = actualep;
-				if(custom_claude_endpoint.toLowerCase().includes("api.anthropic.com"))
-				{
-					//official API has broken cors settings
-					targetep = apply_proxy_url(actualep,true);
-				}
 				let claude_payload = null;
-				if(claudev3mode)
+
+				let sysprompt = document.getElementById("claudesystemprompt").value;
+				let assistantprompt = document.getElementById("claudejailbreakprompt").value;
+				let claudethinking = (document.getElementById("claudethinking").checked?true:false);
+
+				claude_payload =
 				{
-					let sysprompt = document.getElementById("claudesystemprompt").value;
-					let assistantprompt = document.getElementById("claudejailbreakprompt").value;
-					let claudethinking = (document.getElementById("claudethinking").checked?true:false);
+					"model": custom_claude_model,
+					"messages": [],
+					"max_tokens": submit_payload.params.max_length,
+					"temperature": submit_payload.params.temperature,
+				};
+				claude_payload.messages.push({"role": "user", "content": submit_payload.prompt})
+				if(sysprompt)
+				{
+					claude_payload.system = sysprompt;
+				}
 
-					claude_payload =
-					{
-						"model": custom_claude_model,
-						"messages": [],
-						"max_tokens": submit_payload.params.max_length,
-						"temperature": submit_payload.params.temperature,
-					};
-					claude_payload.messages.push({"role": "user", "content": submit_payload.prompt})
-					if(sysprompt)
-					{
-						claude_payload.system = sysprompt;
-					}
+				let claude_is_v4 = (custom_claude_model.toLowerCase().includes("claude-3-7")
+				|| custom_claude_model.toLowerCase().includes("claude-sonnet-4")
+				|| custom_claude_model.toLowerCase().includes("claude-haiku-4")
+				|| custom_claude_model.toLowerCase().includes("claude-opus-4"));
 
-					if(claudethinking && (custom_claude_model.toLowerCase().includes("claude-3-7")||custom_claude_model.toLowerCase().includes("claude-sonnet-4")||custom_claude_model.toLowerCase().includes("claude-opus-4")))
-					{
-						claude_payload.thinking = {
-							"type": "enabled",
-							"budget_tokens": 1024
-						}
-						claude_payload.max_tokens += 1024;
-						claude_payload.temperature = 1;
-					}
-					else
-					{
-						//unsupported with thinking
-						claude_payload.top_k = (submit_payload.params.top_k<1?300:submit_payload.params.top_k);
-						claude_payload.top_p = submit_payload.params.top_p;
-					}
+				let claude_is_v4_5 = (custom_claude_model.toLowerCase().includes("claude-sonnet-4-5")
+				|| custom_claude_model.toLowerCase().includes("claude-haiku-4-5")
+				|| custom_claude_model.toLowerCase().includes("claude-opus-4-1"));
 
-					if(localsettings.opmode==1)
-					{
-						claude_payload.system = "Always respond with a direct partial continuation of the story immediately from the latest word.";
-						if(sysprompt)
-						{
-							claude_payload.system = sysprompt +"\n"+ claude_payload.system;
-						}
+				if(claudethinking && claude_is_v4)
+				{
+					claude_payload.thinking = {
+						"type": "enabled",
+						"budget_tokens": 1024
 					}
-					if(assistantprompt)
-					{
-						claude_payload.messages.push({"role": "assistant", "content": assistantprompt});
-					}
-
+					claude_payload.max_tokens += 1024;
+					claude_payload.temperature = 1;
 				}
 				else
 				{
-					claude_payload =
-					{
-						"prompt": submit_payload.prompt,
-						"max_tokens_to_sample": submit_payload.params.max_length,
-						"model": custom_claude_model,
-						"top_k": (submit_payload.params.top_k<1?300:submit_payload.params.top_k),
-						"temperature": submit_payload.params.temperature,
-						"top_p": submit_payload.params.top_p,
-					};
+					//unsupported with thinking
+					claude_payload.top_k = (submit_payload.params.top_k<1?300:submit_payload.params.top_k);
+					claude_payload.top_p = submit_payload.params.top_p;
 
-					if(document.getElementById("clauderenamecompat").checked)
+					//for claude 4.5, if temperature is not 1, do not send top p
+					if(claude_is_v4_5)
 					{
-						let assistant_correct_case = "Assistant:";
-						if(!claude_payload.prompt.toLowerCase().trim().startsWith('human:'))
+						if(claude_payload.temperature == 1)
 						{
-							claude_payload.prompt = "Human: "+claude_payload.prompt;
+							delete claude_payload["temperature"];
 						}
-						if(!claude_payload.prompt.toLowerCase().trim().endsWith(assistant_correct_case.toLowerCase()))
+						else
 						{
-							if(localsettings.opmode==1)
-							{
-								claude_payload.prompt = claude_payload.prompt + " \n"+assistant_correct_case+" Here is a continuation of the story: \n"+assistant_correct_case;
-							}
-							else
-							{
-								claude_payload.prompt = claude_payload.prompt + " "+assistant_correct_case;
-							}
+							delete claude_payload["top_p"];
 						}
-						//trim end
-						claude_payload.prompt = claude_payload.prompt.replace(/[\t\r\n ]+$/, '');
-						//replace final assistant with fixed case
-						claude_payload.prompt = claude_payload.prompt.slice(0, -(assistant_correct_case.length))+assistant_correct_case;
 					}
+				}
+
+				if(localsettings.opmode==1)
+				{
+					claude_payload.system = "Always respond with a direct partial continuation of the story immediately from the latest word.";
+					if(sysprompt)
+					{
+						claude_payload.system = sysprompt +"\n"+ claude_payload.system;
+					}
+				}
+				if(assistantprompt)
+				{
+					claude_payload.messages.push({"role": "assistant", "content": assistantprompt});
 				}
 
 
@@ -18139,13 +18421,10 @@ Current version indicated by LITEVER below.
 					'Content-Type': 'application/json',
 					'x-api-key': custom_claude_key,
 					'Authorization': 'Bearer '+custom_claude_key,
+					'anthropic-dangerous-direct-browser-access': true,
 				};
-				if(claudev3mode)
-				{
-					claudeheaders["anthropic-version"] = '2023-06-01';
-				}else{
-					claudeheaders["anthropic-version"] = '2023-01-01';
-				}
+
+				claudeheaders["anthropic-version"] = '2023-06-01';
 
 				fetch(targetep, {
 					method: 'POST',
@@ -19689,13 +19968,23 @@ Current version indicated by LITEVER below.
 		{
 			shownotify();
 		}
-		let kcpp_has_logprobs = (last_response_obj!=null && last_response_obj.results && last_response_obj.results.length > 0 && last_response_obj.results[0].logprobs!=null);
-		let oai_has_logprobs = (last_response_obj!=null && last_response_obj.choices && last_response_obj.choices.length > 0 && last_response_obj.choices[0].logprobs!=null);
-		let lastresp = ` <a href="#" class="color_blueurl" onclick="show_last_logprobs()">(View Logprobs)</a>`;
-		let lastreq = `<a href="#" onclick="show_last_req()">Last request</a> served by <a href="#" onclick="get_and_show_workers()">${genworker}</a> using <span class="color_darkgreen">${genmdl}</span>${(genkudos>0?` for ${genkudos} kudos`:``)} in ${get_time_taken()} seconds.${(last_response_obj!=null && (kcpp_has_logprobs || oai_has_logprobs)?lastresp:"")}`;
+
+		let genworkertxt = (genworker=="Custom Endpoint")?`<a href="#" onclick="get_and_show_workers()">${genworker}</a>`:`${genworker}`;
+		let lastreq = `<a href="#" onclick="show_last_req()">Last request</a> served by ${genworkertxt} using <span class="color_darkgreen">${genmdl}</span>${(genkudos>0?` for ${genkudos} kudos`:``)} in ${get_time_taken()} seconds.`;
 		document.getElementById("lastreq1").innerHTML = lastreq;
 		document.getElementById("lastreq2").innerHTML = lastreq;
 		document.getElementById("lastreq3").innerHTML = lastreq;
+		document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = "";
+		update_logprobs_link();
+	}
+
+	function update_logprobs_link()
+	{
+		let lastresp = ` <a href="#" class="color_blueurl" onclick="show_last_logprobs()">(View Logprobs)</a>`;
+		let kcpp_has_logprobs = (last_response_obj!=null && last_response_obj.results && last_response_obj.results.length > 0 && last_response_obj.results[0].logprobs!=null);
+		let oai_has_logprobs = (last_response_obj!=null && last_response_obj.choices && last_response_obj.choices.length > 0 && last_response_obj.choices[0].logprobs!=null);
+		let lastresptxt = `${(last_response_obj!=null && (kcpp_has_logprobs || oai_has_logprobs)?lastresp:"")}`;
+		document.getElementById("lastreq1lp").innerHTML = document.getElementById("lastreq2lp").innerHTML =	document.getElementById("lastreq3lp").innerHTML = lastresptxt;
 	}
 
 	function poll_interrogation_db()
@@ -20668,7 +20957,7 @@ Current version indicated by LITEVER below.
 											synchro_pending_stream = data.results[0].text;
 											if(was_empty && synchro_pending_stream!="")
 											{
-												render_gametext(false); // don't autosave while streaming
+												render_gametext(false,false); // don't autosave while streaming
 											}
 											else
 											{
@@ -20721,7 +21010,7 @@ Current version indicated by LITEVER below.
 						last_stop_reason = "";
 						synchro_pending_stream = "";
 						show_abort_button(false);
-						render_gametext();
+						render_gametext(true,false); //only scroll to bottom if autoscroll is on
 						sync_multiplayer(false);
 					}
 					if(synchro_polled_respimg)
@@ -20952,53 +21241,113 @@ Current version indicated by LITEVER below.
 				let fullmergedstory = gametext_elem.innerText;
 
 				let newestChunk = "";
-				if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
-				{
 
-					let cl = editedChunks[editedChunks.length-1].length;
-					if(cl>0)
+				//if we're in instruct mode AND there is at least 1 instruct tag in history, split by tags
+				let splitbyinsttags = false;
+				if(localsettings.opmode==4)
+				{
+					let strA = get_instructstartplaceholder();
+					let strB = get_instructendplaceholder();
+					if(fullmergedstory.includes(strA)||fullmergedstory.includes(strB))
 					{
-						newestChunk = fullmergedstory.slice(-cl);
-						fullmergedstory = fullmergedstory.slice(0,-cl);
+						splitbyinsttags = true;
 					}
 				}
 
-				//if it ends with a single newline, remove it to avoid ghost newlines
-				if (newestChunk) {
-					if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
-						newestChunk = newestChunk.slice(0, -1);
+				if(splitbyinsttags)
+				{
+					let ins = get_instructstartplaceholder();
+					let ine = get_instructendplaceholder();
+					let delimiters = [ins,ine];
+					let turns = splitByDelimiters(fullmergedstory,delimiters);
+					//if an input turn is followed by an output turn, the input acquires the output tag
+					for(let i=0;i<turns.length;++i)
+					{
+						let temp = "";
+						if(turns[i].startsWith(ins))
+						{
+							temp = ins;
+							turns[i] = turns[i].substring(ins.length);
+						}
+						else if(turns[i].startsWith(ine))
+						{
+							temp = ine;
+							turns[i] = turns[i].substring(ine.length);
+						}
+						let subturns = splitByDelimiters(turns[i],[ins.trim(),ine.trim()]);
+						subturns[0] = temp + subturns[0];
+    					turns.splice(i, 1); // Remove the current element, insert all subturns
+						for (let j = subturns.length - 1; j >= 0; j--) {
+							turns.splice(i, 0, subturns[j]);
+						}
+						i += subturns.length - 1; // Adjust the index to account for the new elements
+					}
+					for(let i=0;i<turns.length-1;++i)
+					{
+						if(turns[i].startsWith(ins) && turns[i+1].startsWith(ine))
+						{
+							//transfer the ine from turn i+1 and append it to the end of turn i
+							turns[i+1] = turns[i+1].substring(ine.length); // Remove ine from the start of next turn
+							turns[i] = turns[i] + ine; // Append ine to the current turn
+						}
+					}
+					for(let i=0;i<turns.length;++i)
+					{
+						if(turns[i])
+						{
+							gametext_arr.push(turns[i]);
+						}
 					}
 				}
 				else
 				{
-					if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
-						fullmergedstory = fullmergedstory.slice(0, -1);
-					}
-				}
-
-				//split by newlines for the rest
-				if(fullmergedstory.length>0)
-				{
-					let splittertoken = "\n";
-					if (fullmergedstory.includes("\n\n")) {
-						splittertoken = "\n\n";
-					}
-					let splitmergedstory = fullmergedstory.split(splittertoken);
-					for (var i = 0; i < splitmergedstory.length; ++i) {
-						if (i != 0) {
-							gametext_arr.push(splittertoken + splitmergedstory[i]);
-						} else {
-							gametext_arr.push(splitmergedstory[i]);
+					if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
+					{
+						let cl = editedChunks[editedChunks.length-1].length;
+						if(cl>0)
+						{
+							newestChunk = fullmergedstory.slice(-cl);
+							fullmergedstory = fullmergedstory.slice(0,-cl);
 						}
 					}
-				}
-				if(newestChunk!="")
-				{
-					//little hack to merge a row with only a newline into the last chunk
-					if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
-						gametext_arr[gametext_arr.length - 1] += newestChunk;
-					} else {
-						gametext_arr.push(newestChunk);
+
+					//if it ends with a single newline, remove it to avoid ghost newlines
+					if (newestChunk) {
+						if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
+							newestChunk = newestChunk.slice(0, -1);
+						}
+					}
+					else
+					{
+						if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
+							fullmergedstory = fullmergedstory.slice(0, -1);
+						}
+					}
+
+					//split by newlines for the rest
+					if(fullmergedstory.length>0)
+					{
+						let splittertoken = "\n";
+						if (fullmergedstory.includes("\n\n")) {
+							splittertoken = "\n\n";
+						}
+						let splitmergedstory = fullmergedstory.split(splittertoken);
+						for (var i = 0; i < splitmergedstory.length; ++i) {
+							if (i != 0) {
+								gametext_arr.push(splittertoken + splitmergedstory[i]);
+							} else {
+								gametext_arr.push(splitmergedstory[i]);
+							}
+						}
+					}
+					if(newestChunk!="")
+					{
+						//little hack to merge a row with only a newline into the last chunk
+						if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
+							gametext_arr[gametext_arr.length - 1] += newestChunk;
+						} else {
+							gametext_arr.push(newestChunk);
+						}
 					}
 				}
 
@@ -21270,7 +21619,7 @@ Current version indicated by LITEVER below.
 			let box2 = document.getElementById("chat_msg_body");
 			let box3 = document.getElementById("corpostylemain");
 			function isScrolledToBottom(element) {
-				return element.scrollHeight - element.scrollTop - element.clientHeight <= 120;
+				return element.scrollHeight - element.scrollTop - element.clientHeight <= 100;
 			}
 			if(alwaysscroll || isScrolledToBottom(box1))
 			{
@@ -21688,19 +22037,27 @@ Current version indicated by LITEVER below.
 
 		if (selected_models.length == 0) //if no model, disable all first
 		{
-			document.getElementById("btn_actmem").disabled = true;
-			document.getElementById("btn_actundo").disabled = true;
-			document.getElementById("btn_actredo").disabled = true;
-			document.getElementById("btn_actretry").disabled = true;
-			if(perfdata==null) //allow these 2 in offline mode
+			let disablebtns = true;
+			if (perfdata == null) //allow these in offline mode
 			{
-				document.getElementById("btn_actmem").disabled = false;
+				disablebtns = false;
 			}
+			document.getElementById("btn_actmem3").disabled = document.getElementById("btn_actmem2").disabled = document.getElementById("btn_actmem").disabled = disablebtns;
+			document.getElementById("btn_actundo3").disabled = document.getElementById("btn_actundo2").disabled = document.getElementById("btn_actundo").disabled = disablebtns;
+			document.getElementById("btn_actredo3").disabled = document.getElementById("btn_actredo2").disabled = document.getElementById("btn_actredo").disabled = disablebtns;
+			document.getElementById("btn_actretry3").disabled = document.getElementById("btn_actretry2").disabled = document.getElementById("btn_actretry").disabled = true;
+			document.getElementById("btn_actbranch3").disabled = document.getElementById("btn_actbranch2").disabled = document.getElementById("btn_actbranch").disabled = disablebtns;
+			document.getElementById("btn_addmedia3").disabled = document.getElementById("btn_addmedia2").disabled = document.getElementById("btn_addmedia").disabled = disablebtns;
+			document.getElementById("btn_editmode").disabled = disablebtns;
+
 		} else {
-			document.getElementById("btn_actmem").disabled = false;
-			document.getElementById("btn_actundo").disabled = false;
-			document.getElementById("btn_actredo").disabled = false;
-			document.getElementById("btn_actretry").disabled = false;
+			document.getElementById("btn_actmem3").disabled = document.getElementById("btn_actmem2").disabled = document.getElementById("btn_actmem").disabled = false;
+			document.getElementById("btn_actundo3").disabled = document.getElementById("btn_actundo2").disabled = document.getElementById("btn_actundo").disabled = false;
+			document.getElementById("btn_actredo3").disabled = document.getElementById("btn_actredo2").disabled = document.getElementById("btn_actredo").disabled = false;
+			document.getElementById("btn_actretry3").disabled = document.getElementById("btn_actretry2").disabled = document.getElementById("btn_actretry").disabled = false;
+			document.getElementById("btn_actbranch3").disabled = document.getElementById("btn_actbranch2").disabled = document.getElementById("btn_actbranch").disabled = false;
+			document.getElementById("btn_addmedia3").disabled = document.getElementById("btn_addmedia2").disabled = document.getElementById("btn_addmedia").disabled = false;
+			document.getElementById("btn_editmode").disabled = false;
 		}
 
 		if (perfdata == null) {
@@ -22604,13 +22961,13 @@ Current version indicated by LITEVER below.
 	}
 
 	function toggle_corpo_plusmenu(toggleopen = true) {
-		function handleOutsideClick(event) {
+		function handleOutsideClickCorpoPlus(event) {
 			popupMenu.style.display = 'none';
-			document.removeEventListener('click', handleOutsideClick);
+			document.removeEventListener('click', handleOutsideClickCorpoPlus);
 		}
 
 		const popupMenu = document.getElementById('corpoplusmenu');
-		document.removeEventListener('click', handleOutsideClick);
+		document.removeEventListener('click', handleOutsideClickCorpoPlus);
 		popupMenu.style.display = (popupMenu.style.display === 'flex' ? 'none' : 'flex');
 		if (!toggleopen || popupMenu.style.display === 'none') {
 			popupMenu.style.display = 'none';
@@ -22619,10 +22976,9 @@ Current version indicated by LITEVER below.
 		// if menu is open, attach outside click handler
 		if (popupMenu.style.display === 'flex') {
 			setTimeout(() => { // delay so the current button click doesn't immediately close it
-				document.addEventListener('click', handleOutsideClick);
+				document.addEventListener('click', handleOutsideClickCorpoPlus);
 			}, 50);
 		}
-
 	}
 
 	function repack_chat_history(input) //repack history for chatmode
@@ -22880,6 +23236,9 @@ Current version indicated by LITEVER below.
 			}else if(custom_oai_endpoint.toLowerCase().includes("text.pollinations.ai"))
 			{
 				localsettings.prev_custom_endpoint_type = 10;
+			}else if(custom_oai_endpoint.toLowerCase().includes("api.nvidia.com"))
+			{
+				localsettings.prev_custom_endpoint_type = 11;
 			}
 		}
 		else if(custom_claude_key!="")
@@ -23529,13 +23888,18 @@ Current version indicated by LITEVER below.
 		});
 	}
 
+	function allow_redo_undo()
+	{
+		return (!document.getElementById("btnsend").disabled || (perfdata == null && pending_response_id == "")); //if offline, allow redo undo as well
+	}
+
 	var backLongPressTimer = null;
 	function btn_back_longpress_start()
 	{
 		backLongPressTimer = setTimeout(()=>{
 
 		console.log("Clear story");
-		if (!document.getElementById("btnsend").disabled && pending_response_id == "" && gametext_arr.length > 0) {
+		if (allow_redo_undo() && pending_response_id == "" && gametext_arr.length > 0) {
 			warn_unsaved = true;
 			last_reply_was_empty = false;
 			while(gametext_arr.length > 0)
@@ -23563,7 +23927,7 @@ Current version indicated by LITEVER below.
 		clearTimeout(backLongPressTimer);
 	}
 	function btn_back() {
-		if (!document.getElementById("btnsend").disabled && pending_response_id == "" && gametext_arr.length > 0) {
+		if (allow_redo_undo() && pending_response_id == "" && gametext_arr.length > 0) {
 			warn_unsaved = true;
 			last_reply_was_empty = false;
 			retry_preserve_last = false;
@@ -23588,7 +23952,7 @@ Current version indicated by LITEVER below.
 		redoLongPressTimer = setTimeout(()=>{
 
 		console.log("Redo All story");
-		if (!document.getElementById("btnsend").disabled && pending_response_id == "" && redo_arr.length > 0) {
+		if (allow_redo_undo() && pending_response_id == "" && redo_arr.length > 0) {
 			warn_unsaved = true;
 			last_reply_was_empty = false;
 			retry_preserve_last = false;
@@ -23612,7 +23976,7 @@ Current version indicated by LITEVER below.
 		clearTimeout(redoLongPressTimer);
 	}
 	function btn_redo() {
-		if (!document.getElementById("btnsend").disabled && pending_response_id == "") {
+		if (allow_redo_undo() && pending_response_id == "") {
 			warn_unsaved = true;
 			if (redo_arr.length > 0) {
 				last_reply_was_empty = false;
@@ -23660,6 +24024,121 @@ Current version indicated by LITEVER below.
 			redo_arr = [];
 			document.getElementById("input_text").value = boxtextstash;
 		}
+	}
+
+	function btn_branch(button, toggleopen = true)
+	{
+		refresh_branches();
+		function handleOutsideClickBranch(event) {
+			popupMenu.style.display = 'none';
+			document.removeEventListener('click', handleOutsideClickBranch);
+		}
+
+		const rect = button.getBoundingClientRect();
+		const popupMenu = document.getElementById('branchmenu');
+
+		popupMenu.style.left = `${rect.left}px`;
+		popupMenu.style.top = `${rect.top - 10}px`;
+		popupMenu.style.transform = 'translateY(-100%)'; // makes it grow upward
+
+		document.removeEventListener('click', handleOutsideClickBranch);
+		popupMenu.style.display = (popupMenu.style.display === 'flex' ? 'none' : 'flex');
+		if (!toggleopen || popupMenu.style.display === 'none') {
+			popupMenu.style.display = 'none';
+			return;
+		}
+		// if menu is open, attach outside click handler
+		if (popupMenu.style.display === 'flex') {
+			setTimeout(() => { // delay so the current button click doesn't immediately close it
+				document.addEventListener('click', handleOutsideClickBranch);
+			}, 50);
+		}
+	}
+
+	function clone_new_branch()
+	{
+		if(!allow_redo_undo())
+		{
+			return;
+		}
+		if(alt_gametext_branches.length < max_branches)
+		{
+			//the "current" branch is just a null element to avoid duplication
+			if(alt_gametext_branches.length==0)
+			{
+				alt_gametext_branches.push(null);
+			}
+			let newbranch = gametext_arr.slice();
+			alt_gametext_branches.push(newbranch);
+			switch_branch(alt_gametext_branches.length-1,false);
+		}
+		refresh_branches();
+	}
+	function refresh_branches()
+	{
+		let branchmenu = document.getElementById("branchmenu");
+		let branches = "";
+		if(alt_gametext_branches.length>1)
+		{
+			for(let i=0;i<alt_gametext_branches.length;++i)
+			{
+				let delbtn = `<button type="button" class="btn xbtn widelbtn" onclick="return del_branch(${i})">X</button>`
+				branches += `<div><button style="width:${alt_gametext_branches[i]==null?"100%":"calc(100% - 22px)"}" type="button" onclick="switch_branch(${i},true)">${alt_gametext_branches[i]==null?"&gt; ":""}Branch ${i+1}</button>${alt_gametext_branches[i]==null?"":delbtn}</div>`;
+			}
+		}
+		if(alt_gametext_branches.length < max_branches)
+		{
+			branches += `<button type="button" onclick="clone_new_branch()">🔀 New Branch</button>`;
+		}
+		branchmenu.innerHTML = branches;
+	}
+	function switch_branch(branch,erase_undo_stack)
+	{
+		if(!allow_redo_undo())
+		{
+			return;
+		}
+		if(branch<0 || branch >= alt_gametext_branches.length || alt_gametext_branches[branch]==null)
+		{
+			return; //out of bounds, or already on desired branch
+		}
+		//find the empty spot in the list (current branch)
+		for(let i=0;i<alt_gametext_branches.length;++i)
+		{
+			if(alt_gametext_branches[i]==null)
+			{
+				//fill our currrent history into it
+				alt_gametext_branches[i] = gametext_arr;
+			}
+		}
+		let loadedbranch = alt_gametext_branches[branch]; //load desired branch
+		gametext_arr = loadedbranch;
+		alt_gametext_branches[branch] = null; //set it to the active branch
+		if(erase_undo_stack)
+		{
+			redo_arr = [];
+			last_reply_was_empty = false;
+			retry_prev_text = [];
+			retry_preserve_last = false;
+			redo_prev_text = [];
+		}
+		render_gametext();
+	}
+	function del_branch(branch)
+	{
+		if(!allow_redo_undo())
+		{
+			return;
+		}
+		if(branch<0 || branch >= alt_gametext_branches.length || alt_gametext_branches[branch]==null)
+		{
+			return; //out of bounds, or already on desired branch
+		}
+		msgboxYesNo(`Really Delete Branch ${branch+1}?\nRemaining branches will be shifted up.`, `Confirm Branch Delete`, () => {
+			alt_gametext_branches.splice(branch, 1);
+			refresh_branches();
+			render_gametext();
+		}, null);
 	}
 
 	var groupchat_removals = []; //list of names removed from groupchat
@@ -25212,6 +25691,7 @@ Current version indicated by LITEVER below.
 				<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actundo" onpointerdown="btn_back_longpress_start()" onpointerleave="btn_back_longpress_end()" onpointerup="btn_back_longpress_end()" onclick="btn_back()">Undo</button>
 				<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actredo" onpointerdown="btn_redo_longpress_start()" onpointerleave="btn_redo_longpress_end()" onpointerup="btn_redo_longpress_end()" onclick="btn_redo()">Redo</button>
 				<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actretry" onclick="btn_retry()">Retry</button>
+				<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actbranch" onclick="btn_branch(this)">Branch</button>
 				<button type="button" class="btn actbtn btn-primary mainnav" id="btn_addmedia" onclick="add_media_btn_menu()">Add File</button>
 				<button type="button" class="btn actbtn btn-primary mainnav slim btnicon-websearch hidden" id="btn_togglesearch" onclick="toggle_websearch()">&nbsp;</button>
 			</div>
@@ -25244,7 +25724,7 @@ Current version indicated by LITEVER below.
 				</div>
 			</div>
 		</div>
-		<div class="lastreq color_gray" id="lastreq1"></div>
+		<div class="lastreq color_gray"><span id="lastreq1"></span><span id="lastreq1lp"></span></div>
 		</div>
 
 		<div id="enhancedchatinterface" class="chat_mesgs hidden">
@@ -25259,6 +25739,7 @@ Current version indicated by LITEVER below.
 						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actundo2" onpointerdown="btn_back_longpress_start()" onpointerleave="btn_back_longpress_end()" onpointerup="btn_back_longpress_end()" onclick="btn_back()">Undo</button>
 						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actredo2" onpointerdown="btn_redo_longpress_start()" onpointerleave="btn_redo_longpress_end()" onpointerup="btn_redo_longpress_end()" onclick="btn_redo()">Redo</button>
 						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actretry2" onclick="btn_retry()">Retry</button>
+						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_actbranch2" onclick="btn_branch(this)">Branch</button>
 						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_addmedia2" onclick="add_media_btn_menu()">Add File</button>
 						<button type="button" class="btn actbtn btn-primary mainnav slim btnicon-websearch hidden" id="btn_togglesearch2" onclick="toggle_websearch()">&nbsp;</button>
 						<button type="button" class="btn actbtn btn-primary mainnav" id="btn_editmode" onclick="btn_editmode()">Edit</button>
@@ -25279,7 +25760,7 @@ Current version indicated by LITEVER below.
 					</div>
 				</div>
 
-				<div class="lastreq color_gray" id="lastreq2"></div>
+				<div class="lastreq color_gray"><span id="lastreq2"></span><span id="lastreq2lp"></span></div>
 			</div>
 		</div>
 
@@ -25309,20 +25790,22 @@ Current version indicated by LITEVER below.
 								<button type="button" id="btn_actundo3" onpointerdown="btn_back_longpress_start()" onpointerleave="btn_back_longpress_end()" onpointerup="btn_back_longpress_end()" onclick="toggle_corpo_plusmenu(false);btn_back()">Undo</button>
 								<button type="button" id="btn_actredo3" onpointerdown="btn_redo_longpress_start()" onpointerleave="btn_redo_longpress_end()" onpointerup="btn_redo_longpress_end()" onclick="toggle_corpo_plusmenu(false);btn_redo()">Redo</button>
 								<button type="button" id="btn_actretry3" onclick="toggle_corpo_plusmenu(false);btn_retry()">Retry</button>
+								<button type="button" id="btn_actbranch3" onclick="btn_branch(this)">Branch</button>
 								<button type="button" id="btn_addmedia3" onclick="toggle_corpo_plusmenu(false);add_media_btn_menu()">Add File</button>
-							  </div>
+							</div>
 							<div class="corpo_chat_inner" id="corpo_cht_inp_lengthtester" style="white-space: nowrap; visibility: hidden; height: 0px; position:absolute; width: auto;"></div>
 							<textarea title="User Input" class="corpo_chat_inner mainnav" id="corpo_cht_inp" type="text" name="crpchtinp"  role="presentation" autocomplete="noppynop" spellcheck="true" rows="1" wrap="on" placeholder="Message KoboldAI" value="" oninput="update_submit_button();chat_resize_input();" onpaste="return img_paste_event(event)" onkeypress="return chat_handle_typing(event)"></textarea>
 							<button title="Submit" onclick="submit_generation_button(true)" id="corpo_chat_send_btn" class="corpo_chat_send_btn mainnav" type="button"></button>
 							<button title="Abort" onclick="abort_generation()" id="corpo_chat_send_btn_abort" class="hidden corpo_chat_send_btn_abort mainnav" type="button"></button>
 						</div>
-						<div id="lastreq3" class="corpolastreq color_gray"></div>
+						<div class="corpolastreq color_gray"><span id="lastreq3"></span><span id="lastreq3lp"></span></div>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 
-
+	<div class="branchmenu" id="branchmenu">
 	</div>
 
 	<div class="popupcontainer flex hidden" id="memorycontainer">
@@ -27068,6 +27551,7 @@ Current version indicated by LITEVER below.
 				<option value="8">Featherless API</option>
 				<option value="9">Grok API</option>
 				<option value="10">PollinationsAI API</option>
+				<option value="11">Nvidia NIM API</option>
 			</select>
 			</div>
 
@@ -27081,7 +27565,7 @@ Current version indicated by LITEVER below.
 					</span>
 					<br><a href="#" id="showownworkerslink" class="color_blueurl hidden" onclick="show_my_own_workers()">[Manage My Workers]</a></span>
 					<span class="color_green" style="float:right; text-align: right;" id="kudos_bal">
-						Need a Key?<br><a class='color_blueurl' href='https://aihorde.net/register'>(Register New User)</a>
+						Need a Key?<br><a class='color_blueurl' target='_blank' href='https://aihorde.net/register'>(Register New User)</a>
 					</span>
 				</div>
 				<input class="form-control" type="password" placeholder="Enter API Key (or use 0000000000)" value=""
@@ -27123,7 +27607,8 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="oaicustom" class="menutext hidden">
 				<span id="oaidesc">
-				Entering your OpenAI API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://platform.openai.com/api-keys">OpenAI API key</a> will allow you to use KoboldAI Lite with their API.<br>
+				<b>Or, set a custom API URL to use ANY 3rd-party OAI Compatible API</b><br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenAI API, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenAI API URL and Key.</span><br>
 				<div style="display:inline-flex">
@@ -27134,17 +27619,17 @@ Current version indicated by LITEVER below.
 				</div>
 				</span>
 				<span id="openrouterdesc" class="hidden">
-				Entering your OpenRouter API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://openrouter.ai/settings/keys">OpenRouter API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenRouter Key.</span><br><br>
 				</span>
 				<span id="mistralaidesc" class="hidden">
-				Entering your MistralAI API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">MistralAI API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the MistralAI API and is not transmitted to us.<br>Only Temperature and Top-P samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input MistralAI Key.</span><br><br>
 				</span>
 				<span id="featherlessdesc" class="hidden">
-				Entering your Featherless API key will allow you to use KoboldAI Lite with their API.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://featherless.ai/docs/getting-started">Featherless API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Featherless API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Featherless Key.</span><br><br>
 				</span>
@@ -27157,6 +27642,11 @@ Current version indicated by LITEVER below.
 				Pollinations.ai API is free to use without any key required.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">No Key Required.</span><br><br>
+				</span>
+				<span id="nvidianimdesc" class="hidden">
+				Entering your <a class="color_blueurl" target="_blank" href="https://build.nvidia.com/explore/discover">Nvidia NIM API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				<span class="color_green" style="font-weight: bold;">Please input Nvidia NIM Key.</span><br><br>
 				</span>
 
 				<input class="form-control" type="text" id="custom_oai_endpoint" placeholder="OpenAI API URL" value="" onblur="">
@@ -27192,11 +27682,12 @@ Current version indicated by LITEVER below.
 				<select title="OpenRouter AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_openrouter_model" onchange="oai_model_change(true)">
 					<option value="openai/gpt-3.5-turbo">openai/gpt-3.5-turbo</option>
 					<option value="openai/gpt-4">openai/gpt-4</option>
+					<option value="openai/gpt-4o">openai/gpt-4o</option>
+					<option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>
+					<option value="openai/gpt-5">openai/gpt-5</option>
 					<option value="openai/gpt-3.5-turbo-instruct">openai/gpt-3.5-turbo-instruct</option>
 					<option value="mistralai/mistral-7b-instruct" selected="selected">mistralai/mistral-7b-instruct</option>
 					<option value="gryphe/mythomax-l2-13b">gryphe/mythomax-l2-13b</option>
-					<option value="huggingfaceh4/zephyr-7b-beta">huggingfaceh4/zephyr-7b-beta</option>
-					<option value="anthropic/claude-2.0">anthropic/claude-2.0</option>
 					<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
 				</select>
 				<select title="Mistral AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_mistralai_model" onchange="oai_model_change(true)">
@@ -27259,6 +27750,17 @@ Current version indicated by LITEVER below.
 					<option value="bidara">bidara</option>
 					<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
 				</select>
+				<select title="Nvidia NIM AI Model Selection" style="padding:4px;display:inline;width:calc(100% - 220px)" class="form-control hidden" id="custom_nvidianim_model" onchange="oai_model_change(true)">
+					<option value="bytedance/seed-oss-36b-instruct">bytedance/seed-oss-36b-instruct</option>
+					<option value="deepseek-ai/deepseek-v3.1-terminus">deepseek-ai/deepseek-v3.1-terminus</option>
+					<option value="google/gemma-3-27b-it">google/gemma-3-27b-it</option>
+					<option value="meta/llama-3.3-70b-instruct">meta/llama-3.3-70b-instruct</option>
+					<option value="mistralai/mistral-large">mistralai/mistral-large</option>
+					<option value="moonshotai/kimi-k2-instruct" selected>moonshotai/kimi-k2-instruct</option>
+					<option value="nvidia/llama-3.3-nemotron-super-49b-v1">nvidia/llama-3.3-nemotron-super-49b-v1</option>
+					<option value="qwen/qwen3-235b-a22b">qwen/qwen3-235b-a22b</option>
+				<option style="display:none;" class="custom_model_option" value="custom">[Custom]</option>
+				</select>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="oaifetchlist" onclick="oai_fetch_models()">Fetch List</button>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="oaiusecustom" onclick="select_custom_oai_model()">Use Custom</button>
 				<div class="hidden" id="oaiemulatecompletionsbox">
@@ -27305,45 +27807,44 @@ Current version indicated by LITEVER below.
 					value="" onload="togglejailbreak2();"></textarea>
 					</div>
 				</span>
-				<span id="openrouterproviderbox" class="hidden"><br>Preferred Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 140px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value="">
-					<div style="display:inline;width:210px;">
+				<span id="openrouterproviderbox" class="hidden">
+					<br>
+					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 256px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
+					<div id="openrouterreasoningbox" style="display:inline;">
+						<div style="padding-left:2px;padding-right:2px" class="box-label">Thinking</div>
+						<select title="Thinking Settings" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:3px;display:inline;width:72px" id="openrouterreasoning">
+						<option value="0" selected>Default</option>
+						<option value="1">Disable</option>
+						<option value="2">Enable</option>
+						</select>
 					</div>
 				</span>
 
 			</div>
 			<div id="claudecustom" class="menutext hidden">
 				Entering your Claude API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <br><span class="color_red">At this time, the official Claude API has CORS restrictions and must be accessed with a CORS proxy. Your connection WILL be proxied.</span><br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
+				KoboldAI Lite takes no responsibility for your usage of this feature. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Claude API URL and Key.</span><br><br>
 				<input class="form-control" type="text" id="custom_claude_endpoint" placeholder="Claude API URL" value="">
 				<input class="form-control" type="password" id="custom_claude_key" placeholder="Claude API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
 				Model Choice:<br>
 				<select title="Claude AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_claude_model"  onload="toggleclaudemodel()"  onchange="toggleclaudemodel()">
-					<option value="claude-v1">claude-v1</option>
-					<option value="claude-v1-100k">claude-v1-100k</option>
-					<option value="claude-instant-v1">claude-instant-v1</option>
-					<option value="claude-instant-v1-100k">claude-instant-v1-100k</option>
-					<option value="claude-2">claude-2</option>
-					<option value="claude-2.1">claude-2.1</option>
-					<option value="claude-2.0">claude-2.0</option>
-					<option value="claude-3-opus-20240229">claude-3-opus</option>
-					<option value="claude-3-sonnet-20240229">claude-3-sonnet</option>
-					<option value="claude-3-haiku-20240307">claude-3-haiku</option>
+					<option value="claude-3-opus-20240229">claude-3-opus-20240229</option>
+					<option value="claude-3-sonnet-20240229">claude-3-sonnet-20240229</option>
+					<option value="claude-3-haiku-20240307">claude-3-haiku-20240307</option>
 					<option value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620</option>
 					<option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022</option>
-					<option value="claude-3-5-sonnet-latest" selected="selected">claude-3-5-sonnet-latest</option>
+					<option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
 					<option value="claude-3-5-haiku-20241022">claude-3-5-haiku-20241022</option>
 					<option value="claude-3-7-sonnet-20250219">claude-3-7-sonnet-20250219</option>
-					<option value="claude-sonnet-4-latest">claude-sonnet-4-latest</option>
+					<option value="claude-sonnet-4-latest" selected="selected">claude-sonnet-4-latest</option>
 					<option value="claude-opus-4-latest">claude-opus-4-latest</option>
+					<option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001</option>
+					<option value="claude-sonnet-4-5-20250929">claude-sonnet-4-5-20250929</option>
 				</select>
 				<button type="button" class="btn btn-primary" style="display:inline;width:105px;" id="claudefetchlist" onclick="claude_fetch_models()">Fetch List</button>
 				<input type="checkbox" title="Add endpoint version" id="claudeaddversion" onchange="" checked>
 				<div class="box-label" title="Add endpoint version">Add Endpoint Version</div>
-				<span id="clauderenamecompatdiv">
-				<input type="checkbox" title="Claude Compatibility Rename Fix" id="clauderenamecompat" onchange="" checked>
-				<div class="box-label" title="Rename User and Bot tags to work with claude, force inject them otherwise">Claude Compatibility Rename Fix</div>
-				</span>
 
 				<textarea class="form-control hidden" title="Claude System Prompt" rows="2" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="claudesystemprompt" placeholder="(Enter System Prompt, which steers overall AI behavior.)"
 				value="" onload=""></textarea>
@@ -27357,7 +27858,7 @@ Current version indicated by LITEVER below.
 
 			</div>
 			<div id="geminicustom" class="menutext hidden">
-				Uses Gemini by Google.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">Google Gemini API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Gemini API and is not transmitted to us.<br><br>
 				<div>
 				<select title="Gemini AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_gemini_model" onchange="togglegeminimodel()">
@@ -27411,13 +27912,10 @@ Current version indicated by LITEVER below.
 				</div>
 			</div>
 			<div id="coherecustom" class="menutext hidden">
-				Uses Cohere's models through their own API.<br><br>
+				Entering your <a class="color_blueurl" target="_blank" href="https://dashboard.cohere.com/api-keys">Cohere API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
 				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Cohere API and is not transmitted to us.<br><br>
 				<select title="Cohere AI Model Selection" style="padding:4px;" class="form-control" id="custom_cohere_model">
-					<option value="command" selected="selected">command</option>
-					<option value="command-r">command-r</option>
-					<option value="command-r-plus">command-r-plus</option>
-					<option value="command-r-08-2024">command-r-08-2024</option>
+					<option value="command-r-08-2024" selected="selected">command-r-08-2024</option>
 					<option value="command-r-plus-08-2024">command-r-plus-08-2024</option>
 					<option value="command-r7b-12-2024">command-r7b-12-2024</option>
 					<option value="command-a-03-2025">command-a-03-2025</option>
@@ -27629,7 +28127,7 @@ Current version indicated by LITEVER below.
 				<option value="86400" selected>Expires in 1 day</option>
 				<option value="604800">Expires in 1 week</option>
 				<option value="2592000">Expires in 1 month</option>
-				<option value="never">Permanent</option>
+				<option value="31536000">Expires in 1 year</option>
 			</select>
 			</div>
 			<div class="popupfooter">

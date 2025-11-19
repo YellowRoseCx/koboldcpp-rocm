@@ -1971,7 +1971,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
     kcpp_data->n_threads = inputs.threads;
     kcpp_data->n_blasthreads = inputs.blasthreads;
     bool isGguf = (file_format == FileFormat::GGUF_GENERIC);
-    kcpp_data->n_batch = GetBatchSize(inputs.blasbatchsize, in_file_format);
+    kcpp_data->n_batch = GetBatchSize(inputs.batchsize, in_file_format);
     kcpp_data->n_ubatch = kcpp_data->n_batch;
     kcpp_data->flash_attn = inputs.flash_attention;
     kcpp_data->model_filename = inputs.model_filename;
@@ -2280,14 +2280,18 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             kvo.val_i64 = inputs.moe_experts;
             kvos.push_back(kvo);
         }
-        std::string override_kv = inputs.override_kv;
-        if(override_kv != "" && file_format==FileFormat::GGUF_GENERIC)
+        for(int x=0;x<overridekv_max;++x)
         {
-            printf("\nAttempting to apply KV override: %s...\n",override_kv.c_str());
-            bool kvo_ok = string_parse_kv_override(override_kv.c_str(),kvos);
-            LLAMA_LOG_INFO("\nKV override parse: %s\n",(kvo_ok?"success":"failed"));
-            fflush(stdout);
+            std::string override_kv = inputs.override_kv[x];
+            if(override_kv != "" && file_format==FileFormat::GGUF_GENERIC)
+            {
+                printf("\nAttempting to apply KV override: %s...\n",override_kv.c_str());
+                bool kvo_ok = string_parse_kv_override(override_kv.c_str(),kvos);
+                LLAMA_LOG_INFO("\nKV override parse: %s\n",(kvo_ok?"success":"failed"));
+                fflush(stdout);
+            }
         }
+
         if(kvos.size()>0)
         {
             kvos.emplace_back();
@@ -2361,7 +2365,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
         }
 
         llama_model * llamamodel = llama_model_load_from_file(kcpp_data->model_filename.c_str(), model_params);
-        if(file_format_meta.model_architecture == GGUFArch::ARCH_QWEN2VL || llama_model_rope_type(llamamodel)==LLAMA_ROPE_TYPE_MROPE)
+        if(file_format_meta.model_architecture == GGUFArch::ARCH_QWEN2VL || llama_model_rope_type(llamamodel)==LLAMA_ROPE_TYPE_MROPE || llama_model_rope_type(llamamodel)==LLAMA_ROPE_TYPE_IMROPE)
         {
             printf("\nMRope is used, context shift will be disabled!\n");
             kcpp_data->use_contextshift = false;

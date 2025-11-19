@@ -114,7 +114,7 @@ public:
 
         auto num_frames = ggml_arange(ctx, 0, timesteps, 1);
         // since b is 1, no need to do repeat
-        auto t_emb = ggml_nn_timestep_embedding(ctx, num_frames, in_channels, max_time_embed_period);  // [N, in_channels]
+        auto t_emb = ggml_ext_timestep_embedding(ctx, num_frames, in_channels, max_time_embed_period);  // [N, in_channels]
 
         auto emb = time_pos_embed_0->forward(ctx, t_emb);
         emb      = ggml_silu_inplace(ctx, emb);
@@ -204,6 +204,9 @@ public:
             adm_in_channels   = 768;
             num_head_channels = 64;
             num_heads         = -1;
+        } else if (version == VERSION_SD1_TINY_UNET) {
+            num_res_blocks = 1;
+            channel_mult   = {1, 2, 4};
         }
         if (sd_version_is_inpaint(version)) {
             in_channels = 9;
@@ -270,13 +273,22 @@ public:
                         n_head = ch / d_head;
                     }
                     std::string name = "input_blocks." + std::to_string(input_block_idx) + ".1";
-                    blocks[name]     = std::shared_ptr<GGMLBlock>(get_attention_layer(ch,
-                                                                                      n_head,
-                                                                                      d_head,
-                                                                                      transformer_depth[i],
-                                                                                      context_dim));
+                    int td           = transformer_depth[i];
+                    if (version == VERSION_SDXL_SSD1B) {
+                        if (i == 2) {
+                            td = 4;
+                        }
+                    }
+                    blocks[name] = std::shared_ptr<GGMLBlock>(get_attention_layer(ch,
+                                                                                  n_head,
+                                                                                  d_head,
+                                                                                  td,
+                                                                                  context_dim));
                 }
                 input_block_chans.push_back(ch);
+                if (version == VERSION_SD1_TINY_UNET) {
+                    input_block_idx++;
+                }
             }
             if (i != len_mults - 1) {
                 input_block_idx += 1;
@@ -295,14 +307,17 @@ public:
             d_head = num_head_channels;
             n_head = ch / d_head;
         }
-        blocks["middle_block.0"] = std::shared_ptr<GGMLBlock>(get_resblock(ch, time_embed_dim, ch));
-        blocks["middle_block.1"] = std::shared_ptr<GGMLBlock>(get_attention_layer(ch,
-                                                                                  n_head,
-                                                                                  d_head,
-                                                                                  transformer_depth[transformer_depth.size() - 1],
-                                                                                  context_dim));
-        blocks["middle_block.2"] = std::shared_ptr<GGMLBlock>(get_resblock(ch, time_embed_dim, ch));
-
+        if (version != VERSION_SD1_TINY_UNET) {
+            blocks["middle_block.0"] = std::shared_ptr<GGMLBlock>(get_resblock(ch, time_embed_dim, ch));
+            if (version != VERSION_SDXL_SSD1B) {
+                blocks["middle_block.1"] = std::shared_ptr<GGMLBlock>(get_attention_layer(ch,
+                                                                                          n_head,
+                                                                                          d_head,
+                                                                                          transformer_depth[transformer_depth.size() - 1],
+                                                                                          context_dim));
+                blocks["middle_block.2"] = std::shared_ptr<GGMLBlock>(get_resblock(ch, time_embed_dim, ch));
+            }
+        }
         // output_blocks
         int output_block_idx = 0;
         for (int i = (int)len_mults - 1; i >= 0; i--) {
@@ -324,12 +339,27 @@ public:
                         n_head = ch / d_head;
                     }
                     std::string name = "output_blocks." + std::to_string(output_block_idx) + ".1";
-                    blocks[name]     = std::shared_ptr<GGMLBlock>(get_attention_layer(ch, n_head, d_head, transformer_depth[i], context_dim));
+                    int td           = transformer_depth[i];
+                    if (version == VERSION_SDXL_SSD1B) {
+                        if (i == 2 && (j == 0 || j == 1)) {
+                            td = 4;
+                        }
+                        if (i == 1 && (j == 1 || j == 2)) {
+                            td = 1;
+                        }
+                    }
+                    blocks[name] = std::shared_ptr<GGMLBlock>(get_attention_layer(ch, n_head, d_head, td, context_dim));
 
                     up_sample_idx++;
                 }
 
                 if (i > 0 && j == num_res_blocks) {
+                    if (version == VERSION_SD1_TINY_UNET) {
+                        output_block_idx++;
+                        if (output_block_idx == 2) {
+                            up_sample_idx = 1;
+                        }
+                    }
                     std::string name = "output_blocks." + std::to_string(output_block_idx) + "." + std::to_string(up_sample_idx);
                     blocks[name]     = std::shared_ptr<GGMLBlock>(new UpSampleBlock(ch, ch));
 
@@ -384,8 +414,8 @@ public:
                                 struct ggml_tensor* x,
                                 struct ggml_tensor* timesteps,
                                 struct ggml_tensor* context,
-                                struct ggml_tensor* c_concat              = NULL,
-                                struct ggml_tensor* y                     = NULL,
+                                struct ggml_tensor* c_concat              = nullptr,
+                                struct ggml_tensor* y                     = nullptr,
                                 int num_video_frames                      = -1,
                                 std::vector<struct ggml_tensor*> controls = {},
                                 float control_strength                    = 0.f) {
@@ -395,20 +425,20 @@ public:
         // c_concat: [N, in_channels, h, w] or [1, in_channels, h, w]
         // y: [N, adm_in_channels] or [1, adm_in_channels]
         // return: [N, out_channels, h, w]
-        if (context != NULL) {
+        if (context != nullptr) {
             if (context->ne[2] != x->ne[3]) {
                 context = ggml_repeat(ctx, context, ggml_new_tensor_3d(ctx, GGML_TYPE_F32, context->ne[0], context->ne[1], x->ne[3]));
             }
         }
 
-        if (c_concat != NULL) {
+        if (c_concat != nullptr) {
             if (c_concat->ne[3] != x->ne[3]) {
                 c_concat = ggml_repeat(ctx, c_concat, x);
             }
             x = ggml_concat(ctx, x, c_concat, 2);
         }
 
-        if (y != NULL) {
+        if (y != nullptr) {
             if (y->ne[1] != x->ne[3]) {
                 y = ggml_repeat(ctx, y, ggml_new_tensor_2d(ctx, GGML_TYPE_F32, y->ne[0], x->ne[3]));
             }
@@ -421,14 +451,14 @@ public:
         auto out_0 = std::dynamic_pointer_cast<GroupNorm32>(blocks["out.0"]);
         auto out_2 = std::dynamic_pointer_cast<Conv2d>(blocks["out.2"]);
 
-        auto t_emb = ggml_nn_timestep_embedding(ctx, timesteps, model_channels);  // [N, model_channels]
+        auto t_emb = ggml_ext_timestep_embedding(ctx, timesteps, model_channels);  // [N, model_channels]
 
         auto emb = time_embed_0->forward(ctx, t_emb);
         emb      = ggml_silu_inplace(ctx, emb);
         emb      = time_embed_2->forward(ctx, emb);  // [N, time_embed_dim]
 
         // SDXL/SVD
-        if (y != NULL) {
+        if (y != nullptr) {
             auto label_embed_0 = std::dynamic_pointer_cast<Linear>(blocks["label_emb.0.0"]);
             auto label_embed_2 = std::dynamic_pointer_cast<Linear>(blocks["label_emb.0.2"]);
 
@@ -463,6 +493,9 @@ public:
                 }
                 hs.push_back(h);
             }
+            if (version == VERSION_SD1_TINY_UNET) {
+                input_block_idx++;
+            }
             if (i != len_mults - 1) {
                 ds *= 2;
                 input_block_idx += 1;
@@ -477,10 +510,13 @@ public:
         // [N, 4*model_channels, h/8, w/8]
 
         // middle_block
-        h = resblock_forward("middle_block.0", ctx, h, emb, num_video_frames);                      // [N, 4*model_channels, h/8, w/8]
-        h = attention_layer_forward("middle_block.1", ctx, backend, h, context, num_video_frames);  // [N, 4*model_channels, h/8, w/8]
-        h = resblock_forward("middle_block.2", ctx, h, emb, num_video_frames);                      // [N, 4*model_channels, h/8, w/8]
-
+        if (version != VERSION_SD1_TINY_UNET) {
+            h = resblock_forward("middle_block.0", ctx, h, emb, num_video_frames);  // [N, 4*model_channels, h/8, w/8]
+            if (version != VERSION_SDXL_SSD1B) {
+                h = attention_layer_forward("middle_block.1", ctx, backend, h, context, num_video_frames);  // [N, 4*model_channels, h/8, w/8]
+                h = resblock_forward("middle_block.2", ctx, h, emb, num_video_frames);                      // [N, 4*model_channels, h/8, w/8]
+            }
+        }
         if (controls.size() > 0) {
             auto cs = ggml_scale_inplace(ctx, controls[controls.size() - 1], control_strength);
             h       = ggml_add(ctx, h, cs);  // middle control
@@ -516,6 +552,12 @@ public:
                 }
 
                 if (i > 0 && j == num_res_blocks) {
+                    if (version == VERSION_SD1_TINY_UNET) {
+                        output_block_idx++;
+                        if (output_block_idx == 2) {
+                            up_sample_idx = 1;
+                        }
+                    }
                     std::string name = "output_blocks." + std::to_string(output_block_idx) + "." + std::to_string(up_sample_idx);
                     auto block       = std::dynamic_pointer_cast<UpSampleBlock>(blocks[name]);
 
@@ -562,7 +604,7 @@ struct UNetModelRunner : public GGMLRunner {
         }
     }
 
-    std::string get_desc() {
+    std::string get_desc() override {
         return "unet";
     }
 
@@ -573,8 +615,8 @@ struct UNetModelRunner : public GGMLRunner {
     struct ggml_cgraph* build_graph(struct ggml_tensor* x,
                                     struct ggml_tensor* timesteps,
                                     struct ggml_tensor* context,
-                                    struct ggml_tensor* c_concat              = NULL,
-                                    struct ggml_tensor* y                     = NULL,
+                                    struct ggml_tensor* c_concat              = nullptr,
+                                    struct ggml_tensor* y                     = nullptr,
                                     int num_video_frames                      = -1,
                                     std::vector<struct ggml_tensor*> controls = {},
                                     float control_strength                    = 0.f) {
@@ -619,8 +661,8 @@ struct UNetModelRunner : public GGMLRunner {
                  int num_video_frames                      = -1,
                  std::vector<struct ggml_tensor*> controls = {},
                  float control_strength                    = 0.f,
-                 struct ggml_tensor** output               = NULL,
-                 struct ggml_context* output_ctx           = NULL) {
+                 struct ggml_tensor** output               = nullptr,
+                 struct ggml_context* output_ctx           = nullptr) {
         // x: [N, in_channels, h, w]
         // timesteps: [N, ]
         // context: [N, max_position, hidden_size]([N, 77, 768]) or [1, max_position, hidden_size]
@@ -636,11 +678,11 @@ struct UNetModelRunner : public GGMLRunner {
     void test() {
         struct ggml_init_params params;
         params.mem_size   = static_cast<size_t>(10 * 1024 * 1024);  // 10 MB
-        params.mem_buffer = NULL;
+        params.mem_buffer = nullptr;
         params.no_alloc   = false;
 
         struct ggml_context* work_ctx = ggml_init(params);
-        GGML_ASSERT(work_ctx != NULL);
+        GGML_ASSERT(work_ctx != nullptr);
 
         {
             // CPU, num_video_frames = 1, x{num_video_frames, 8, 8, 8}: Pass
@@ -663,10 +705,10 @@ struct UNetModelRunner : public GGMLRunner {
             ggml_set_f32(y, 0.5f);
             // print_ggml_tensor(y);
 
-            struct ggml_tensor* out = NULL;
+            struct ggml_tensor* out = nullptr;
 
             int t0 = ggml_time_ms();
-            compute(8, x, timesteps, context, NULL, y, num_video_frames, {}, 0.f, &out, work_ctx);
+            compute(8, x, timesteps, context, nullptr, y, num_video_frames, {}, 0.f, &out, work_ctx);
             int t1 = ggml_time_ms();
 
             print_ggml_tensor(out);

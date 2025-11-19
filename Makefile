@@ -164,13 +164,19 @@ CXXV := $(shell $(CXX) --version | head -n 1)
 # For x86 based architectures
 ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686 amd64))
 ifdef LLAMA_PORTABLE
-SIMPLECFLAGS += -mavx -msse3 -mssse3
 SIMPLERCFLAGS += -msse3 -mssse3
+ifdef LLAMA_NOAVX1
+FULLCFLAGS += -msse3 -mssse3
+SIMPLECFLAGS += -msse3 -mssse3
+else
 ifdef LLAMA_NOAVX2
-FULLCFLAGS += -msse3 -mssse3 -mavx
+FULLCFLAGS += -mavx -msse3 -mssse3
+SIMPLECFLAGS += -mavx -msse3 -mssse3
 else
 FULLCFLAGS += -mavx2 -msse3 -mssse3 -mfma -mf16c -mavx
+SIMPLECFLAGS += -mavx -msse3 -mssse3
 endif # LLAMA_NOAVX2
+endif # LLAMA_NOAVX1
 else
 CFLAGS += -march=native -mtune=native
 SIMPLECFLAGS += -march=native -mtune=native
@@ -771,7 +777,7 @@ main: tools/main/main.cpp common/arg.cpp build-info.h ggml.o ggml-cpu.o ggml-ops
 mainvk: tools/main/main.cpp common/arg.cpp build-info.h ggml_v4_vulkan.o ggml-cpu.o ggml-ops.o ggml-vec.o ggml-binops.o ggml-unops.o llama.o console.o llavaclip_vulkan.o llava.o ggml-backend_vulkan.o ggml-backend-reg_vulkan.o ggml-vulkan.o ggml-vulkan-shaders.o ggml-repack.o $(OBJS_FULL) $(OBJS) lib/vulkan-1.lib
 	$(CXX) $(CXXFLAGS) -DGGML_USE_VULKAN -DSD_USE_VULKAN $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 sdmain: otherarch/sdcpp/util.cpp otherarch/sdcpp/main.cpp otherarch/sdcpp/stable-diffusion.cpp otherarch/sdcpp/upscaler.cpp otherarch/sdcpp/model.cpp otherarch/sdcpp/tokenize_util.cpp otherarch/sdcpp/thirdparty/zip.c build-info.h ggml.o ggml-cpu.o ggml-ops.o ggml-vec.o ggml-binops.o ggml-unops.o llama.o console.o ggml-backend_default.o ggml-backend-reg_default.o ggml-repack.o $(OBJS_FULL) $(OBJS)
-	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -DKCPP_BAKE_SD_VOCAB -o $@ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 whispermain: otherarch/whispercpp/main.cpp otherarch/whispercpp/whisper.cpp build-info.h ggml.o ggml-cpu.o ggml-ops.o ggml-vec.o ggml-binops.o ggml-unops.o llama.o console.o ggml-backend_default.o ggml-backend-reg_default.o ggml-repack.o $(OBJS_FULL) $(OBJS)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h,$^) -o $@ $(LDFLAGS)
 ttsmain: tools/tts/tts.cpp common/arg.cpp build-info.h ggml.o ggml-cpu.o ggml-ops.o ggml-vec.o ggml-binops.o ggml-unops.o llama.o console.o llavaclip_default.o llava.o ggml-backend_default.o ggml-backend-reg_default.o ggml-repack.o $(OBJS_FULL) $(OBJS)

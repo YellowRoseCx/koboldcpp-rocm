@@ -121,7 +121,7 @@ public:
         }
     }
 
-    virtual struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x, struct ggml_tensor* emb = NULL) {
+    virtual struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x, struct ggml_tensor* emb = nullptr) {
         // For dims==3, we reduce dimension from 5d to 4d by merging h and w, in order not to change ggml
         // [N, c, t, h, w] => [N, c, t, h * w]
         // x: [N, channels, h, w] if dims == 2 else [N, channels, t, h, w]
@@ -131,7 +131,7 @@ public:
         auto out_layers_0 = std::dynamic_pointer_cast<GroupNorm32>(blocks["out_layers.0"]);
         auto out_layers_3 = std::dynamic_pointer_cast<UnaryBlock>(blocks["out_layers.3"]);
 
-        if (emb == NULL) {
+        if (emb == nullptr) {
             GGML_ASSERT(skip_t_emb);
         }
 
@@ -182,7 +182,7 @@ protected:
     int64_t dim_in;
     int64_t dim_out;
 
-    void init_params(struct ggml_context* ctx, const String2GGMLType& tensor_types = {}, std::string prefix = "") {
+    void init_params(struct ggml_context* ctx, const String2GGMLType& tensor_types = {}, std::string prefix = "") override {
         enum ggml_type wtype      = get_type(prefix + "proj.weight", tensor_types, GGML_TYPE_F32);
         enum ggml_type bias_wtype = GGML_TYPE_F32;
         params["proj.weight"]     = ggml_new_tensor_2d(ctx, wtype, dim_in, dim_out * 2);
@@ -193,7 +193,7 @@ public:
     GEGLU(int64_t dim_in, int64_t dim_out)
         : dim_in(dim_in), dim_out(dim_out) {}
 
-    struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x) {
+    struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x) override {
         // x: [ne3, ne2, ne1, dim_in]
         // return: [ne3, ne2, ne1, dim_out]
         struct ggml_tensor* w = params["proj.weight"];
@@ -205,8 +205,8 @@ public:
         auto gate_b = ggml_view_1d(ctx, b, b->ne[0] / 2, b->nb[0] * b->ne[0] / 2);                      // [dim_out, ]
 
         auto x_in = x;
-        x         = ggml_nn_linear(ctx, x_in, x_w, x_b);        // [ne3, ne2, ne1, dim_out]
-        auto gate = ggml_nn_linear(ctx, x_in, gate_w, gate_b);  // [ne3, ne2, ne1, dim_out]
+        x         = ggml_ext_linear(ctx, x_in, x_w, x_b);        // [ne3, ne2, ne1, dim_out]
+        auto gate = ggml_ext_linear(ctx, x_in, gate_w, gate_b);  // [ne3, ne2, ne1, dim_out]
 
         gate = ggml_gelu_inplace(ctx, gate);
 
@@ -222,7 +222,7 @@ public:
         blocks["proj"] = std::shared_ptr<GGMLBlock>(new Linear(dim_in, dim_out, bias));
     }
 
-    struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x) {
+    struct ggml_tensor* forward(struct ggml_context* ctx, struct ggml_tensor* x) override {
         // x: [ne3, ne2, ne1, dim_in]
         // return: [ne3, ne2, ne1, dim_out]
         auto proj = std::dynamic_pointer_cast<Linear>(blocks["proj"]);
@@ -325,7 +325,7 @@ public:
         auto k = to_k->forward(ctx, context);  // [N, n_context, inner_dim]
         auto v = to_v->forward(ctx, context);  // [N, n_context, inner_dim]
 
-        x = ggml_nn_attention_ext(ctx, backend, q, k, v, n_head, NULL, false, false, flash_attn);  // [N, n_token, inner_dim]
+        x = ggml_ext_attention_ext(ctx, backend, q, k, v, n_head, nullptr, false, false, flash_attn);  // [N, n_token, inner_dim]
 
         x = to_out_0->forward(ctx, x);  // [N, n_token, query_dim]
         return x;
@@ -483,7 +483,7 @@ public:
 
 class AlphaBlender : public GGMLBlock {
 protected:
-    void init_params(struct ggml_context* ctx, const String2GGMLType& tensor_types = {}, std::string prefix = "") {
+    void init_params(struct ggml_context* ctx, const String2GGMLType& tensor_types = {}, std::string prefix = "") override {
         // Get the type of the "mix_factor" tensor from the input tensors map with the specified prefix
         enum ggml_type wtype = GGML_TYPE_F32;
         params["mix_factor"] = ggml_new_tensor_1d(ctx, wtype, 1);
@@ -492,7 +492,7 @@ protected:
     float get_alpha() {
         // image_only_indicator is always tensor([0.]) and since mix_factor.shape is [1,]
         // so learned_with_images is same as learned
-        float alpha = ggml_backend_tensor_get_f32(params["mix_factor"]);
+        float alpha = ggml_ext_backend_tensor_get_f32(params["mix_factor"]);
         return sigmoid(alpha);
     }
 

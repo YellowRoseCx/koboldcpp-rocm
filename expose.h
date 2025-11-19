@@ -5,6 +5,7 @@ const int tensor_split_max = 16;
 const int images_max = 8;
 const int audio_max = 4;
 const int logprobs_max = 5;
+const int overridekv_max = 4;
 
 // match kobold's sampler list and order
 enum samplers
@@ -55,7 +56,7 @@ struct load_model_inputs
     const int clblast_info = 0;
     const int kcpp_main_gpu = 0;
     const char * vulkan_info = nullptr;
-    const int blasbatchsize = 512;
+    const int batchsize = 512;
     const int forceversion = 0;
     const int gpulayers = 0;
     const float rope_freq_scale = 1.0f;
@@ -65,7 +66,7 @@ struct load_model_inputs
     const int moecpu = 0;
     const bool no_bos_token = false;
     const bool load_guidance = false;
-    const char * override_kv = nullptr;
+    const char * override_kv[overridekv_max] = {};
     const char * override_tensors = nullptr;
     const bool flash_attention = false;
     const float tensor_split[tensor_split_max] = {};

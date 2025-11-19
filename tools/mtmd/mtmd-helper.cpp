@@ -17,7 +17,7 @@
 
 //#define MTMD_AUDIO_DEBUG
 
-#define MINIAUDIO_IMPLEMENTATION
+// #define MINIAUDIO_IMPLEMENTATION
 #ifndef MTMD_AUDIO_DEBUG
 #   define MA_NO_ENCODING
 #endif
@@ -26,7 +26,7 @@
 #define MA_NO_NODE_GRAPH
 #define MA_NO_ENGINE
 #define MA_NO_GENERATION
-#define MA_API static
+// #define MA_API static
 #include "miniaudio/miniaudio.h"
 
 // #define STB_IMAGE_IMPLEMENTATION

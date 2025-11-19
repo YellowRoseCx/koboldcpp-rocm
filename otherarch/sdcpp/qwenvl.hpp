@@ -5,11 +5,13 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <optional>
 #include <regex>
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "clip.hpp"
@@ -421,11 +423,11 @@ namespace Qwen {
                 auto proj_0 = std::dynamic_pointer_cast<Conv2d>(blocks["proj.0"]);
                 auto proj_1 = std::dynamic_pointer_cast<Conv2d>(blocks["proj.1"]);
 
-                auto x0 = ggml_slice(ctx, x, 2, 0, 1);
+                auto x0 = ggml_ext_slice(ctx, x, 2, 0, 1);
                 x0      = ggml_reshape_4d(ctx, x0, x0->ne[0], x0->ne[1], in_channels, x0->ne[3] / in_channels);
                 x0      = proj_0->forward(ctx, x0);
 
-                auto x1 = ggml_slice(ctx, x, 2, 1, 2);
+                auto x1 = ggml_ext_slice(ctx, x, 2, 1, 2);
                 x1      = ggml_reshape_4d(ctx, x1, x1->ne[0], x1->ne[1], in_channels, x1->ne[3] / in_channels);
                 x1      = proj_1->forward(ctx, x1);
 
@@ -589,7 +591,7 @@ namespace Qwen {
                               int64_t window_size,
                               std::set<int> fullatt_block_indexes = {7, 15, 23, 31},
                               float eps                           = 1e-6f)
-            : num_layers(num_layers), fullatt_block_indexes(fullatt_block_indexes), spatial_merge_size(spatial_merge_size) {
+            : num_layers(num_layers), fullatt_block_indexes(std::move(fullatt_block_indexes)), spatial_merge_size(spatial_merge_size) {
             blocks["patch_embed"] = std::shared_ptr<GGMLBlock>(new Qwen2_5_VisionPatchEmbed(llama_cpp_style,
                                                                                             patch_size,
                                                                                             temporal_patch_size,
@@ -686,13 +688,13 @@ namespace Qwen {
             q               = ggml_rope_multi(ctx, q, input_pos, nullptr, head_dim, sections, GGML_ROPE_TYPE_MROPE, 128000, 1000000.f, 1.f, 0.f, 1.f, 32.f, 1.f);
             k               = ggml_rope_multi(ctx, k, input_pos, nullptr, head_dim, sections, GGML_ROPE_TYPE_MROPE, 128000, 1000000.f, 1.f, 0.f, 1.f, 32.f, 1.f);
 
-            q = ggml_cont(ctx, ggml_torch_permute(ctx, q, 0, 2, 1, 3));            // [N, num_heads, n_token, head_dim]
+            q = ggml_cont(ctx, ggml_ext_torch_permute(ctx, q, 0, 2, 1, 3));        // [N, num_heads, n_token, head_dim]
             q = ggml_reshape_3d(ctx, q, q->ne[0], q->ne[1], q->ne[2] * q->ne[3]);  // [N*num_heads, n_token, head_dim]
 
-            k = ggml_cont(ctx, ggml_torch_permute(ctx, k, 0, 2, 1, 3));            // [N, num_kv_heads, n_token, head_dim]
+            k = ggml_cont(ctx, ggml_ext_torch_permute(ctx, k, 0, 2, 1, 3));        // [N, num_kv_heads, n_token, head_dim]
             k = ggml_reshape_3d(ctx, k, k->ne[0], k->ne[1], k->ne[2] * k->ne[3]);  // [N*num_kv_heads, n_token, head_dim]
 
-            x = ggml_nn_attention_ext(ctx, backend, q, k, v, num_heads, nullptr, true, true, false);  // [N, n_token, hidden_size]
+            x = ggml_ext_attention_ext(ctx, backend, q, k, v, num_heads, nullptr, true, true, false);  // [N, n_token, hidden_size]
 
             x = out_proj->forward(ctx, x);  // [N, n_token, hidden_size]
             return x;
@@ -789,7 +791,7 @@ namespace Qwen {
                     }
                     txt_token_end = image_embeds[i].first;
 
-                    auto txt_embed = ggml_slice(ctx, raw_x, 1, txt_token_start, txt_token_end);
+                    auto txt_embed = ggml_ext_slice(ctx, raw_x, 1, txt_token_start, txt_token_end);
                     if (input_embed == nullptr) {
                         input_embed = txt_embed;
                     } else {
@@ -803,7 +805,7 @@ namespace Qwen {
                 txt_token_start = image_embeds[image_embeds.size() - 1].first + image_embeds[image_embeds.size() - 1].second->ne[1];
                 txt_token_end   = raw_x->ne[1];
 
-                auto final_txt_embed = ggml_slice(ctx, raw_x, 1, txt_token_start, txt_token_end);
+                auto final_txt_embed = ggml_ext_slice(ctx, raw_x, 1, txt_token_start, txt_token_end);
 
                 input_embed = ggml_concat(ctx, input_embed, final_txt_embed, 1);
                 GGML_ASSERT(raw_x->ne[1] == input_embed->ne[1]);
@@ -949,7 +951,7 @@ namespace Qwen {
             model.init(params_ctx, tensor_types, prefix);
         }
 
-        std::string get_desc() {
+        std::string get_desc() override {
             return "qwenvl2.5";
         }
 
@@ -1011,7 +1013,7 @@ namespace Qwen {
                      struct ggml_tensor* input_ids,
                      std::vector<std::pair<int, ggml_tensor*>> image_embeds,
                      ggml_tensor** output,
-                     ggml_context* output_ctx = NULL) {
+                     ggml_context* output_ctx = nullptr) {
             auto get_graph = [&]() -> struct ggml_cgraph* {
                 return build_graph(input_ids, image_embeds);
             };
@@ -1040,16 +1042,16 @@ namespace Qwen {
             int64_t pw = params.vision.patch_size;
 
             image = ggml_reshape_4d(ctx, image, pw, mw, (W / mw / pw), H * C);                               // [C*H, (W/mw/pw), mw, pw]
-            image = ggml_cont(ctx, ggml_torch_permute(ctx, image, 0, 2, 3, 1));                              // [mw, C*H, (W/mw/pw), pw]
+            image = ggml_cont(ctx, ggml_ext_torch_permute(ctx, image, 0, 2, 3, 1));                          // [mw, C*H, (W/mw/pw), pw]
             image = ggml_reshape_4d(ctx, image, pw * (W / mw / pw), H, C, mw);                               // [mw, C, H, (W/mw/pw)*pw]
-            image = ggml_cont(ctx, ggml_torch_permute(ctx, image, 0, 2, 3, 1));                              // [H, mw, C, (W/mw/pw)*pw]
+            image = ggml_cont(ctx, ggml_ext_torch_permute(ctx, image, 0, 2, 3, 1));                          // [H, mw, C, (W/mw/pw)*pw]
             image = ggml_reshape_4d(ctx, image, pw, (W / mw / pw) * C * mw, ph, mh * (H / mh / ph));         // [(H/mh/ph)*mh, ph, mw*C*(W/mw/pw), pw]
-            image = ggml_cont(ctx, ggml_torch_permute(ctx, image, 0, 2, 1, 3));                              // [(H/mh/ph)*mh, mw*C*(W/mw/pw), ph, pw]
+            image = ggml_cont(ctx, ggml_ext_torch_permute(ctx, image, 0, 2, 1, 3));                          // [(H/mh/ph)*mh, mw*C*(W/mw/pw), ph, pw]
             image = ggml_reshape_4d(ctx, image, pw * ph, (W / mw / pw), C, mw * mh * (H / mh / ph));         // [(H/mh/ph)*mh*mw, C, (W/mw/pw), ph*pw]
             image = ggml_concat(ctx, image, image, 0);                                                       // [(H/mh/ph)*mh*mw, C, (W/mw/pw), pt*ph*pw]
-            image = ggml_cont(ctx, ggml_torch_permute(ctx, image, 0, 2, 1, 3));                              // [(H/mh/ph)*mh*mw, (W/mw/pw), C, pt*ph*pw]
+            image = ggml_cont(ctx, ggml_ext_torch_permute(ctx, image, 0, 2, 1, 3));                          // [(H/mh/ph)*mh*mw, (W/mw/pw), C, pt*ph*pw]
             image = ggml_reshape_4d(ctx, image, pw * ph * pt * C, (W / mw / pw), mw * mh, (H / mh / ph));    // [(H/mh/ph), mh*mw, (W/mw/pw), C*pt*ph*pw]
-            image = ggml_cont(ctx, ggml_torch_permute(ctx, image, 0, 2, 1, 3));                              // [(H/mh/ph), (W/mw/pw), mh*mw, C*pt*ph*pw]
+            image = ggml_cont(ctx, ggml_ext_torch_permute(ctx, image, 0, 2, 1, 3));                          // [(H/mh/ph), (W/mw/pw), mh*mw, C*pt*ph*pw]
             image = ggml_reshape_2d(ctx, image, pw * ph * pt * C, mw * mh * (W / mw / pw) * (H / mh / ph));  // [(H/mh/ph)*(W/mw/pw)*mh*mw, C*pt*ph*pw]
             return image;
         }
@@ -1162,7 +1164,7 @@ namespace Qwen {
             auto pe = ggml_new_tensor_4d(compute_ctx, GGML_TYPE_F32, 2, 2, head_dim / 2, pos_len);
             // pe->data = pe_vec.data();
             // print_ggml_tensor(pe);
-            // pe->data = NULL;
+            // pe->data = nullptr;
             set_backend_tensor_data(pe, pe_vec.data());
 
             struct ggml_tensor* hidden_states = vision_forward(compute_ctx,
@@ -1180,7 +1182,7 @@ namespace Qwen {
         void encode_image(const int n_threads,
                           struct ggml_tensor* image,
                           ggml_tensor** output,
-                          ggml_context* output_ctx = NULL) {
+                          ggml_context* output_ctx = nullptr) {
             auto get_graph = [&]() -> struct ggml_cgraph* {
                 return build_encode_image_graph(image);
             };
@@ -1246,11 +1248,11 @@ namespace Qwen {
         void test() {
             struct ggml_init_params params;
             params.mem_size   = static_cast<size_t>(1024 * 1024) * 1024;  // 1GB
-            params.mem_buffer = NULL;
+            params.mem_buffer = nullptr;
             params.no_alloc   = false;
 
             struct ggml_context* work_ctx = ggml_init(params);
-            GGML_ASSERT(work_ctx != NULL);
+            GGML_ASSERT(work_ctx != nullptr);
             bool test_vit              = true;
             bool test_decoder_with_vit = true;
 
@@ -1259,7 +1261,7 @@ namespace Qwen {
                 {
                     auto image = load_tensor_from_file(work_ctx, "qwen2vl_normalized.bin");
                     print_ggml_tensor(image, false, "image");
-                    struct ggml_tensor* out = NULL;
+                    struct ggml_tensor* out = nullptr;
 
                     int t0 = ggml_time_ms();
                     model.encode_image(8, image, &out, work_ctx);
@@ -1295,7 +1297,7 @@ namespace Qwen {
                 }
                 printf("\n");
                 auto input_ids          = vector_to_ggml_tensor_i32(work_ctx, tokens);
-                struct ggml_tensor* out = NULL;
+                struct ggml_tensor* out = nullptr;
 
                 int t0 = ggml_time_ms();
                 model.compute(8, input_ids, image_embeds, &out, work_ctx);
@@ -1308,7 +1310,7 @@ namespace Qwen {
                 // ggml_set_f32(image, 0.f);
                 auto image = load_tensor_from_file(work_ctx, "qwen2vl_normalized.bin");
                 print_ggml_tensor(image, false, "image");
-                struct ggml_tensor* out = NULL;
+                struct ggml_tensor* out = nullptr;
 
                 int t0 = ggml_time_ms();
                 model.encode_image(8, image, &out, work_ctx);
@@ -1317,7 +1319,7 @@ namespace Qwen {
                 print_ggml_tensor(out, false, "out");
 
                 // auto ref_out = load_tensor_from_file(work_ctx, "qwen2vl.bin");
-                // ggml_tensor_diff(ref_out, out, 0.01f);
+                // ggml_ext_tensor_diff(ref_out, out, 0.01f);
 
                 LOG_DEBUG("qwen2vl test done in %dms", t1 - t0);
             } else {
@@ -1330,7 +1332,7 @@ namespace Qwen {
                 }
                 printf("\n");
                 auto input_ids          = vector_to_ggml_tensor_i32(work_ctx, tokens);
-                struct ggml_tensor* out = NULL;
+                struct ggml_tensor* out = nullptr;
 
                 int t0 = ggml_time_ms();
                 model.compute(8, input_ids, {}, &out, work_ctx);
@@ -1361,11 +1363,11 @@ namespace Qwen {
                 }
             }
 
-            std::shared_ptr<Qwen2_5_VLEmbedder> qwenvl = std::shared_ptr<Qwen2_5_VLEmbedder>(new Qwen2_5_VLEmbedder(backend,
-                                                                                                                    false,
-                                                                                                                    tensor_types,
-                                                                                                                    "qwen2vl",
-                                                                                                                    true));
+            std::shared_ptr<Qwen2_5_VLEmbedder> qwenvl = std::make_shared<Qwen2_5_VLEmbedder>(backend,
+                                                                                              false,
+                                                                                              tensor_types,
+                                                                                              "qwen2vl",
+                                                                                              true);
 
             qwenvl->alloc_params_buffer();
             std::map<std::string, ggml_tensor*> tensors;
