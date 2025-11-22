@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 299;
+	const LITEVER = 300;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -3859,6 +3859,7 @@ Current version indicated by LITEVER below.
 		autoguess_third_party:false,
 		legacy_savefile:false,
 		allow_continue_user_turn: false,
+		proxy_disable_stream:false,
 
 		//section migrated from story itself
 		extrastopseq: "",
@@ -6421,20 +6422,23 @@ Current version indicated by LITEVER below.
 									{
 										if(!synchro_polled_respimg && event.data.candidates[0].content.parts[x].inlineData && event.data.candidates[0].content.parts[x].inlineData.data)
 										{
-											synchro_polled_respimg = event.data.candidates[0].content.parts[x].inlineData.data;
+											if(!event.data.candidates[0].content.parts[x].thought) //ignore thought images
+											{
+												synchro_polled_respimg = event.data.candidates[0].content.parts[x].inlineData.data;
+											}
 										}
 										if(event.data.candidates[0].content.parts[x].thought)
 										{
 											streaming_was_thinking = true;
 										}
-										if(!event.data.candidates[0].content.parts[x].text)
-										{
-											continue;
-										}
 										if(!event.data.candidates[0].content.parts[x].thought && streaming_was_thinking)
 										{
 											synchro_pending_stream = `${localsettings.start_thinking_tag}${synchro_pending_stream}${localsettings.stop_thinking_tag}`;
 											streaming_was_thinking = false;
+										}
+										if(!event.data.candidates[0].content.parts[x].text)
+										{
+											continue;
 										}
 										synchro_pending_stream += event.data.candidates[0].content.parts[x].text;
 									}
@@ -8411,20 +8415,28 @@ Current version indicated by LITEVER below.
 			//redact some values
 			new_save_storyobj.savedsettings.my_api_key = "0000000000";
 			new_save_storyobj.savedsettings.saved_oai_key = "";
+			new_save_storyobj.savedsettings.saved_oai_addr = "";
 			new_save_storyobj.savedsettings.saved_dalle_key = "";
 			new_save_storyobj.savedsettings.saved_dalle_url = "";
-			new_save_storyobj.savedsettings.saved_oai_addr = "";
-			new_save_storyobj.savedsettings.saved_claude_key = "";
-			new_save_storyobj.savedsettings.saved_claude_addr = "";
-			new_save_storyobj.savedsettings.saved_kai_addr = "";
-			new_save_storyobj.savedsettings.saved_kai_key = "";
+			new_save_storyobj.savedsettings.saved_oai_tts_key = "";
+			new_save_storyobj.savedsettings.saved_oai_tts_url = "";
+			new_save_storyobj.savedsettings.saved_oai_embd_key = "";
+			new_save_storyobj.savedsettings.saved_oai_embd_url = "";
 			new_save_storyobj.savedsettings.saved_openrouter_key = "";
 			new_save_storyobj.savedsettings.saved_mistralai_key = "";
 			new_save_storyobj.savedsettings.saved_featherless_key = "";
+			new_save_storyobj.savedsettings.saved_nvidianim_key = "";
+			new_save_storyobj.savedsettings.saved_pollinations_key = "";
 			new_save_storyobj.savedsettings.saved_grok_key = "";
+			new_save_storyobj.savedsettings.saved_claude_key = "";
+			new_save_storyobj.savedsettings.saved_claude_addr = "";
 			new_save_storyobj.savedsettings.saved_palm_key = "";
 			new_save_storyobj.savedsettings.saved_cohere_key = "";
-			new_save_storyobj.savedsettings.saved_pollinations_key = "";
+			new_save_storyobj.savedsettings.saved_kai_addr = "";
+			new_save_storyobj.savedsettings.saved_kai_key = "";
+			new_save_storyobj.savedsettings.saved_a1111_url = "";
+			new_save_storyobj.savedsettings.saved_comfy_url = "";
+			new_save_storyobj.savedsettings.saved_xtts_url = "";
 
 			new_save_storyobj.savedsettings.modelhashes = [];
 
@@ -11335,7 +11347,7 @@ Current version indicated by LITEVER below.
 	function togglegeminimodel()
 	{
 		let mdlname = document.getElementById("custom_gemini_model").value;
-		if(mdlname.includes("gemini-2") || mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-exp-"))
+		if(mdlname.includes("gemini-3") || mdlname.includes("gemini-2") || mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-exp-"))
 		{
 			document.getElementById("gemini_system_instruction").classList.remove("hidden");
 			document.getElementById("gemini_role_options").classList.remove("hidden");
@@ -11620,6 +11632,10 @@ Current version indicated by LITEVER below.
 				msgbox("This API requires an API key to fetch model list!");
 				return;
 			}
+		}
+		if(uses_cors_proxy && localsettings.proxy_disable_stream)
+		{
+			oaiheaders['nostream'] = true;
 		}
 
 		autofetch_attempt_dict[desired_oai_ep] = true;
@@ -13838,6 +13854,7 @@ Current version indicated by LITEVER below.
 		document.getElementById("autoguess_third_party").checked = localsettings.autoguess_third_party;
 		document.getElementById("legacy_savefile").checked = localsettings.legacy_savefile;
 		document.getElementById("allow_continue_user_turn").checked = localsettings.allow_continue_user_turn;
+		document.getElementById("proxy_disable_stream").checked = localsettings.proxy_disable_stream;
 		document.getElementById("render_streaming_markdown").checked = localsettings.render_streaming_markdown;
 		document.getElementById("min_p").value = localsettings.min_p;
 		document.getElementById("dynatemp_range").value = localsettings.dynatemp_range;
@@ -14432,6 +14449,7 @@ Current version indicated by LITEVER below.
 		localsettings.autoguess_third_party = (document.getElementById("autoguess_third_party").checked ? true : false);
 		localsettings.legacy_savefile = (document.getElementById("legacy_savefile").checked ? true : false);
 		localsettings.allow_continue_user_turn = (document.getElementById("allow_continue_user_turn").checked ? true : false);
+		localsettings.proxy_disable_stream = (document.getElementById("proxy_disable_stream").checked ? true : false);
 		localsettings.render_streaming_markdown = (document.getElementById("render_streaming_markdown").checked ? true : false);
 		if(document.getElementById("opmode").value==1)
 		{
@@ -15747,7 +15765,7 @@ Current version indicated by LITEVER below.
 
 	function end_trim_to_sentence(input, include_newline = false) {
 		let last = -1;
-		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…'];
+		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…', '~'];
 		for (let i = 0; i < enders.length; ++i) {
 			last = Math.max(last, input.lastIndexOf(enders[i]));
 		}
@@ -17279,15 +17297,19 @@ Current version indicated by LITEVER below.
 
 		//match the request for creating images in instruct modes
 		let model_allow_imggen = localsettings.img_gen_from_instruct;
-		if(custom_gemini_key!="" && document.getElementById("custom_gemini_model").value=="gemini-2.5-flash-image-preview")
+		if(custom_gemini_key!=""
+		&& (document.getElementById("custom_gemini_model").value.toLowerCase().includes("-flash-image")
+		|| document.getElementById("custom_gemini_model").value.toLowerCase().includes("-pro-image")
+		|| document.getElementById("custom_gemini_model").value.toLowerCase().includes("nano-banana")))
 		{
 			model_allow_imggen = false; //nano banana interferes with imggen instructions
 		}
 		if(newgen!="" && model_allow_imggen && localsettings.opmode == 4 && localsettings.generate_images_mode!=0 && localsettings.img_autogen_type!=2 && !newgen.includes("\n"))
 		{
 			let newgenlc = newgen.toLowerCase().trim();
+			const imgTriggerRe = /^(?:\w+\s+){0,3}(?:draw\s+(?:a|an)?\b|draw me\s+(?:a|an)\b|(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s+\w+){0,4}\s+(?:image|picture|drawing|photo))|(?: (?:draw\s+(?:a|an)?\b|draw me\s+(?:a|an)\b|(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s+\w+){0,4}\s+(?:image|picture|drawing|photo)) (?:\s+\w+){0,3} )$/i;
 			if (newgenlc.startsWith("draw ") ||
-				newgenlc.match(/\b(?:draw (?:a|an)\b)|(?:draw me (?:a|an)\b)|(?:(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s\w+){0,4}\s(?:image\b|picture\b|drawing\b|photo))/))
+				newgenlc.match(imgTriggerRe))
 			{
 				img_gen_trigger_prompt = newgen;
 				doNotGenerate = true;
@@ -18552,12 +18574,18 @@ Current version indicated by LITEVER below.
                     oaiheaders['Authorization'] = 'Bearer ' + custom_oai_key;
                 }
 
+				if(uses_cors_proxy && localsettings.proxy_disable_stream)
+				{
+					oaiheaders['nostream'] = true;
+				}
+
 				if(targetep.toLowerCase().includes("openrouter.ai"))
 				{
 					oaiheaders["HTTP-Referer"] = "https://lite.koboldai.net";
 					if (document.getElementById("openrouterproviders").value.trim() != "") {
+						let provarr = document.getElementById("openrouterproviders").value.trim().split(",").map(item => item.trim());
 						oai_payload.provider = {
-							"order": [document.getElementById("openrouterproviders").value.trim()],
+							"order": provarr,
 							"allow_fallbacks": false, //always explicitly selected
 						};
 					}
@@ -18822,13 +18850,14 @@ Current version indicated by LITEVER below.
 					payload["tools"] = [{"google_search": {}}];
 				}
 
-				if(mdlname.includes("gemini-2.5") && !mdlname.includes("image"))
+				if((mdlname.includes("gemini-2.5") && !mdlname.includes("image")) || mdlname.includes("gemini-3-"))
 				{
 					if(!document.getElementById("usegeminithink").checked)
 					{
 						//gemini pro cannot fully disable thinking
 						payload["generationConfig"]["thinkingConfig"] = {"includeThoughts": false, "thinkingBudget": (mdlname.includes("gemini-2.5-pro")?128:0)};
-					}else
+					}
+					else
 					{
 						payload["generationConfig"]["thinkingConfig"] = {"includeThoughts": true};
 					}
@@ -18857,7 +18886,7 @@ Current version indicated by LITEVER below.
 				}
 
 				let sysinst = document.getElementById("gemini_system_instruction").value;
-				if(sysinst!="" && (mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-2") || mdlname.includes("gemini-exp-")))
+				if(sysinst!="" && (mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-2") || mdlname.includes("gemini-3") || mdlname.includes("gemini-exp-")))
 				{
 					payload["systemInstruction"] = {
 						"role": "system",
@@ -21505,6 +21534,29 @@ Current version indicated by LITEVER below.
 					}
 				}
 
+				if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
+				{
+					let cl = editedChunks[editedChunks.length-1].length;
+					if(cl>0)
+					{
+						newestChunk = fullmergedstory.slice(-cl);
+						fullmergedstory = fullmergedstory.slice(0,-cl);
+					}
+				}
+
+				//if it ends with a single newline, remove it to avoid ghost newlines
+				if (newestChunk) {
+					if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
+						newestChunk = newestChunk.slice(0, -1);
+					}
+				}
+				else
+				{
+					if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
+						fullmergedstory = fullmergedstory.slice(0, -1);
+					}
+				}
+
 				if(splitbyinsttags)
 				{
 					let ins = get_instructstartplaceholder();
@@ -21544,10 +21596,6 @@ Current version indicated by LITEVER below.
 					}
 					for(let i=0;i<turns.length;++i)
 					{
-						//ghost newline removal
-						if (i==turns.length-1 && turns[i].endsWith("\n") && !turns[i].endsWith("\n\n")) {
-							turns[i] = turns[i].slice(0, -1);
-						}
 						if(turns[i])
 						{
 							gametext_arr.push(turns[i]);
@@ -21556,29 +21604,6 @@ Current version indicated by LITEVER below.
 				}
 				else
 				{
-					if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
-					{
-						let cl = editedChunks[editedChunks.length-1].length;
-						if(cl>0)
-						{
-							newestChunk = fullmergedstory.slice(-cl);
-							fullmergedstory = fullmergedstory.slice(0,-cl);
-						}
-					}
-
-					//if it ends with a single newline, remove it to avoid ghost newlines
-					if (newestChunk) {
-						if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
-							newestChunk = newestChunk.slice(0, -1);
-						}
-					}
-					else
-					{
-						if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
-							fullmergedstory = fullmergedstory.slice(0, -1);
-						}
-					}
-
 					//split by newlines for the rest
 					if(fullmergedstory.length>0)
 					{
@@ -21595,14 +21620,15 @@ Current version indicated by LITEVER below.
 							}
 						}
 					}
-					if(newestChunk!="")
-					{
-						//little hack to merge a row with only a newline into the last chunk
-						if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
-							gametext_arr[gametext_arr.length - 1] += newestChunk;
-						} else {
-							gametext_arr.push(newestChunk);
-						}
+				}
+
+				if(newestChunk!="")
+				{
+					//little hack to merge a row with only a newline into the last chunk
+					if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
+						gametext_arr[gametext_arr.length - 1] += newestChunk;
+					} else {
+						gametext_arr.push(newestChunk);
 					}
 				}
 
@@ -27573,6 +27599,11 @@ Current version indicated by LITEVER below.
 								class="helptext">In instruct mode, allows the AI to continue generating the user's turn when pressing Generate More.</span></span></div>
 							<input title="Legacy Savefile" type="checkbox" id="allow_continue_user_turn" style="margin:0px 0px 0px 0px;">
 						</div>
+						<div class="settinglabel">
+							<div class="justifyleft settingsmall">ProxyDisableStream <span class="helpicon">?<span
+								class="helptext">Prevent the CORS proxy from streaming, if applicable.</span></span></div>
+							<input title="Proxy Disable Stream" type="checkbox" id="proxy_disable_stream" style="margin:0px 0px 0px 0px;">
+						</div>
 					</div>
 
 					<div class="settingitem wide">
@@ -28133,7 +28164,7 @@ Current version indicated by LITEVER below.
 				</div>
 				<span id="useoaichatcomplbox" class="hidden" onload="toggleoaichatcompl();">
 					<br>
-					Main Message Role:
+					Main Msg Role:
 					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:4px;display:inline;width:100px" id="oairoledropdown">
 						<option value="0" selected>User</option>
 						<option value="1">Assistant</option>
@@ -28227,8 +28258,12 @@ Current version indicated by LITEVER below.
 					<option value="gemini-2.0-flash">gemini-2.0-flash</option>
 					<option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
 					<option value="gemini-2.0-pro-exp">gemini-2.0-pro-exp</option>
-					<option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17</option>
-					<option value="gemini-2.5-pro-preview-05-06">gemini-2.5-pro-preview-05-06</option>
+					<option value="gemini-2.5-flash">gemini-2.5-flash</option>
+					<option value="gemini-2.5-flash-image-preview">gemini-2.5-flash-image-preview</option>
+					<option value="gemini-2.5-pro">gemini-2.5-pro</option>
+					<option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+					<option value="gemini-3-pro-image-preview">gemini-3-pro-image-preview</option>
+					<option value="nano-banana-pro-preview">nano-banana-pro-preview</option>
 					<option value="gemma-3-1b-it">gemma-3-1b-it</option>
 					<option value="gemma-3-4b-it">gemma-3-4b-it</option>
 					<option value="gemma-3-12b-it">gemma-3-12b-it</option>
@@ -28240,7 +28275,7 @@ Current version indicated by LITEVER below.
 				<input class="form-control" type="password" id="custom_gemini_key" placeholder="Gemini API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
 				<div id="gemini_role_options">
 				<div>
-					Main Message Role:
+					Main Msg Role:
 					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:4px;display:inline;width:100px" onload="togglegeminirole();" onchange="togglegeminirole();" id="geminiroledropdown">
 						<option value="" selected>Default</option>
 						<option value="user">User</option>
@@ -28475,11 +28510,11 @@ Current version indicated by LITEVER below.
 			<div id="shareasurl" class="hidden">
 			<div class="inlinelabel">
 			<h3>Please Note</h3>
-			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.org/about/" target="_blank" class="color_blueurl">dpaste.org</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
+			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.com/about/" target="_blank" class="color_blueurl">dpaste.com</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
 			<p>Once shared, the file will be available online, and cannot be removed until it expires! Therefore, you're not recommended to use this service for any senstive content.</p>
-			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.org, you are personally responsible for whatever you upload or share to their service.</p>
+			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.com, you are personally responsible for whatever you upload or share to their service.</p>
 			<div style="width:100%">
-			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.org/api/" id="dpaste_server_url">
+			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.com/api/" id="dpaste_server_url">
 			<select class="form-control" id="dpaste_duration" style="width:100%">
 				<option value="3600">Expires in 1 hour</option>
 				<option value="86400" selected>Expires in 1 day</option>
