@@ -70,8 +70,8 @@ struct SDParams {
     int width         = 512;
     int height        = 512;
 
-    sample_method_t sample_method = SAMPLE_METHOD_DEFAULT;
-    scheduler_t scheduler         = scheduler_t::DEFAULT;
+    sample_method_t sample_method = sample_method_t::SAMPLE_METHOD_COUNT;
+    scheduler_t scheduler         = scheduler_t::SCHEDULER_COUNT;
     int sample_steps              = 20;
     float distilled_guidance      = -1.0f;
     float shifted_timestep        = 0;
@@ -416,6 +416,16 @@ std::string clean_input_prompt(const std::string& input) {
     return result;
 }
 
+static std::string get_scheduler_name(scheduler_t scheduler, bool as_sampler_suffix = false)
+{
+    if (scheduler == scheduler_t::SCHEDULER_COUNT) {
+        return as_sampler_suffix ? "" : "default";
+    } else {
+        std::string prefix = as_sampler_suffix ? " " : "";
+        return prefix + sd_scheduler_name(scheduler);
+    }
+}
+
 static std::string get_image_params(const sd_img_gen_params_t & params) {
     std::stringstream ss;
     ss << std::setprecision(3)
@@ -426,9 +436,8 @@ static std::string get_image_params(const sd_img_gen_params_t & params) {
         << " | Guidance: " << params.sample_params.guidance.distilled_guidance
         << " | Seed: " << params.seed
         << " | Size: " << params.width << "x" << params.height
-        << " | Sampler: " << sd_sample_method_name(params.sample_params.sample_method);
-    if (params.sample_params.scheduler != scheduler_t::DEFAULT)
-        ss << " " << sd_schedule_name(params.sample_params.scheduler);
+        << " | Sampler: " << sd_sample_method_name(params.sample_params.sample_method)
+        << get_scheduler_name(params.sample_params.scheduler, true);
     if (params.sample_params.shifted_timestep != 0)
         ss << "| Timestep Shift: " << params.sample_params.shifted_timestep;
     ss  << " | Clip skip: " << params.clip_skip
@@ -544,35 +553,35 @@ static enum sample_method_t sampler_from_name(const std::string& sampler)
     }
     else if(sampler=="euler a"||sampler=="k_euler_a")
     {
-        return sample_method_t::EULER_A;
+        return sample_method_t::EULER_A_SAMPLE_METHOD;
     }
     else if(sampler=="k_euler")
     {
-        return sample_method_t::EULER;
+        return sample_method_t::EULER_SAMPLE_METHOD;
     }
     else if(sampler=="k_heun")
     {
-        return sample_method_t::HEUN;
+        return sample_method_t::HEUN_SAMPLE_METHOD;
     }
     else if(sampler=="k_dpm_2")
     {
-        return sample_method_t::DPM2;
+        return sample_method_t::DPM2_SAMPLE_METHOD;
     }
     else if(sampler=="k_lcm")
     {
-        return sample_method_t::LCM;
+        return sample_method_t::LCM_SAMPLE_METHOD;
     }
     else if(sampler=="ddim")
     {
-        return sample_method_t::DDIM_TRAILING;
+        return sample_method_t::DDIM_TRAILING_SAMPLE_METHOD;
     }
     else if(sampler=="dpm++ 2m karras" || sampler=="dpm++ 2m" || sampler=="k_dpmpp_2m")
     {
-        return sample_method_t::DPMPP2M;
+        return sample_method_t::DPMPP2M_SAMPLE_METHOD;
     }
     else
     {
-        return sample_method_t::SAMPLE_METHOD_DEFAULT;
+        return sample_method_t::SAMPLE_METHOD_COUNT;
     }
 }
 
@@ -677,13 +686,13 @@ uint8_t* load_image_from_b64(const std::string & b64str, int& width, int& height
 static enum scheduler_t scheduler_from_name(const char * scheduler)
 {
     if (scheduler) {
-        enum scheduler_t result = str_to_schedule(scheduler);
-        if (result != scheduler_t::SCHEDULE_COUNT)
+        enum scheduler_t result = str_to_scheduler(scheduler);
+        if (result != scheduler_t::SCHEDULER_COUNT)
         {
             return result;
         }
     }
-    return scheduler_t::DEFAULT;
+    return scheduler_t::SCHEDULER_COUNT;
 }
 
 sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
@@ -725,7 +734,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
     sd_params->sample_method = sampler_from_name(inputs.sample_method);
     sd_params->scheduler = scheduler_from_name(inputs.scheduler);
 
-    if (sd_params->sample_method == SAMPLE_METHOD_DEFAULT) {
+    if (sd_params->sample_method == sample_method_t::SAMPLE_METHOD_COUNT) {
         sd_params->sample_method = sd_get_default_sample_method(sd_ctx);
     }
 
@@ -744,12 +753,12 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
             }
             sd_params->cfg_scale = 1.0f;
         }
-        if (sd_params->sample_method == sample_method_t::EULER_A) {
+        if (sd_params->sample_method == sample_method_t::EULER_A_SAMPLE_METHOD) {
             //euler a broken on flux
             if (!sd_is_quiet && sddebugmode) {
                 printf("%s: switching Euler A to Euler\n", loaded_model_is_chroma(sd_ctx) ? "Chroma" : "Flux");
             }
-            sd_params->sample_method = sample_method_t::EULER;
+            sd_params->sample_method = sample_method_t::EULER_SAMPLE_METHOD;
         }
     }
 
@@ -1006,7 +1015,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
                 << "\nCFGSCLE:" << params.sample_params.guidance.txt_cfg
                 << "\nSIZE:" << params.width << "x" << params.height
                 << "\nSM:" << sd_sample_method_name(params.sample_params.sample_method)
-                << "\nSCHED:" << sd_schedule_name(params.sample_params.scheduler)
+                << "\nSCHED:" << get_scheduler_name(params.sample_params.scheduler)
                 << "\nSTEP:" << params.sample_params.sample_steps
                 << "\nSEED:" << params.seed
                 << "\nBATCH:" << params.batch_count

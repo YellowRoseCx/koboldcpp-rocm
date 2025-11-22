@@ -912,28 +912,14 @@ void parse_args(int argc, const char** argv, SDParams& params) {
         return 1;
     };
 
-    auto on_schedule_arg = [&](int argc, const char** argv, int index) {
+    auto on_scheduler_arg = [&](int argc, const char** argv, int index) {
         if (++index >= argc) {
             return -1;
         }
         const char* arg                = argv[index];
-        params.sample_params.scheduler = str_to_schedule(arg);
-        if (params.sample_params.scheduler == SCHEDULE_COUNT) {
+        params.sample_params.scheduler = str_to_scheduler(arg);
+        if (params.sample_params.scheduler == SCHEDULER_COUNT) {
             fprintf(stderr, "error: invalid scheduler %s\n",
-                    arg);
-            return -1;
-        }
-        return 1;
-    };
-
-    auto on_high_noise_schedule_arg = [&](int argc, const char** argv, int index) {
-        if (++index >= argc) {
-            return -1;
-        }
-        const char* arg                           = argv[index];
-        params.high_noise_sample_params.scheduler = str_to_schedule(arg);
-        if (params.high_noise_sample_params.scheduler == SCHEDULE_COUNT) {
-            fprintf(stderr, "error: invalid high noise scheduler %s\n",
                     arg);
             return -1;
         }
@@ -1211,8 +1197,8 @@ void parse_args(int argc, const char** argv, SDParams& params) {
          on_lora_apply_mode_arg},
         {"",
          "--scheduler",
-         "denoiser sigma scheduler, one of [discrete, karras, exponential, ays, gits, smoothstep, sgm_uniform, simple], default: discrete",
-         on_schedule_arg},
+         "denoiser sigma scheduler, one of [discrete, karras, exponential, ays, gits, smoothstep, sgm_uniform, simple, lcm], default: discrete",
+         on_scheduler_arg},
         {"",
          "--skip-layers",
          "layers to skip for SLG steps (default: [7,8,9])",
@@ -1222,10 +1208,6 @@ void parse_args(int argc, const char** argv, SDParams& params) {
          "(high noise) sampling method, one of [euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, ipndm, ipndm_v, lcm, ddim_trailing, tcd]"
          " default: euler for Flux/SD3/Wan, euler_a otherwise",
          on_high_noise_sample_method_arg},
-        {"",
-         "--high-noise-scheduler",
-         "(high noise) denoiser sigma scheduler, one of [discrete, karras, exponential, ays, gits, smoothstep, sgm_uniform, simple], default: discrete",
-         on_high_noise_schedule_arg},
         {"",
          "--high-noise-skip-layers",
          "(high noise) layers to skip for SLG steps (default: [7,8,9])",
@@ -1442,8 +1424,8 @@ std::string get_image_params(SDParams params, int64_t seed) {
         parameter_string += "Sampler RNG: " + std::string(sd_rng_type_name(params.sampler_rng_type)) + ", ";
     }
     parameter_string += "Sampler: " + std::string(sd_sample_method_name(params.sample_params.sample_method));
-    if (params.sample_params.scheduler != DEFAULT) {
-        parameter_string += " " + std::string(sd_schedule_name(params.sample_params.scheduler));
+    if (params.sample_params.scheduler != SCHEDULER_COUNT) {
+        parameter_string += " " + std::string(sd_scheduler_name(params.sample_params.scheduler));
     }
     parameter_string += ", ";
     for (const auto& te : {params.clip_l_path, params.clip_g_path, params.t5xxl_path, params.qwen2vl_path, params.qwen2vl_vision_path}) {
@@ -1648,7 +1630,7 @@ bool load_images_from_dir(const std::string dir,
     return true;
 }
 
-const char* preview_path;
+std::string preview_path;
 float preview_fps;
 
 void step_callback(int step, int frame_count, sd_image_t* image, bool is_noisy) {
@@ -1657,16 +1639,16 @@ void step_callback(int step, int frame_count, sd_image_t* image, bool is_noisy) 
     // is_noisy is set to true if the preview corresponds to noisy latents, false if it's denoised latents
     // unused in this app, it will either be always noisy or always denoised here
     if (frame_count == 1) {
-        stbi_write_png(preview_path, image->width, image->height, image->channel, image->data, 0);
+        stbi_write_png(preview_path.c_str(), image->width, image->height, image->channel, image->data, 0);
     } else {
-        create_mjpg_avi_from_sd_images(preview_path, image, frame_count, preview_fps);
+        create_mjpg_avi_from_sd_images(preview_path.c_str(), image, frame_count, preview_fps);
     }
 }
 
 int main(int argc, const char* argv[]) {
     SDParams params;
     parse_args(argc, argv, params);
-    preview_path = params.preview_path.c_str();
+    preview_path = params.preview_path;
     if (params.video_frames > 4) {
         size_t last_dot_pos   = params.preview_path.find_last_of(".");
         std::string base_path = params.preview_path;
@@ -1677,8 +1659,7 @@ int main(int argc, const char* argv[]) {
             std::transform(file_ext.begin(), file_ext.end(), file_ext.begin(), ::tolower);
         }
         if (file_ext == ".png") {
-            base_path    = base_path + ".avi";
-            preview_path = base_path.c_str();
+            preview_path = base_path + ".avi";
         }
     }
     preview_fps = params.fps;
@@ -1921,8 +1902,16 @@ int main(int argc, const char* argv[]) {
             return 1;
         }
 
-        if (params.sample_params.sample_method == SAMPLE_METHOD_DEFAULT) {
+        if (params.sample_params.sample_method == SAMPLE_METHOD_COUNT) {
             params.sample_params.sample_method = sd_get_default_sample_method(sd_ctx);
+        }
+
+        if (params.high_noise_sample_params.sample_method == SAMPLE_METHOD_COUNT) {
+            params.high_noise_sample_params.sample_method = sd_get_default_sample_method(sd_ctx);
+        }
+
+        if (params.sample_params.scheduler == SCHEDULER_COUNT) {
+            params.sample_params.scheduler = sd_get_default_scheduler(sd_ctx);
         }
 
         if (params.mode == IMG_GEN) {
@@ -2067,15 +2056,16 @@ int main(int argc, const char* argv[]) {
             if (results[i].data == nullptr) {
                 continue;
             }
+            int write_ok;
             std::string final_image_path = i > 0 ? base_path + "_" + std::to_string(i + 1) + file_ext : base_path + file_ext;
             if (is_jpg) {
-                stbi_write_jpg(final_image_path.c_str(), results[i].width, results[i].height, results[i].channel,
-                               results[i].data, 90, get_image_params(params, params.seed + i).c_str());
-                printf("save result JPEG image to '%s'\n", final_image_path.c_str());
+                write_ok = stbi_write_jpg(final_image_path.c_str(), results[i].width, results[i].height, results[i].channel,
+                                          results[i].data, 90, get_image_params(params, params.seed + i).c_str());
+                printf("save result JPEG image to '%s' (%s)\n", final_image_path.c_str(), write_ok == 0 ? "failure" : "success");
             } else {
-                stbi_write_png(final_image_path.c_str(), results[i].width, results[i].height, results[i].channel,
-                               results[i].data, 0, get_image_params(params, params.seed + i).c_str());
-                printf("save result PNG image to '%s'\n", final_image_path.c_str());
+                write_ok = stbi_write_png(final_image_path.c_str(), results[i].width, results[i].height, results[i].channel,
+                                          results[i].data, 0, get_image_params(params, params.seed + i).c_str());
+                printf("save result PNG image to '%s' (%s)\n", final_image_path.c_str(), write_ok == 0 ? "failure" : "success");
             }
         }
     }

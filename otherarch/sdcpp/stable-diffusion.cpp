@@ -49,8 +49,8 @@ const char* model_version_to_str[] = {
 };
 
 const char* sampling_methods_str[] = {
-    "default",
     "Euler",
+    "Euler A",
     "Heun",
     "DPM2",
     "DPM++ (2s)",
@@ -61,7 +61,6 @@ const char* sampling_methods_str[] = {
     "LCM",
     "DDIM \"trailing\"",
     "TCD",
-    "Euler A",
 };
 
 /*================================================== Helper Functions ================================================*/
@@ -993,55 +992,6 @@ public:
         ggml_free(ctx);
         use_tiny_autoencoder = use_tiny_autoencoder && !sd_ctx_params->tae_preview_only;
         return true;
-    }
-
-    void init_scheduler(scheduler_t scheduler) {
-        switch (scheduler) {
-            case DISCRETE:
-                LOG_INFO("running with discrete scheduler");
-                denoiser->scheduler = std::make_shared<DiscreteSchedule>();
-                break;
-            case KARRAS:
-                LOG_INFO("running with Karras scheduler");
-                denoiser->scheduler = std::make_shared<KarrasSchedule>();
-                break;
-            case EXPONENTIAL:
-                LOG_INFO("running exponential scheduler");
-                denoiser->scheduler = std::make_shared<ExponentialSchedule>();
-                break;
-            case AYS:
-                LOG_INFO("Running with Align-Your-Steps scheduler");
-                denoiser->scheduler          = std::make_shared<AYSSchedule>();
-                denoiser->scheduler->version = version;
-                break;
-            case GITS:
-                LOG_INFO("Running with GITS scheduler");
-                denoiser->scheduler          = std::make_shared<GITSSchedule>();
-                denoiser->scheduler->version = version;
-                break;
-            case SGM_UNIFORM:
-                LOG_INFO("Running with SGM Uniform schedule");
-                denoiser->scheduler          = std::make_shared<SGMUniformSchedule>();
-                denoiser->scheduler->version = version;
-                break;
-            case SIMPLE:
-                LOG_INFO("Running with Simple schedule");
-                denoiser->scheduler          = std::make_shared<SimpleSchedule>();
-                denoiser->scheduler->version = version;
-                break;
-            case SMOOTHSTEP:
-                LOG_INFO("Running with SmoothStep scheduler");
-                denoiser->scheduler = std::make_shared<SmoothStepSchedule>();
-                break;
-            case DEFAULT:
-                // Reset back to discrete
-                LOG_INFO("running with discrete scheduler");
-                denoiser->scheduler = std::make_shared<DiscreteSchedule>();
-                break;
-            default:
-                LOG_ERROR("Unknown scheduler %i", scheduler);
-                abort();
-        }
     }
 
     bool is_using_v_parameterization_for_sd2(ggml_context* work_ctx, bool is_inpaint = false) {
@@ -2448,8 +2398,8 @@ enum rng_type_t str_to_rng_type(const char* str) {
 }
 
 const char* sample_method_to_str[] = {
-    "default",
     "euler",
+    "euler_a",
     "heun",
     "dpm2",
     "dpm++2s_a",
@@ -2460,7 +2410,6 @@ const char* sample_method_to_str[] = {
     "lcm",
     "ddim_trailing",
     "tcd",
-    "euler_a",
 };
 
 const char* sd_sample_method_name(enum sample_method_t sample_method) {
@@ -2479,8 +2428,7 @@ enum sample_method_t str_to_sample_method(const char* str) {
     return SAMPLE_METHOD_COUNT;
 }
 
-const char* schedule_to_str[] = {
-    "default",
+const char* scheduler_to_str[] = {
     "discrete",
     "karras",
     "exponential",
@@ -2489,22 +2437,23 @@ const char* schedule_to_str[] = {
     "sgm_uniform",
     "simple",
     "smoothstep",
+    "lcm",
 };
 
-const char* sd_schedule_name(enum scheduler_t scheduler) {
-    if (scheduler < SCHEDULE_COUNT) {
-        return schedule_to_str[scheduler];
+const char* sd_scheduler_name(enum scheduler_t scheduler) {
+    if (scheduler < SCHEDULER_COUNT) {
+        return scheduler_to_str[scheduler];
     }
     return NONE_STR;
 }
 
-enum scheduler_t str_to_schedule(const char* str) {
-    for (int i = 0; i < SCHEDULE_COUNT; i++) {
-        if (!strcmp(str, schedule_to_str[i])) {
+enum scheduler_t str_to_scheduler(const char* str) {
+    for (int i = 0; i < SCHEDULER_COUNT; i++) {
+        if (!strcmp(str, scheduler_to_str[i])) {
             return (enum scheduler_t)i;
         }
     }
-    return SCHEDULE_COUNT;
+    return SCHEDULER_COUNT;
 }
 
 const char* prediction_to_str[] = {
@@ -2688,8 +2637,8 @@ void sd_sample_params_init(sd_sample_params_t* sample_params) {
     sample_params->guidance.slg.layer_start    = 0.01f;
     sample_params->guidance.slg.layer_end      = 0.2f;
     sample_params->guidance.slg.scale          = 0.f;
-    sample_params->scheduler                   = DEFAULT;
-    sample_params->sample_method               = SAMPLE_METHOD_DEFAULT;
+    sample_params->scheduler                   = SCHEDULER_COUNT;
+    sample_params->sample_method               = SAMPLE_METHOD_COUNT;
     sample_params->sample_steps                = 20;
 }
 
@@ -2721,7 +2670,7 @@ char* sd_sample_params_to_str(const sd_sample_params_t* sample_params) {
              sample_params->guidance.slg.layer_start,
              sample_params->guidance.slg.layer_end,
              sample_params->guidance.slg.scale,
-             sd_schedule_name(sample_params->scheduler),
+             sd_scheduler_name(sample_params->scheduler),
              sd_sample_method_name(sample_params->sample_method),
              sample_params->sample_steps,
              sample_params->eta,
@@ -2847,13 +2796,21 @@ void free_sd_ctx(sd_ctx_t* sd_ctx) {
 
 enum sample_method_t sd_get_default_sample_method(const sd_ctx_t* sd_ctx) {
     if (sd_ctx != nullptr && sd_ctx->sd != nullptr) {
-        SDVersion version = sd_ctx->sd->version;
-        if (sd_version_is_dit(version))
-            return EULER;
-        else
-            return EULER_A;
+        if (sd_version_is_dit(sd_ctx->sd->version)) {
+            return EULER_SAMPLE_METHOD;
+        }
     }
-    return SAMPLE_METHOD_COUNT;
+    return EULER_A_SAMPLE_METHOD;
+}
+
+enum scheduler_t sd_get_default_scheduler(const sd_ctx_t* sd_ctx) {
+    if (sd_ctx != nullptr && sd_ctx->sd != nullptr) {
+        auto edm_v_denoiser = std::dynamic_pointer_cast<EDMVDenoiser>(sd_ctx->sd->denoiser);
+        if (edm_v_denoiser) {
+            return EXPONENTIAL_SCHEDULER;
+        }
+    }
+    return DISCRETE_SCHEDULER;
 }
 
 sd_image_t* generate_image_internal(sd_ctx_t* sd_ctx,
@@ -2973,7 +2930,7 @@ sd_image_t* generate_image_internal(sd_ctx_t* sd_ctx,
                 LOG_WARN("Turn off PhotoMaker");
                 sd_ctx->sd->stacked_id = false;
             } else {
-                if (pm_params.id_images_count != id_embeds->ne[1]) {
+                if (pmv2 && pm_params.id_images_count != id_embeds->ne[1]) {
                     LOG_WARN("PhotoMaker image count (%d) does NOT match ID embeds (%d). You should run face_detect.py again.", pm_params.id_images_count, id_embeds->ne[1]);
                     LOG_WARN("Turn off PhotoMaker");
                     sd_ctx->sd->stacked_id = false;
@@ -3039,7 +2996,6 @@ sd_image_t* generate_image_internal(sd_ctx_t* sd_ctx,
     int C = sd_ctx->sd->get_latent_channel();
     int W = width / sd_ctx->sd->get_vae_scale_factor();
     int H = height / sd_ctx->sd->get_vae_scale_factor();
-    LOG_INFO("sampling using %s method", sampling_methods_str[sample_method]);
 
     struct ggml_tensor* control_latent = nullptr;
     if (sd_version_is_control(sd_ctx->sd->version) && image_hint != nullptr) {
@@ -3268,12 +3224,16 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx, const sd_img_gen_params_t* sd_img_g
     sd_ctx->sd->rng->manual_seed(seed);
     sd_ctx->sd->sampler_rng->manual_seed(seed);
 
-    int sample_steps = sd_img_gen_params->sample_params.sample_steps;
-
     size_t t0 = ggml_time_ms();
 
-    sd_ctx->sd->init_scheduler(sd_img_gen_params->sample_params.scheduler);
-    std::vector<float> sigmas = sd_ctx->sd->denoiser->get_sigmas(sample_steps);
+    enum sample_method_t sample_method = sd_img_gen_params->sample_params.sample_method;
+    if (sample_method == SAMPLE_METHOD_COUNT) {
+        sample_method = sd_get_default_sample_method(sd_ctx);
+    }
+    LOG_INFO("sampling using %s method", sampling_methods_str[sample_method]);
+
+    int sample_steps          = sd_img_gen_params->sample_params.sample_steps;
+    std::vector<float> sigmas = sd_ctx->sd->denoiser->get_sigmas(sample_steps, sd_img_gen_params->sample_params.scheduler, sd_ctx->sd->version);
 
     ggml_tensor* init_latent   = nullptr;
     ggml_tensor* concat_latent = nullptr;
@@ -3461,11 +3421,6 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx, const sd_img_gen_params_t* sd_img_g
         LOG_INFO("encode_first_stage completed, taking %.2fs", (t1 - t0) * 1.0f / 1000);
     }
 
-    enum sample_method_t sample_method = sd_img_gen_params->sample_params.sample_method;
-    if (sample_method == SAMPLE_METHOD_DEFAULT) {
-        sample_method = sd_get_default_sample_method(sd_ctx);
-    }
-
     sd_image_t* result_images = generate_image_internal(sd_ctx,
                                                         work_ctx,
                                                         init_latent,
@@ -3515,11 +3470,14 @@ SD_API sd_image_t* generate_video(sd_ctx_t* sd_ctx, const sd_vid_gen_params_t* s
 
     int vae_scale_factor = sd_ctx->sd->get_vae_scale_factor();
 
-    sd_ctx->sd->init_scheduler(sd_vid_gen_params->sample_params.scheduler);
+    enum sample_method_t sample_method = sd_vid_gen_params->sample_params.sample_method;
+    if (sample_method == SAMPLE_METHOD_COUNT) {
+        sample_method = sd_get_default_sample_method(sd_ctx);
+    }
+    LOG_INFO("sampling using %s method", sampling_methods_str[sample_method]);
 
     int high_noise_sample_steps = 0;
     if (sd_ctx->sd->high_noise_diffusion_model) {
-        sd_ctx->sd->init_scheduler(sd_vid_gen_params->high_noise_sample_params.scheduler);
         high_noise_sample_steps = sd_vid_gen_params->high_noise_sample_params.sample_steps;
     }
 
@@ -3528,7 +3486,7 @@ SD_API sd_image_t* generate_video(sd_ctx_t* sd_ctx, const sd_vid_gen_params_t* s
     if (high_noise_sample_steps > 0) {
         total_steps += high_noise_sample_steps;
     }
-    std::vector<float> sigmas = sd_ctx->sd->denoiser->get_sigmas(total_steps);
+    std::vector<float> sigmas = sd_ctx->sd->denoiser->get_sigmas(total_steps, sd_vid_gen_params->sample_params.scheduler, sd_ctx->sd->version);
 
     if (high_noise_sample_steps < 0) {
         // timesteps ∝ sigmas for Flow models (like wan2.2 a14b)
@@ -3786,6 +3744,12 @@ SD_API sd_image_t* generate_video(sd_ctx_t* sd_ctx, const sd_vid_gen_params_t* s
     // High Noise Sample
     if (high_noise_sample_steps > 0) {
         LOG_DEBUG("sample(high noise) %dx%dx%d", W, H, T);
+        enum sample_method_t high_noise_sample_method = sd_vid_gen_params->high_noise_sample_params.sample_method;
+        if (high_noise_sample_method == SAMPLE_METHOD_COUNT) {
+            high_noise_sample_method = sd_get_default_sample_method(sd_ctx);
+        }
+        LOG_INFO("sampling(high noise) using %s method", sampling_methods_str[high_noise_sample_method]);
+
         int64_t sampling_start = ggml_time_ms();
 
         std::vector<float> high_noise_sigmas = std::vector<float>(sigmas.begin(), sigmas.begin() + high_noise_sample_steps + 1);
@@ -3804,7 +3768,7 @@ SD_API sd_image_t* generate_video(sd_ctx_t* sd_ctx, const sd_vid_gen_params_t* s
                                  sd_vid_gen_params->high_noise_sample_params.guidance,
                                  sd_vid_gen_params->high_noise_sample_params.eta,
                                  sd_vid_gen_params->high_noise_sample_params.shifted_timestep,
-                                 sd_vid_gen_params->high_noise_sample_params.sample_method,
+                                 high_noise_sample_method,
                                  high_noise_sigmas,
                                  -1,
                                  {},
@@ -3841,7 +3805,7 @@ SD_API sd_image_t* generate_video(sd_ctx_t* sd_ctx, const sd_vid_gen_params_t* s
                                           sd_vid_gen_params->sample_params.guidance,
                                           sd_vid_gen_params->sample_params.eta,
                                           sd_vid_gen_params->sample_params.shifted_timestep,
-                                          sd_vid_gen_params->sample_params.sample_method,
+                                          sample_method,
                                           sigmas,
                                           -1,
                                           {},
