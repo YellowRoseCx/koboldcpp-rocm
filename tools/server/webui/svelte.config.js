@@ -10,6 +10,7 @@ const config = {
 
 	kit: {
 		paths: {
+			base: '/lcpp',
 			relative: true
 		},
 		router: { type: 'hash' },

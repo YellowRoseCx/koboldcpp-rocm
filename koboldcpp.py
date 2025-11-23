@@ -3530,6 +3530,14 @@ Change Mode<br>
         global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz
         global last_req_time, start_time, cached_chat_template, has_vision_support, has_audio_support, has_whisper, friendlymodelname
         global savedata_obj, has_multiplayer, multiplayer_turn_major, multiplayer_turn_minor, multiplayer_story_data_compressed, multiplayer_dataformat, multiplayer_lastactive, maxctx, maxhordelen, friendlymodelname, lastuploadedcomfyimg, lastgeneratedcomfyimg, KcppVersion, totalgens, preloaded_story, exitcounter, currentusergenkey, friendlysdmodelname, fullsdmodelpath, password, friendlyembeddingsmodelname
+
+        if self.path=="/lcpp": #fix for svelte redirect issues, browser path needs to end with slash
+            self.path = "/lcpp/"
+            self.send_response(302)
+            self.send_header("location", self.path)
+            self.end_headers(content_type='text/html')
+            return None
+
         self.path = self.path.rstrip('/')
         response_body = None
         content_type = 'application/json'

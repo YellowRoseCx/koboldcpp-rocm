@@ -362,7 +362,11 @@ export class ChatService {
 				if (abortSignal?.aborted) break;
 
 				const { done, value } = await reader.read();
-				if (done) break;
+				if (done)
+				{
+					streamFinished = true;
+					break;
+				}
 
 				if (abortSignal?.aborted) break;
 
