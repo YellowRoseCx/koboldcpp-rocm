@@ -18415,6 +18415,13 @@ Current version indicated by LITEVER below.
 				}
 
 				if (document.getElementById("useoaichatcompl").checked) {
+
+					// let reasoneffort = document.getElementById("oaireasoningeffort").value;
+					// if(reasoneffort && reasoneffort!="none")
+					// {
+					// 	oai_payload.reasoning_effort = reasoneffort;
+					// }
+
 					let mainoaibody = submit_payload.prompt; //can be string or array
 					if(insertAIVisionImages.length>0 || insertAIAudioSounds.length>0)
 					{
@@ -27922,7 +27929,7 @@ Current version indicated by LITEVER below.
 
 	<div class="popupcontainer flex hidden" id="customendpointcontainer">
 		<div class="popupbg flex"></div>
-		<div class="nspopup flexsize evenhigher">
+		<div class="nspopup flexsize highest">
 			<div class="popuptitlebar">
 				<div class="popuptitletext">Select your AI provider</div>
 			</div>
@@ -27997,8 +28004,8 @@ Current version indicated by LITEVER below.
 			<div id="oaicustom" class="menutext hidden">
 				<span id="oaidesc">
 				Entering your <a class="color_blueurl" target="_blank" href="https://platform.openai.com/api-keys">OpenAI API key</a> will allow you to use KoboldAI Lite with their API.<br>
-				<b>Or, set a custom API URL to use ANY 3rd-party OAI Compatible API</b><br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenAI API, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				<b>Set a custom URL to use any 3rd-party Compatible API</b><br><br>
+				You are responsibile for your own usage. API keys are used with OpenAI API directly, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenAI API URL and Key.</span><br>
 				<div style="display:inline-flex">
 					<div><input type="checkbox" id="corsproxy_oai" title="Use CORS Proxy">
@@ -28009,32 +28016,32 @@ Current version indicated by LITEVER below.
 				</span>
 				<span id="openrouterdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://openrouter.ai/settings/keys">OpenRouter API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><a class="color_blueurl" onclick="fetch_openrouter_balance()" href="#">Click here to see your credit balance.</a><br><br>
+				You are responsibile for your own usage. API keys are used with OpenRouter API directly.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><a class="color_blueurl" onclick="fetch_openrouter_balance()" href="#">Click here to see your credit balance.</a><br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenRouter Key.</span><br><br>
 				</span>
 				<span id="mistralaidesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">MistralAI API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the MistralAI API and is not transmitted to us.<br>Only Temperature and Top-P samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with MistralAI API directly.<br>Only Temperature and Top-P samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input MistralAI Key.</span><br><br>
 				</span>
 				<span id="featherlessdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://featherless.ai/docs/getting-started">Featherless API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Featherless API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with Featherless API directly.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Featherless Key.</span><br><br>
 				</span>
 				<span id="grokdesc" class="hidden">
 				Entering your Grok API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Grok API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with Grok API directly.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Grok Key.</span><br><br>
 				</span>
 				<span id="pollinationsdesc" class="hidden">
 				Pollinations.ai API is free to use without any key required.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">No Key Required.</span><br><br>
 				</span>
 				<span id="nvidianimdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://build.nvidia.com/explore/discover">Nvidia NIM API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Nvidia NIM Key.</span><br><br>
 				</span>
 
@@ -28162,27 +28169,35 @@ Current version indicated by LITEVER below.
 					<div><input type="checkbox" id="useoainonstandard" title="Send Non-Standard Fields">
 					<div class="box-label">Non-Standard Fields</div></div>
 				</div>
-				<span id="useoaichatcomplbox" class="hidden" onload="toggleoaichatcompl();">
-					<br>
-					Main Msg Role:
-					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:4px;display:inline;width:100px" id="oairoledropdown">
+				<div id="useoaichatcomplbox" class="hidden" onload="toggleoaichatcompl();">
+					<div style="display: inline-block;">
+					Main Message Role:
+					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; margin-right:4px; padding:4px;display:inline;width:100px" id="oairoledropdown">
 						<option value="0" selected>User</option>
 						<option value="1">Assistant</option>
 						<option value="2">System</option>
 						<option value="3">AutoRole</option>
 					</select>
+					</div>
+					<div style="display: inline-block;">
 					<input type="checkbox" title="Add Prefix Prompt" id="jailbreakprompt" onchange="togglejailbreak()">
-					<div class="box-label" title="Add Prefix. Forcefully inserts extra text at the start of the prompt to steer the AI.">Add Prefix</div>
+					<div class="box-label" style="padding:4px" title="Add Prefix. Forcefully inserts extra text at the start of the prompt to steer the AI.">Add Prefix</div>
 					<input type="checkbox" title="Add Postfix Prompt" id="jailbreakprompt2" onchange="togglejailbreak2()">
-					<div class="box-label" title="Add Postfix. Forcefully inserts extra text to before the AI response to steer the AI.">Add Postfix</div>
-
+					<div class="box-label" style="padding:4px" title="Add Postfix. Forcefully inserts extra text to before the AI response to steer the AI.">Add Postfix</div>
+					<!-- <select title="Reasoning Effort" class="form-control" style="height: 22px; font-size:10px; padding:2px;display:inline;width:120px" id="oaireasoningeffort">
+						<option value="none" selected>Reasoning: Unset</option>
+						<option value="low">Reasoning: Low</option>
+						<option value="medium">Reasoning: Medium</option>
+						<option value="high">Reasoning: High</option>
+					</select> -->
+					</div>
 					<div style="display:flex" id="oaijailbreakpromptblock1">
 					<select title="Injected Prefix Message Role" class="form-control" style="height: 25px; font-size:12px; padding:4px;display:inline;width:100px" id="jailbreakprompttextrole">
 						<option value="0">User</option>
 						<option value="1">Assistant</option>
 						<option value="2" selected>System</option>
 					</select>
-					<textarea title="Enter Prefix Prompt String" class="form-control" rows="3" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="jailbreakprompttext" placeholder="(Enter System Prefix)"
+					<textarea title="Enter Prefix Prompt String" class="form-control" rows="2" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="jailbreakprompttext" placeholder="(Enter System Prefix)"
 					value="" onload="togglejailbreak();"></textarea>
 					</div>
 
@@ -28192,12 +28207,11 @@ Current version indicated by LITEVER below.
 						<option value="1" selected>Assistant</option>
 						<option value="2">System</option>
 					</select>
-					<textarea title="Enter Postfix Prompt String" class="form-control" rows="3" style="resize: vertical; line-height:1.1; padding:4px;  display:inline; width: 100%;" type="text" id="jailbreakprompttext2" placeholder="(Enter Assistant Postfix)"
+					<textarea title="Enter Postfix Prompt String" class="form-control" rows="2" style="resize: vertical; line-height:1.1; padding:4px;  display:inline; width: 100%;" type="text" id="jailbreakprompttext2" placeholder="(Enter Assistant Postfix)"
 					value="" onload="togglejailbreak2();"></textarea>
 					</div>
-				</span>
-				<span id="openrouterproviderbox" class="hidden">
-					<br>
+				</div>
+				<div id="openrouterproviderbox" class="hidden">
 					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 256px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
 					<div id="openrouterreasoningbox" style="display:inline;">
 						<div style="padding-left:2px;padding-right:2px" class="box-label">Thinking</div>
@@ -28207,12 +28221,12 @@ Current version indicated by LITEVER below.
 						<option value="2">Enable</option>
 						</select>
 					</div>
-				</span>
+				</div>
 
 			</div>
 			<div id="claudecustom" class="menutext hidden">
 				Entering your Claude API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
+				You are responsibile for your own usage. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Claude API URL and Key.</span><br><br>
 				<input class="form-control" type="text" id="custom_claude_endpoint" placeholder="Claude API URL" value="">
 				<input class="form-control" type="password" id="custom_claude_key" placeholder="Claude API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
@@ -28248,7 +28262,7 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="geminicustom" class="menutext hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">Google Gemini API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Gemini API and is not transmitted to us.<br><br>
+				You are responsibile for your own usage. API keys are used with Gemini API directly.<br><br>
 				<div>
 				<select title="Gemini AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_gemini_model" onchange="togglegeminimodel()">
 					<option value="gemini-1.5-flash-latest" selected="selected">gemini-1.5-flash-latest</option>
@@ -28275,7 +28289,7 @@ Current version indicated by LITEVER below.
 				<input class="form-control" type="password" id="custom_gemini_key" placeholder="Gemini API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
 				<div id="gemini_role_options">
 				<div>
-					Main Msg Role:
+					Main Message Role:
 					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:4px;display:inline;width:100px" onload="togglegeminirole();" onchange="togglegeminirole();" id="geminiroledropdown">
 						<option value="" selected>Default</option>
 						<option value="user">User</option>
@@ -28306,7 +28320,7 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="coherecustom" class="menutext hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://dashboard.cohere.com/api-keys">Cohere API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Cohere API and is not transmitted to us.<br><br>
+				You are responsibile for your own usage. API keys are used with Cohere API directly.<br><br>
 				<select title="Cohere AI Model Selection" style="padding:4px;" class="form-control" id="custom_cohere_model">
 					<option value="command-r-08-2024" selected="selected">command-r-08-2024</option>
 					<option value="command-r-plus-08-2024">command-r-plus-08-2024</option>
