@@ -707,7 +707,7 @@ struct LoraModel : public GGMLRunner {
             if (applied_lora_tensors.find(kv.first) == applied_lora_tensors.end()) {
                 if (!at_runntime) {
                     LOG_WARN("unused lora tensor |%s|", kv.first.c_str());
-                    print_ggml_tensor(kv.second, true);
+                    //print_ggml_tensor(kv.second, true);
                 }
             } else {
                 applied_lora_tensors_count++;
