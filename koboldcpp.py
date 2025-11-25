@@ -4884,7 +4884,7 @@ def show_gui():
     #check for wayland with fractional scale
     def get_problematic_scaler():
         if sys.platform != "linux" or os.environ.get("XDG_SESSION_TYPE") != "wayland":
-            return 1.0
+            return False
         import xml.etree.ElementTree as ET
         from pathlib import Path
         fractional_enabled = False # Check if fractional scaling is enabled
@@ -4895,16 +4895,18 @@ def show_gui():
             ).strip()
             fractional_enabled = "scale-monitor-framebuffer" in features
         except Exception:
-            return 1.0
+            return False
         xml_path = Path.home() / ".config" / "monitors.xml"
-        if not xml_path.exists():
-            return 1.0
+        if not xml_path.exists(): #monitors.xml not found. if we have fractional scaling on gnome, just trigger the fallback
+            if fractional_enabled and "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP"):
+                return True
+            return False
         try:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             configs = root.findall(".//configuration")
             if not configs:
-                return 1.0
+                return False
             logical_confs = [c for c in configs if c.findtext(".//layoutmode") == "logical"]
             physical_confs = [c for c in configs if c.findtext(".//layoutmode") == "physical"]
             if fractional_enabled and logical_confs:
@@ -4915,20 +4917,20 @@ def show_gui():
                 chosen_conf = configs[-1]
             scales = [float(s.text) for s in chosen_conf.findall(".//scale") if s.text]
             if scales:
-                return max(scales)
+                return max(scales)>1.0
         except Exception:
             pass
-        return 1.0
+        return False
 
     import customtkinter as ctk
     nextstate = 0 #0=exit, 1=launch
-    corrupt_scaler = (get_problematic_scaler() > 1.0)
+    corrupt_scaler = get_problematic_scaler()
     original_windowwidth = int(860 if corrupt_scaler else 580)
     original_windowheight = int(740 if corrupt_scaler else 580)
     windowwidth = original_windowwidth
     windowheight = original_windowheight
     ctk.set_appearance_mode("dark")
-    root = ctk.CTk()
+    root = ctk.CTk(fg_color="#2b2b2b")
     root.geometry(str(windowwidth) + "x" + str(windowheight))
     root.title(f"KoboldCpp v{KcppVersion}")
 
@@ -4939,9 +4941,18 @@ def show_gui():
     window_reference_height = None
     previous_event_width = None
     previous_event_height = None
+    resizing = False
+    def clearesizing():
+        nonlocal resizing
+        resizing = False
     def on_resize(event):
-        if not event.widget.master:
+        nonlocal resizing
+        if not event.widget.master and event.widget == root:
             nonlocal window_reference_width, window_reference_height, previous_event_width,previous_event_height
+            if resizing:
+                previous_event_width = event.width
+                previous_event_height = event.height
+                return
             if not window_reference_width and not window_reference_height:
                 window_reference_width = event.width
                 window_reference_height = event.height
@@ -4955,17 +4966,19 @@ def show_gui():
                 smallratio = min(incr_w,incr_h)
                 smallratio = round(smallratio,2)
                 if new_width != previous_event_width or new_height!=previous_event_height:
+                    resizing = True
                     lastpos = root.geometry()
                     lparr = lastpos.split('+', 1)
                     lastpos = ("+"+str(lparr[1])) if (len(lparr)==2) else ""
                     previous_event_width = new_width
                     previous_event_height = new_height
-                    windowwidth = math.floor(original_windowwidth*smallratio)
+                    windowwidth = math.floor(original_windowwidth*max(smallratio,min(incr_w,smallratio*1.2))) #allow slight extension past legal width
                     windowwidth = max(256, min(1024, windowwidth))
                     windowheight = math.floor(original_windowheight*smallratio)
                     windowheight = max(256, min(1024, windowheight))
                     root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
                     ctk.set_widget_scaling(smallratio)
+                    root.after(20, clearesizing)
                     changerunmode(1,1,1)
                     togglerope(1,1,1)
                     toggleflashattn(1,1,1)
@@ -5016,7 +5029,7 @@ def show_gui():
     navbuttonframe.grid(row=0, column=0, padx=2,pady=2)
     navbuttonframe.grid_propagate(False)
 
-    tabcontentframe = ctk.CTkFrame(tabs, width=windowwidth - int(navbuttonframe.cget("width")), height=int(tabs.cget("height")))
+    tabcontentframe = ctk.CTkFrame(tabs, width=windowwidth - int(navbuttonframe.cget("width")), height=int(tabs.cget("height")),fg_color="transparent")
     tabcontentframe.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
     tabcontentframe.grid_propagate(False)
 

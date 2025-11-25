@@ -12252,7 +12252,7 @@ Current version indicated by LITEVER below.
 									}
 									else if(localflag && koboldcpp_has_txt2img && no_txt_model && safe_to_overwrite())
 									{
-										msgboxYesNo("This KoboldCpp instance seems to be running an Image Generation model without any Text Generation model loaded.\n\nWould you like to launch StableUI (Dedicated Image Generation WebUI bundled with KoboldCpp)?\n\nIf unsure, select 'No'.","Launch StableUI?", ()=>{
+										msgboxYesNo("This KoboldCpp instance seems to be running an Image Generation model without any Text Generation model loaded.\n\nWould you like to launch StableUI (Dedicated Image Generation WebUI bundled with KoboldCpp)?\n\nIf unsure, select 'Yes'.","Launch StableUI?", ()=>{
 											go_to_stableui();
 										},()=>{
 										});
