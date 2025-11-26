@@ -4153,7 +4153,7 @@ Current version indicated by LITEVER below.
 		"name":"OpenAI Harmony Non-Thinking",
 		"user":"<|start|>user<|message|>",
 		"user_end":"<|end|>",
-		"assistant":"<|start|>assistant<|channel|>final<|message|>",
+		"assistant":"<<|start|>assistant<|channel|>analysis<|message|>We can answer immediately.<|end|><|start|>assistant<|channel|>final<|message|>",
 		"assistant_end":"<|end|>",
 		"system":"<|start|>developer<|message|>",
 		"system_end":"<|end|>",
@@ -6893,6 +6893,7 @@ Current version indicated by LITEVER below.
 
 			.replace(/\*\*\*([^\s*][\s\S]*?[^\\])\*\*\*/gm, "<b><em>$1</em></b>")
 			.replace(/\*\*(.)\*\*/g, "<b>$1</b>") //handle single char bold
+			.replace(/ \*\*(\w+(?: \w+)?)\*\* /g, " <b>$1</b> ") //hack: support 1 or 2 nested bolded words (not official)
 			.replace(/\*\*([^\s*][\s\S]*?[^\\])\*\*/gm, "<b>$1</b>")
 			.replace(/(^|[\s.,;:!?<>])\*(.)\*(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //handle single char italics
 			.replace(/\*([^\s*][\s\S]*?[^\\])\*/gm, "<em>$1</em>")

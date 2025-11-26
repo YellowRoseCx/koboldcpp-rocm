@@ -588,7 +588,7 @@ void ggml_cuda_flash_attn_ext_wmma_f16(ggml_backend_cuda_context & ctx, ggml_ten
                 //     ggml_cuda_flash_attn_ext_wmma_f16_case<256, cols_per_block, float>(ctx, dst);
                 //     break;
                 default:
-                    GGML_ABORT("fatal error");
+                    GGML_ABORT("fatal error: case %d",Q->ne[0]);
                     break;
             }
         }
