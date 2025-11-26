@@ -2470,7 +2470,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             }
             clip_context_params ctx_clip_params {
                 /* use_gpu           */ true,
-                /* flash_attn_type   */ CLIP_FLASH_ATTN_TYPE_DISABLED,
+                /* flash_attn_type   */ (kcpp_data->flash_attn?CLIP_FLASH_ATTN_TYPE_ENABLED:CLIP_FLASH_ATTN_TYPE_DISABLED),
                 /* image_min_tokens  */ -1,
                 /* image_max_tokens  */ -1,
             };
