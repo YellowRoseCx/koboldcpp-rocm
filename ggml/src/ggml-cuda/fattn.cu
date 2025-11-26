@@ -306,7 +306,10 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
 
         //kcpp: use wmma to fix cu11 incoherence
         if (ggml_cuda_should_use_wmma_fattn(cc) && (ggml_cuda_highest_compiled_arch(cc) <= GGML_CUDA_CC_TURING || cc == GGML_CUDA_CC_TURING)) {
-            return BEST_FATTN_KERNEL_WMMA_F16;
+            if(Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) //kcpp: these sizes not supported in wmma
+            {
+                return BEST_FATTN_KERNEL_WMMA_F16;
+            }
         }
 
         return BEST_FATTN_KERNEL_MMA_F16;
@@ -330,7 +333,7 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
         }
     }
     //kcpp: patch from previous version for my sanity. it worked before, idk it should work now.
-    if (Q->ne[1] <= 8 || Q->ne[0] == 256) {
+    if ((Q->ne[1] <= 8 || Q->ne[0] == 256) && can_use_vector_kernel) {
         return BEST_FATTN_KERNEL_VEC;
     }
 
