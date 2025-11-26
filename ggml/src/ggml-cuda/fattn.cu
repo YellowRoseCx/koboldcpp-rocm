@@ -322,7 +322,12 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
 
     //kcpp: always force WMMA for Turing and Volta if above check fails, fix "FlashAttention without tensor cores only supports head sizes 64 and 128."
     if (cc == GGML_CUDA_CC_TURING || cc == GGML_CUDA_CC_VOLTA) {
-        return BEST_FATTN_KERNEL_WMMA_F16;
+        if(Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) //kcpp: these sizes not supported in wmma
+        {
+            return BEST_FATTN_KERNEL_WMMA_F16;
+        } else {
+            return BEST_FATTN_KERNEL_NONE;
+        }
     }
     //kcpp: patch from previous version for my sanity. it worked before, idk it should work now.
     if (Q->ne[1] <= 8 || Q->ne[0] == 256) {
