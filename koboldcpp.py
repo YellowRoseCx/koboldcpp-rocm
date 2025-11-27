@@ -2637,6 +2637,28 @@ def compress_tools_array(tools_array):
 
     return tools_array_filtered
 
+def sweep_media_from_messages(messages_array):
+    images = []
+    audio = []
+    for message in messages_array:
+        curr_content = message.get("content", None)
+        if isinstance(curr_content, list):
+            for item in curr_content:
+                if item.get("type") == "image_url":
+                    url = item.get("image_url", {}).get("url", "")
+                    if url.startswith("data:image"):
+                        images.append(url.split(",", 1)[1])
+                elif item.get("type") == "input_audio":
+                    data = item.get("input_audio", {}).get("data")
+                    if data:
+                        audio.append(data)
+        imgs_ollama = message.get("images", None)
+        if imgs_ollama:
+            for img in imgs_ollama:
+                images.append(img)
+    return images, audio
+
+
 def transform_genparams(genparams, api_format, use_jinja):
     global chatcompl_adapter, maxctx
 
@@ -2784,6 +2806,8 @@ ws ::= | " " | "\n" [ \t]{0,20}
                 messages_string = jinja_output
                 if jinjatools and len(jinjatools)>0:
                     genparams["using_openai_tools"] = True
+                # handle media
+                images_added, audio_added = sweep_media_from_messages(messages_array)
             else:
                 if jinjatools:
                     # inject the tools list at the top of the context window, even if context has shifted
