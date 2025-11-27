@@ -2333,14 +2333,14 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
                 }
             }
             printf("\n\n");
-            for (const auto & override : string_split<std::string>(tensoroverrides, ',')) {
-                std::string::size_type pos = override.find('=');
+            for (const auto & overrider : string_split<std::string>(tensoroverrides, ',')) {
+                std::string::size_type pos = overrider.find('=');
                 if (pos == std::string::npos) {
-                    printf("\nInvalid Override Tensor: %s\n",override.c_str());
+                    printf("\nInvalid Override Tensor: %s\n",overrider.c_str());
                     continue;
                 }
-                std::string tensor_name = override.substr(0, pos);
-                std::string buffer_type = override.substr(pos + 1);
+                std::string tensor_name = overrider.substr(0, pos);
+                std::string buffer_type = overrider.substr(pos + 1);
 
                 if (buft_list.find(buffer_type) == buft_list.end()) {
                     printf("\nUnknown Buffer Type: %s\n",buffer_type.c_str());
