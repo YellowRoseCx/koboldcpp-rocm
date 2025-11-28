@@ -17258,6 +17258,15 @@ Current version indicated by LITEVER below.
 					pending_context_preinjection = ist; //bot response as first msg
 					pending_context_postinjection = iet;
 				}
+				if (localsettings.inject_timestamps) {
+					pending_context_preinjection += get_current_timestamp();
+				}
+				if (localsettings.inject_chatnames_instruct) {
+					if (localsettings.inject_timestamps) {
+						pending_context_preinjection += " ";
+					}
+					pending_context_preinjection += get_my_multiplayer_chatname() + "\:";
+				}
 			} else {
 				if (gametext_arr.length == 0) {
 					newgen = iet;

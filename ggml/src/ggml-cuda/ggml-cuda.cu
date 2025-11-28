@@ -55,6 +55,7 @@ bool g_mul_mat_q = true;
 #include "ggml-cuda/set.cuh"
 #include "ggml-cuda/set-rows.cuh"
 #include "ggml-cuda/pad_reflect_1d.cuh"
+#include "ggml-cuda/solve_tri.cuh"
 #include "ggml.h"
 
 #include <algorithm>
@@ -2730,6 +2731,9 @@ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct gg
         case GGML_OP_OPT_STEP_SGD:
             ggml_cuda_opt_step_sgd(ctx, dst);
             break;
+        case GGML_OP_SOLVE_TRI:
+            ggml_cuda_op_solve_tri(ctx, dst);
+            break;
         default:
             return false;
     }
@@ -3850,7 +3854,7 @@ static void ggml_backend_cuda_device_get_memory(ggml_backend_dev_t dev, size_t *
 
     // Check if UMA is explicitly enabled via environment variable
     bool uma_env = getenv("GGML_CUDA_ENABLE_UNIFIED_MEMORY") != nullptr;
-    bool is_uma = prop.unifiedAddressing > 0 || uma_env;
+    bool is_uma = prop.integrated > 0 || uma_env;
 
     if (is_uma) {
         // For UMA systems (like DGX Spark), use system memory info
@@ -4268,6 +4272,8 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_OPT_STEP_ADAMW:
         case GGML_OP_OPT_STEP_SGD:
             return true;
+        case GGML_OP_SOLVE_TRI:
+            return op->src[0]->ne[0] <= 64 && op->src[1]->ne[0] <= 32;
         default:
             return false;
     }
