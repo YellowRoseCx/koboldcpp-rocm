@@ -134,9 +134,11 @@ if (LLAMA_CUBLAS)
         message("CUDA Toolkit Version: ${CUDAToolkit_VERSION}")
         if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
                 add_compile_definitions(GGML_CUDA_USE_GRAPHS) #try enable cuda graphs on cu12 build
+                add_compile_definitions(KCPP_LIMIT_CUDA_MAX_ARCH=860)
                 set(CMAKE_CUDA_ARCHITECTURES "75-virtual;80-virtual;86-virtual") # lowest CUDA 13 standard
         elseif(CUDAToolkit_VERSION VERSION_GREATER 12)
                 add_compile_definitions(GGML_CUDA_USE_GRAPHS) #try enable cuda graphs on cu12 build
+                add_compile_definitions(KCPP_LIMIT_CUDA_MAX_ARCH=800)
                 set(CMAKE_CUDA_ARCHITECTURES "50-virtual;61-virtual;70-virtual;75-virtual;80-virtual") # lowest CUDA 12 standard + lowest for integer intrinsics
         else()
                 add_compile_definitions(KCPP_LIMIT_CUDA_MAX_ARCH=750) #will cause issues with ggml_cuda_highest_compiled_arch if removed

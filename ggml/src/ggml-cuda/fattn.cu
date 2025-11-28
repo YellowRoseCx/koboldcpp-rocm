@@ -310,6 +310,10 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
             {
                 return BEST_FATTN_KERNEL_WMMA_F16;
             }
+            else
+            {
+                return BEST_FATTN_KERNEL_NONE;
+            }
         }
 
         return BEST_FATTN_KERNEL_MMA_F16;

@@ -5001,13 +5001,15 @@ def show_gui():
                     lastpos = ("+"+str(lparr[1])) if (len(lparr)==2) else ""
                     previous_event_width = new_width
                     previous_event_height = new_height
-                    windowwidth = math.floor(original_windowwidth*max(smallratio,min(incr_w,smallratio*1.2))) #allow slight extension past legal width
+                    windowwidth = math.floor(original_windowwidth*smallratio)
                     windowwidth = max(256, min(1024, windowwidth))
                     windowheight = math.floor(original_windowheight*smallratio)
                     windowheight = max(256, min(1024, windowheight))
                     root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
+                    if corrupt_scaler:
+                        smallratio = min(smallratio, 1)*0.98 #don't allow scaling beyond normal
                     ctk.set_widget_scaling(smallratio)
-                    root.after(20, clearesizing)
+                    root.after(5, clearesizing)
                     changerunmode(1,1,1)
                     togglerope(1,1,1)
                     toggleflashattn(1,1,1)
