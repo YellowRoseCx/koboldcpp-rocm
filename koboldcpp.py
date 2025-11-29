@@ -4971,11 +4971,18 @@ def show_gui():
     previous_event_width = None
     previous_event_height = None
     resizing = False
+    resizing_id1 = None
+    resizing_id2 = None
     def clearesizing():
-        nonlocal resizing
+        nonlocal resizing, resizing_id1
         resizing = False
+        resizing_id1 = None
+    def actually_resize(windowwidth,windowheight,lastpos,smallratio):
+        root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
+        ctk.set_widget_scaling(smallratio)
+        pass
     def on_resize(event):
-        nonlocal resizing
+        nonlocal resizing, resizing_id1, resizing_id2
         if not event.widget.master and event.widget == root:
             nonlocal window_reference_width, window_reference_height, previous_event_width,previous_event_height
             if resizing:
@@ -5005,11 +5012,16 @@ def show_gui():
                     windowwidth = max(256, min(1024, windowwidth))
                     windowheight = math.floor(original_windowheight*smallratio)
                     windowheight = max(256, min(1024, windowheight))
-                    root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
                     if corrupt_scaler:
                         smallratio = min(smallratio, 1)*0.98 #don't allow scaling beyond normal
-                    ctk.set_widget_scaling(smallratio)
-                    root.after(5, clearesizing)
+                    if resizing_id2:
+                        root.after_cancel(resizing_id2)
+                        resizing_id2 = None
+                    resizing_id2 = root.after(100, lambda: actually_resize(windowwidth,windowheight,lastpos,smallratio))
+                    if resizing_id1:
+                        root.after_cancel(resizing_id1)
+                        resizing_id1 = None
+                    resizing_id1 = root.after(5, clearesizing)
                     changerunmode(1,1,1)
                     togglerope(1,1,1)
                     toggleflashattn(1,1,1)
