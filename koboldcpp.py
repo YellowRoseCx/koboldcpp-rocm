@@ -405,6 +405,25 @@ class embeddings_generation_outputs(ctypes.Structure):
                 ("count", ctypes.c_int),
                 ("data", ctypes.c_char_p)]
 
+class StdoutRedirector:
+    def __init__(self, writer):
+        self.writer = writer
+        self.terminal = sys.__stdout__
+    def write(self, message):
+        try:
+            # Always write to terminal, then duplicate to pipe writer
+            self.terminal.write(message)
+            self.terminal.flush()
+            if self.writer:
+                try:
+                    self.writer.write(message)
+                    self.writer.flush()
+                except Exception:
+                    self.writer = None
+        except Exception:
+            pass
+    def flush(self):
+        self.terminal.flush()
 
 
 def getdirpath():
@@ -6041,6 +6060,29 @@ def show_gui():
             zenity_permitted = (nozenity_var.get()==0)
         makecheckbox(extra_tab, "Use Classic FilePicker", nozenity_var, 20, tooltiptxt="Use the classic TKinter file picker instead.")
         nozenity_var.trace_add("write", togglezenity)
+
+    extra_terminal_process = None
+    def showtermlogs():
+        nonlocal extra_terminal_process
+        try:
+            if extra_terminal_process and extra_terminal_process.poll() is None:
+                print("Error: Secondary terminal already running.")
+                return
+            if sys.platform == "linux":
+                # Create an unnamed pipe, launch a terminal that reads from the read-end FD
+                r, w = os.pipe()
+                extra_terminal_process = subprocess.Popen(["xterm", "-hold","-e", f"bash -c 'cat <&{r}'"], pass_fds=[r])
+                writer = os.fdopen(w, "w", buffering=1)
+                redirector = StdoutRedirector(writer)
+                sys.stdout = redirector
+                print("--- Secondary Linux Terminal Active ---")
+            else:
+                print("Error: Secondary Terminal Not Supported on this Platform")
+        except Exception as e:
+            print(f"Spawn Extra Terminal Failed: {e}")
+    if sys.platform == "linux":
+        makelabel(extra_tab, "Spawn Terminal Logs", 12, 0,tooltiptxt="A simple terminal logger that duplicates the command line output.")
+        ctk.CTkButton(extra_tab , text = "Spawn Terminal", command = showtermlogs ).grid(row=12,column=0, stick="w", padx= 170, pady=2)
 
     # refresh
     runopts_var.trace_add("write", changerunmode)
