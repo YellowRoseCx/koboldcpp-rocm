@@ -144,6 +144,7 @@ static std::vector<logit_bias> logit_biases;
 static bool add_bos_token = true; // if set to false, mmproj handling breaks. dont disable unless you know what you're doing
 static bool load_guidance = false; //whether to enable cfg for negative prompts
 static bool check_slowness = false; //will display a suggestion to use highpriority if slow
+static bool showed_rnn_warning = false;
 static bool highpriority = false;
 
 static int delayed_generated_tokens_limit = 0;
@@ -495,7 +496,11 @@ void ContextRewind(std::vector<int> &embd, std::vector<int> &current_context_tok
     }
     if(file_format == FileFormat::RWKV_1 || file_format==FileFormat::RWKV_2 || is_recurrent)
     {
-        printf("\nWARNING: RNN models do not support context rewind!\n");
+        if(!showed_rnn_warning)
+        {
+            showed_rnn_warning = true;
+            printf("\nWARNING: RNN models do not support context rewind!\n");
+        }
         return;
     }
 
@@ -3200,6 +3205,7 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
         llama_perf_context_reset(llama_ctx_v4);
     }
 
+    showed_rnn_warning = false;
     generation_finished = false; // Set current generation status
     generated_tokens.clear(); // New Generation, new tokens
     delayed_generated_tokens.clear();
