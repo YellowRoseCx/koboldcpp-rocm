@@ -266,7 +266,7 @@ public:
         bool iswan = (tempver==VERSION_WAN2 || tempver==VERSION_WAN2_2_I2V || tempver==VERSION_WAN2_2_TI2V);
         bool isqwenimg = (tempver==VERSION_QWEN_IMAGE);
 
-        //kcpp qol fallback: if qwen image, and they loaded the qwen2vl as t5 by mistake
+        //kcpp qol fallback: if qwen image, and they loaded the qwen2vl llm as t5 by mistake
         if(isqwenimg && t5_path_fixed!="")
         {
             if(clipl_path_fixed=="" && clipg_path_fixed=="")
@@ -301,8 +301,8 @@ public:
             }
             if(isqwenimg)
             {
-                prefix = "text_encoders.qwen2vl.";
-                LOG_INFO("swap qwen2vl from '%s'", clipl_path_fixed.c_str());
+                prefix = "text_encoders.llm.";
+                LOG_INFO("swap llm from '%s'", clipl_path_fixed.c_str());
             }
             if (!model_loader.init_from_file(clipl_path_fixed.c_str(), prefix)) {
                 LOG_WARN("loading clip_l from '%s' failed", clipl_path_fixed.c_str());
@@ -319,8 +319,8 @@ public:
             }
             if(isqwenimg)
             {
-                prefix = "text_encoders.qwen2vl.visual.";
-                LOG_INFO("swap qwen2vl mmproj from '%s'", clipg_path_fixed.c_str());
+                prefix = "text_encoders.llm.visual.";
+                LOG_INFO("swap llm mmproj from '%s'", clipg_path_fixed.c_str());
             }
             if (!model_loader.init_from_file(clipg_path_fixed.c_str(), prefix)) {
                 LOG_WARN("loading clip_g from '%s' failed", clipg_path_fixed.c_str());
