@@ -2787,6 +2787,8 @@ ws ::= | " " | "\n" [ \t]{0,20}
             tools_message_end = adapter_obj.get("tools_end", "")
             images_added = []
             audio_added = []
+            continue_assistant_turn = genparams.get('continue_assistant_turn', False)
+            latest_turn_was_assistant = False
 
             # handle structured outputs
             respformat = genparams.get('response_format', None)
@@ -2837,12 +2839,14 @@ ws ::= | " " | "\n" [ \t]{0,20}
 
                 for message in messages_array:
                     message_index += 1
+                    latest_turn_was_assistant = False
                     if message['role'] == "system":
                         messages_string += system_message_start
                     elif message['role'] == "user":
                         messages_string += user_message_start
                     elif message['role'] == "assistant":
                         messages_string += assistant_message_start
+                        latest_turn_was_assistant = True
                     elif message['role'] == "tool":
                         messages_string += tools_message_start
                         tcid = message.get("tool_call_id","")
@@ -2922,7 +2926,8 @@ ws ::= | " " | "\n" [ \t]{0,20}
                     elif message['role'] == "tool":
                         messages_string += tools_message_end
                 messages_string += assistant_message_gen
-
+                if (latest_turn_was_assistant and continue_assistant_turn): #allow continue a prefill, chop off end
+                    messages_string = messages_string[:-(len(assistant_message_gen)+len(assistant_message_end))]
             genparams["prompt"] = messages_string
             if len(images_added)>0:
                 genparams["images"] = images_added
@@ -4459,6 +4464,10 @@ Change Mode<br>
                     tmptools = genparams.get('tools', [])
                     if tmptools and len(tmptools) > 0:
                         use_jinja = False # not allowed to use tools with jinja
+
+                # payload modifications for lcpp endpoint. we detect this by the timings_per_token field existing
+                if "timings_per_token" in genparams:
+                    genparams["continue_assistant_turn"] = True
 
                 printablegenparams_raw = truncate_long_json(genparams,trunc_len)
                 utfprint("\nInput: " + json.dumps(printablegenparams_raw,ensure_ascii=False),1)
@@ -6320,6 +6329,7 @@ def show_gui():
         args.admindir = admin_dir_var.get()
         args.adminpassword = admin_password_var.get()
         args.singleinstance = (singleinstance_var.get()==1)
+        args.showgui = False #prevent showgui from leaking into configs, its cli only
 
     def import_vars(dict):
         global importvars_in_progress
