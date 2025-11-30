@@ -2543,6 +2543,21 @@ def extract_all_names_from_tool_array(tools_array):
             pass
     return toolnames
 
+def strip_oaicontent_of_media(oaicontent):
+    if isinstance(oaicontent, list):
+        outarr = []
+        for x in oaicontent:
+            if not isinstance(x, dict):
+                outarr.append({"type": "unknown", "data": "(base64 data attached)"})
+                continue
+            xtype = x.get("type","data")
+            if xtype=="text":
+                outarr.append(x)
+            else:
+                outarr.append({"type":xtype, "data":"(base64 data attached)"})
+        return outarr
+    return oaicontent
+
 #returns the found JSON of the correct tool to use, or None if no tool is suitable
 def determine_tool_json_to_use(genparams, curr_ctx, assistant_message_start, is_followup_tool):
     # tools handling: Check if user is passing a openai tools array, if so add to end of prompt before assistant prompt unless tool_choice has been set to None
@@ -2565,6 +2580,7 @@ def determine_tool_json_to_use(genparams, curr_ctx, assistant_message_start, is_
         for message in reversed_messages:
             if message["role"] == "user":
                 last_user_message = message["content"]
+                last_user_message = strip_oaicontent_of_media(last_user_message)
                 last_user_message = f"\n\nUser's current request: {last_user_message}"
                 break
         tool_call_chunk = []
