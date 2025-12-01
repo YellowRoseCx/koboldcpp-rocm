@@ -1,13 +1,15 @@
 # decode_hex_to_text.py
-
+print("Starting...")
 def hexfile_to_text(input_file, output_file):
     # Read the file and strip whitespace
+    print(f"Reading {input_file}")
     with open(input_file, "r") as f:
         data = f.read()
 
+    print("Processing 1...")
     # Split into tokens like ["0x7b", "0x22", "0x76", ...]
     hex_values = data.replace("\n", " ").split(",")
-
+    print("Processing 2...")
     # Convert each hex string to a character
     bytes_list = []
     for h in hex_values:
@@ -15,13 +17,14 @@ def hexfile_to_text(input_file, output_file):
         if h:  # skip empty entries
             # interpret as hex (remove "0x")
             bytes_list.append(int(h, 16))
-
+    print("Processing 3...")
     # Build the byte array
     raw_bytes = bytearray(bytes_list)
-
+    print("Processing 4...")
     # Decode as UTF-8 text
     text = raw_bytes.decode("utf-8")
-
+    print("Processing 5...")
+    print(f"Writing {output_file}")
     # Write to output file
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(text)
