@@ -138,10 +138,10 @@ bool is_unused_tensor(std::string name) {
 std::string kcpp_fix_wrong_img_tensor_name(const std::string& name) //kcpp function that fixes common wrong tensor names
 {
     if (starts_with(name, "text_encoders.qwen25_7b.transformer.model.")) {
-        return "text_encoders.qwen2vl.model." + name.substr(strlen("text_encoders.qwen25_7b.transformer.model."));
+        return "text_encoders.llm.model." + name.substr(strlen("text_encoders.qwen25_7b.transformer.model."));
     }
     if (starts_with(name, "text_encoders.qwen25_7b.transformer.visual.")) {
-        return "text_encoders.qwen2vl.visual." + name.substr(strlen("text_encoders.qwen25_7b.transformer.visual."));
+        return "text_encoders.llm.visual." + name.substr(strlen("text_encoders.qwen25_7b.transformer.visual."));
     }
     if (starts_with(name, "text_encoders.umt5xxl.")) {
         return "text_encoders.t5xxl." + name.substr(strlen("text_encoders.umt5xxl."));

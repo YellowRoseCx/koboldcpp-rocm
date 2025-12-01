@@ -177,7 +177,7 @@ std::string sd_load_mistral_vocab_json()
     if (!mistralvocabstr.empty()) {
         return mistralvocabstr;  // already loaded
     }
-    std::string filepath = executable_path + "embd_res/mistral2_vocab_utf8_c_str.embd";
+    std::string filepath = executable_path + "embd_res/mistral2_vocab_json.embd";
     mistralvocabstr = read_str_from_disk(filepath);
     return mistralvocabstr;
 }
