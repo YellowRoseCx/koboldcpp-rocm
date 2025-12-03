@@ -4051,6 +4051,15 @@ Current version indicated by LITEVER below.
 		"system_end":"<|end_of_text|>\\n",
 	},
 	{
+		"name":"Kimi ChatML",
+		"user":"<|im_user|>user<|im_middle|>",
+		"user_end":"<|im_end|>",
+		"assistant":"<|im_assistant|>assistant<|im_middle|>",
+		"assistant_end":"<|im_end|>",
+		"system":"<|im_system|>system<|im_middle|>",
+		"system_end":"<|im_end|>",
+	},
+	{
 		"name":"Llama 2 Chat",
 		"user":"[INST] ",
 		"user_end":"",
@@ -21925,7 +21934,7 @@ Current version indicated by LITEVER below.
 			let box2 = document.getElementById("chat_msg_body");
 			let box3 = document.getElementById("corpostylemain");
 			function isScrolledToBottom(element) {
-				return element.scrollHeight - element.scrollTop - element.clientHeight <= (autoscrollEnabled?220:60);
+				return element.scrollHeight - element.scrollTop - element.clientHeight <= (autoscrollEnabled?180:60);
 			}
 			suppressScrollEvent = true;
 			if(alwaysscroll || isScrolledToBottom(box1))
