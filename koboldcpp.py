@@ -6052,7 +6052,7 @@ def show_gui():
         kcpp_exporting_template = True
         export_vars()
         kcpp_exporting_template = False
-        savdict = json.loads(json.dumps(args.__dict__))
+        savdict = json.loads(json.dumps(args.__dict__,indent=2))
         file_type = [("KoboldCpp LaunchTemplate", "*.kcppt")]
         #remove blacklisted fields
         savdict = convert_args_to_template(savdict)
@@ -6063,7 +6063,7 @@ def show_gui():
         if not filenamestr.endswith(".kcppt"):
             filenamestr += ".kcppt"
         file = open(filenamestr, 'w')
-        file.write(json.dumps(savdict))
+        file.write(json.dumps(savdict,indent=2))
         file.close()
         pass
 
@@ -6580,7 +6580,7 @@ def show_gui():
         nonlocal kcpp_exporting_template
         kcpp_exporting_template = False
         export_vars()
-        savdict = json.loads(json.dumps(args.__dict__))
+        savdict = json.loads(json.dumps(args.__dict__,indent=2))
         file_type = [("KoboldCpp Settings", "*.kcpps")]
         filename = zentk_asksaveasfilename(filetypes=file_type, defaultextension=".kcpps",title="Save kcpps settings config file")
         if not filename:
@@ -6589,7 +6589,7 @@ def show_gui():
         if not filenamestr.lower().endswith(".kcpps"):
             filenamestr += ".kcpps"
         file = open(filenamestr, 'w')
-        file.write(json.dumps(savdict))
+        file.write(json.dumps(savdict,indent=2))
         file.close()
         pass
 
