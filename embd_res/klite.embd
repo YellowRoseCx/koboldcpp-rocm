@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 300;
+	const LITEVER = 301;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -3744,7 +3744,7 @@ Current version indicated by LITEVER below.
 		saved_palm_jailbreak:"", //gemini system prompt
 		saved_palm_jailbreak2:"", //gemini postfix
 		saved_openrouter_provider:"", //for overriding provider
-		saved_openrouter_reasoning:0, //enable or disable openrouter thinking, 0=default, 1=disable, 2=enable
+		saved_oai_reasoning:"", //if set, reasoning level "none,minimal,low,medium,high", else default
 		saved_oai_custommodel: "", //customized oai custom model
 		saved_oai_role: 3, //0=user,1=assistant,2=system, 3=auto
 		saved_a1111_url: default_a1111_base,
@@ -11822,6 +11822,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("oaidesc").classList.add("hidden");
 			document.getElementById("pollinationsdesc").classList.add("hidden");
 			document.getElementById("openrouterproviderbox").classList.add("hidden");
+			document.getElementById("oaireasoningeffort").value = localsettings.saved_oai_reasoning;
 			if(epchoice==2)
 			{
 				document.getElementById("oaidesc").classList.remove("hidden");
@@ -11841,7 +11842,6 @@ Current version indicated by LITEVER below.
 				document.getElementById("openrouterproviderbox").classList.remove("hidden");
 				document.getElementById("custom_oai_endpoint").value = default_openrouter_base;
 				document.getElementById("openrouterproviders").value = localsettings.saved_openrouter_provider;
-				document.getElementById("openrouterreasoning").value = localsettings.saved_openrouter_reasoning;
 				document.getElementById("custom_oai_key").value =(localsettings.saved_openrouter_key==dummy_api_key?"":localsettings.saved_openrouter_key);
 				try_fetch_oai_models_auto();
 			}
@@ -12417,8 +12417,8 @@ Current version indicated by LITEVER below.
 				{
 					localsettings.saved_openrouter_key = custom_oai_key;
 					localsettings.saved_openrouter_provider = document.getElementById("openrouterproviders").value;
-					localsettings.saved_openrouter_reasoning = document.getElementById("openrouterreasoning").value;
 				}
+				localsettings.saved_oai_reasoning = document.getElementById("oaireasoningeffort").value;
 				localsettings.saved_oai_jailbreak = document.getElementById("jailbreakprompttext").value;
 				if(localsettings.saved_oai_jailbreak=="")
 				{
@@ -16169,7 +16169,7 @@ Current version indicated by LITEVER below.
 			{
 				image_db[imgid].aspect = 2; //landscape
 			}
-		}, false, imgres,0.35,true);
+		}, false, imgres,0.45,true);
 	}
 
 	function self_upload_audio(origAudio,filename,modify_curr_turn=false)
@@ -18438,13 +18438,13 @@ Current version indicated by LITEVER below.
 					}
 				}
 
-				if (document.getElementById("useoaichatcompl").checked) {
-
-					// let reasoneffort = document.getElementById("oaireasoningeffort").value;
-					// if(reasoneffort && reasoneffort!="none")
-					// {
-					// 	oai_payload.reasoning_effort = reasoneffort;
-					// }
+				if (document.getElementById("useoaichatcompl").checked)
+				{
+					let reasoneffort = document.getElementById("oaireasoningeffort").value;
+					if(reasoneffort && reasoneffort!="")
+					{
+						oai_payload.reasoning_effort = reasoneffort;
+					}
 
 					let mainoaibody = submit_payload.prompt; //can be string or array
 					if(insertAIVisionImages.length>0 || insertAIAudioSounds.length>0)
@@ -18620,10 +18620,15 @@ Current version indicated by LITEVER below.
 							"allow_fallbacks": false, //always explicitly selected
 						};
 					}
-					let reasonselect = document.getElementById("openrouterreasoning").value;
-					if(reasonselect!=0)
+
+					if(oai_payload.reasoning_effort && oai_payload.reasoning_effort!="") //adapt reasoning effort for openrouter
 					{
-						oai_payload.reasoning = {"enabled":(reasonselect==2?true:false)};
+						oai_payload.reasoning = {"enabled":(oai_payload.reasoning_effort=="none"?false:true)};
+						if(oai_payload.reasoning_effort!="none")
+						{
+							oai_payload.reasoning.effort = oai_payload.reasoning_effort;
+						}
+						delete oai_payload["reasoning_effort"];
 					}
 				}
 
@@ -20508,7 +20513,7 @@ Current version indicated by LITEVER below.
 		}
 	}
 
-	function compressImage(inputDataUri, onDone, fixedSize=true, maxSize=NO_HD_RES_PX, quality = 0.35, letterboxAspect=false) {
+	function compressImage(inputDataUri, onDone, fixedSize=true, maxSize=NO_HD_RES_PX, quality = 0.45, letterboxAspect=false) {
 		let img = document.createElement('img');
 		let wantedWidth = maxSize;
 		let wantedHeight = maxSize;
@@ -25241,7 +25246,7 @@ Current version indicated by LITEVER below.
 			newbodystr += ` style='flex: 1; display:flex; padding: ${as.padding()}; margin: ${as.margin()}; min-height:${as.background_minHeight}px;`
 			+ ` font-size: ${as.font_size}px; flex-direction:column; align-items: ${as.centerHorizontally ? 'center' : 'flex-start'};`
 			+ ` justify-content: center; border-radius: ${as.rounded_bubbles ? '15px' : '0px'}'>`
-			+ `<span>${namepart}${curr.msg}</span></div></div>`;
+			+ `<div>${namepart}${curr.msg}</div></div></div>`;
 		}
 
 		return portraitsStyling + newbodystr.replaceAll(/(\r\n|\r|\n)/g,'<br>'); // Finally, convert newlines to HTML format and return the stylized string.
@@ -28228,12 +28233,14 @@ Current version indicated by LITEVER below.
 					<div class="box-label" style="padding:4px" title="Add Prefix. Forcefully inserts extra text at the start of the prompt to steer the AI.">Add Prefix</div>
 					<input type="checkbox" title="Add Postfix Prompt" id="jailbreakprompt2" onchange="togglejailbreak2()">
 					<div class="box-label" style="padding:4px" title="Add Postfix. Forcefully inserts extra text to before the AI response to steer the AI.">Add Postfix</div>
-					<!-- <select title="Reasoning Effort" class="form-control" style="height: 22px; font-size:10px; padding:2px;display:inline;width:120px" id="oaireasoningeffort">
-						<option value="none" selected>Reasoning: Unset</option>
+					<select title="Reasoning Effort" class="form-control" style="height: 22px; font-size:10px; padding:2px;display:inline;width:120px" id="oaireasoningeffort">
+						<option value="" selected>Reasoning: Default</option>
+						<option value="none">Reasoning: None</option>
+						<option value="minimal">Reasoning: Minimal</option>
 						<option value="low">Reasoning: Low</option>
 						<option value="medium">Reasoning: Medium</option>
 						<option value="high">Reasoning: High</option>
-					</select> -->
+					</select>
 					</div>
 					<div style="display:flex" id="oaijailbreakpromptblock1">
 					<select title="Injected Prefix Message Role" class="form-control" style="height: 25px; font-size:12px; padding:4px;display:inline;width:100px" id="jailbreakprompttextrole">
@@ -28256,15 +28263,7 @@ Current version indicated by LITEVER below.
 					</div>
 				</div>
 				<div id="openrouterproviderbox" class="hidden">
-					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 256px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
-					<div id="openrouterreasoningbox" style="display:inline;">
-						<div style="padding-left:2px;padding-right:2px" class="box-label">Thinking</div>
-						<select title="Thinking Settings" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:3px;display:inline;width:72px" id="openrouterreasoning">
-						<option value="0" selected>Default</option>
-						<option value="1">Disable</option>
-						<option value="2">Enable</option>
-						</select>
-					</div>
+					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 110px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
 				</div>
 
 			</div>
