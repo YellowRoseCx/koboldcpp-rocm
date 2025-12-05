@@ -3782,7 +3782,7 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
         {
             if(kcpp_data->use_fastforward)
             {
-                ContextFastForward(current_context_tokens, embd_inp, n_past, last_n_tokens, nctx, smartcontext, false, true);
+                ContextFastForward(current_context_tokens, embd_inp, n_past, last_n_tokens, nctx, smartcontext, false, true, 0);
             }
         }
         if(is_recurrent)
@@ -3830,12 +3830,19 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
             }
             if(kcpp_data->use_fastforward)
             {
-                ContextFastForward(current_context_tokens, embd_inp, n_past, last_n_tokens, nctx, smartcontext, triggersc, false);
+                ContextFastForward(current_context_tokens, embd_inp, n_past, last_n_tokens, nctx, smartcontext, triggersc, false, 4);
             }
         }
         if(file_format == FileFormat::GGUF_GENERIC)
         {
-            llama_memory_seq_rm(llama_get_memory(llama_ctx_v4), 0, n_past, -1);
+            if(n_past==0) //force full clear
+            {
+                llama_memory_clear(llama_get_memory(llama_ctx_v4),true);
+            }
+            else
+            {
+                llama_memory_seq_rm(llama_get_memory(llama_ctx_v4), 0, n_past, -1);
+            }
             if(draft_ctx)
             {
                 llama_memory_seq_rm(llama_get_memory(draft_ctx), 0, n_past, -1);
