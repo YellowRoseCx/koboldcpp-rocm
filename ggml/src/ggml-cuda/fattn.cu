@@ -12,13 +12,13 @@ static void ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1(ggml_backend_cuda_con
     const ggml_tensor * Q = dst->src[0];
 
     if constexpr (ncols2 <= 8) {
-        if (Q->ne[1] <= 8/ncols2) {
+        if (turing_mma_available(cc) && Q->ne[1] <= 8/ncols2) {
             ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 8/ncols2, ncols2>(ctx, dst);
             return;
         }
     }
 
-    if (Q->ne[1] <= 16/ncols2) {
+    if (turing_mma_available(cc) && Q->ne[1] <= 16/ncols2) {
         ggml_cuda_flash_attn_ext_mma_f16_case<DKQ, DV, 16/ncols2, ncols2>(ctx, dst);
         return;
     }
@@ -41,7 +41,7 @@ static void ggml_cuda_flash_attn_ext_mma_f16_switch_ncols2(ggml_backend_cuda_con
     float max_bias = 0.0f;
     memcpy(&max_bias, (const float *) KQV->op_params + 1, sizeof(float));
 
-    const bool use_gqa_opt = mask && max_bias == 0.0f;
+    const bool use_gqa_opt = mask && max_bias == 0.0f && K->ne[1] % FATTN_KQ_STRIDE == 0;
 
     GGML_ASSERT(Q->ne[2] % K->ne[2] == 0);
     const int gqa_ratio = Q->ne[2] / K->ne[2];
@@ -220,12 +220,6 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
 
     const int cc = ggml_cuda_info().devices[device].cc;
 
-    // #if defined(GGML_HIP_ROCWMMA_FATTN)
-    // if (GGML_CUDA_CC_IS_AMD(cc) && ggml_cuda_should_use_wmma_fattn(cc)) { //kcpp: fix for rocwmma
-    //     return BEST_FATTN_KERNEL_WMMA_F16;
-    // }
-    // #endif // defined(GGML_HIP_ROCWMMA_FATTN)
-
     switch (K->ne[0]) {
         case  40:
         case  64:
@@ -281,8 +275,8 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
     // For small batch sizes the vector kernel may be preferable over the kernels optimized for large batch sizes:
     const bool can_use_vector_kernel = Q->ne[0] <= 256 && Q->ne[0] % 64 == 0 && K->ne[1] % FATTN_KQ_STRIDE == 0;
 
-    // If Turing tensor cores available, use them:
-    if (turing_mma_available(cc) && K->ne[1] % FATTN_KQ_STRIDE == 0 && Q->ne[0] != 40 && Q->ne[0] != 72) {
+    // If Turing tensor cores are available, use them:
+    if (turing_mma_available(cc) && Q->ne[0] != 40 && Q->ne[0] != 72) {
         if (can_use_vector_kernel) {
             if (!ggml_is_quantized(K->type) && !ggml_is_quantized(V->type)) {
                 if (cc >= GGML_CUDA_CC_ADA_LOVELACE && Q->ne[1] == 1 && Q->ne[3] == 1 && !(gqa_ratio > 4 && K->ne[1] >= 8192)) {
@@ -303,43 +297,18 @@ static best_fattn_kernel ggml_cuda_get_best_fattn_kernel(const int device, const
                 return BEST_FATTN_KERNEL_VEC;
             }
         }
-
-        //kcpp: use wmma to fix cu11 incoherence
-        if (ggml_cuda_should_use_wmma_fattn(cc) && (ggml_cuda_highest_compiled_arch(cc) <= GGML_CUDA_CC_TURING || cc == GGML_CUDA_CC_TURING)) {
-            if(Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) //kcpp: these sizes not supported in wmma
-            {
-                return BEST_FATTN_KERNEL_WMMA_F16;
-            }
-            else
-            {
-                return BEST_FATTN_KERNEL_NONE;
-            }
-        }
-
         return BEST_FATTN_KERNEL_MMA_F16;
     }
 
-    // Use the WMMA kernel if possible:
+    // Use the WMMA kernel if possible but only for HIP
+#if defined(GGML_HIP_ROCWMMA_FATTN)
     if (ggml_cuda_should_use_wmma_fattn(cc) && K->ne[1] % FATTN_KQ_STRIDE == 0 && Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) {
         if (can_use_vector_kernel && Q->ne[1] <= 2) {
             return BEST_FATTN_KERNEL_VEC;
         }
         return BEST_FATTN_KERNEL_WMMA_F16;
     }
-
-    //kcpp: always force WMMA for Turing and Volta if above check fails, fix "FlashAttention without tensor cores only supports head sizes 64 and 128."
-    if (cc == GGML_CUDA_CC_TURING || cc == GGML_CUDA_CC_VOLTA) {
-        if(Q->ne[0] != 40 && Q->ne[0] != 72 && Q->ne[0] != 576) //kcpp: these sizes not supported in wmma
-        {
-            return BEST_FATTN_KERNEL_WMMA_F16;
-        } else {
-            return BEST_FATTN_KERNEL_NONE;
-        }
-    }
-    //kcpp: patch from previous version for my sanity. it worked before, idk it should work now.
-    if ((Q->ne[1] <= 8 || Q->ne[0] == 256) && can_use_vector_kernel) {
-        return BEST_FATTN_KERNEL_VEC;
-    }
+#endif // defined(GGML_HIP_ROCWMMA_FATTN)
 
     // If there are no tensor cores available, use the generic tile kernel:
     if (can_use_vector_kernel) {
