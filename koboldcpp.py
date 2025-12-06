@@ -3904,7 +3904,7 @@ Change Mode<br>
         if response_body is None:
             self.send_response(404)
             self.end_headers(content_type='text/html')
-            rp = f"Error: KoboldCpp HTTP Server is running, but this endpoint does not exist. Please check the URL.<br>Current path: {self.path}"
+            rp = f"Error: KoboldCpp HTTP Server is running, but this endpoint does not exist. Please check the URL and METHOD.<br><a href=\"/api\">[Read API documentation here]</a><br><br>Current path: {self.path}"
             self.wfile.write(rp.encode())
         else:
             self.send_response(200)
