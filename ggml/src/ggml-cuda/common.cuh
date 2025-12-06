@@ -237,7 +237,7 @@ static const char * cu_get_error_str(CUresult err) {
 
 // The Volta instructions are in principle available on Turing or newer but they are effectively unusable:
 #if !defined(GGML_USE_HIP) && __CUDA_ARCH__ == GGML_CUDA_CC_VOLTA
-#define VOLTA_MMA_AVAILABLE
+// #define VOLTA_MMA_AVAILABLE
 #endif // !defined(GGML_USE_HIP) && __CUDA_ARCH__ == GGML_CUDA_CC_VOLTA
 
 #if !defined(GGML_USE_HIP) && __CUDA_ARCH__ >= GGML_CUDA_CC_TURING
@@ -275,7 +275,7 @@ static bool fast_fp16_hardware_available(const int cc) {
 
 // To be used for feature selection of external libraries, e.g. cuBLAS.
 static bool fp16_mma_hardware_available(const int cc) {
-    return (GGML_CUDA_CC_IS_NVIDIA(cc) && cc >= GGML_CUDA_CC_VOLTA) ||
+    return (GGML_CUDA_CC_IS_NVIDIA(cc) && cc > GGML_CUDA_CC_VOLTA) ||
         GGML_CUDA_CC_IS_CDNA(cc) || GGML_CUDA_CC_IS_RDNA3(cc) || GGML_CUDA_CC_IS_RDNA4(cc) ||
         (GGML_CUDA_CC_IS_MTHREADS(cc) && cc >= GGML_CUDA_CC_QY2);
 }
@@ -303,7 +303,8 @@ static bool amd_wmma_available(const int cc) {
 }
 
 static bool volta_mma_available(const int cc) {
-    return GGML_CUDA_CC_IS_NVIDIA(cc) && ggml_cuda_highest_compiled_arch(cc) == GGML_CUDA_CC_VOLTA;
+    return false;
+    // return GGML_CUDA_CC_IS_NVIDIA(cc) && ggml_cuda_highest_compiled_arch(cc) == GGML_CUDA_CC_VOLTA;
 }
 
 static bool turing_mma_available(const int cc) {
