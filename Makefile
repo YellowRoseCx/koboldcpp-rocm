@@ -226,7 +226,6 @@ NVCCFLAGS += -Wno-deprecated-gpu-targets \
              -gencode arch=compute_35,code=compute_35 \
              -gencode arch=compute_50,code=compute_50 \
              -gencode arch=compute_61,code=compute_61 \
-             -gencode arch=compute_70,code=compute_70 \
              -gencode arch=compute_75,code=compute_75 \
              -DKCPP_LIMIT_CUDA_MAX_ARCH=750
 
@@ -234,7 +233,6 @@ else ifdef LLAMA_ARCHES_CU12
 NVCCFLAGS += -Wno-deprecated-gpu-targets \
              -gencode arch=compute_50,code=compute_50 \
              -gencode arch=compute_61,code=compute_61 \
-             -gencode arch=compute_70,code=compute_70 \
              -gencode arch=compute_75,code=compute_75 \
              -gencode arch=compute_80,code=compute_80 \
 			 -DKCPP_LIMIT_CUDA_MAX_ARCH=800
