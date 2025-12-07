@@ -79,7 +79,7 @@
 </script>
 
 <svelte:head>
-	<title>llama.cpp - AI Chat Interface</title>
+	<title>llama.cpp UI (KoboldCpp Backend)</title>
 </svelte:head>
 
 <ChatScreen showCenteredEmpty={true} />

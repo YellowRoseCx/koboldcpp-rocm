@@ -3833,7 +3833,7 @@ Change Mode<br>
         elif self.path.endswith(('/.well-known/serviceinfo')):
             response_body = (json.dumps({"version":"0.2","software":{"name":"KoboldCpp","version":KcppVersion,"repository":"https://github.com/LostRuins/koboldcpp","homepage":"https://github.com/LostRuins/koboldcpp","logo":"https://raw.githubusercontent.com/LostRuins/koboldcpp/refs/heads/concedo/niko.ico"},"api":{"koboldai":{"name":"KoboldAI API","rel_url":"/api","documentation":"https://lite.koboldai.net/koboldcpp_api","version":KcppVersion},"openai":{"name":"OpenAI API","rel_url ":"/v1","documentation":"https://openai.com/documentation/api","version":KcppVersion}}}).encode())
 
-        elif self.path=="/props":
+        elif self.path.split("?")[0]=="/props":
             response_body = (json.dumps({
                 "chat_template": cached_chat_template,
                 "id": 0,
