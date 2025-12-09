@@ -140,3 +140,4 @@ size_t gpttype_calc_old_state_tokencount(int slot);
 size_t gpttype_save_state_kv(int slot);
 bool gpttype_load_state_kv(int slot);
 bool gpttype_clear_state_kv(bool shrink);
+int get_oldest_slot(int excludeSlotId);

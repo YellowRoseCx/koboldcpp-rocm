@@ -58,6 +58,7 @@ struct kcpp_params {
     bool use_contextshift            = false;
     bool use_fastforward             = false;
     bool swa_full                    = true;
+    bool smartcache                  = false;
 };
 
 // default hparams (GPT-J 6B)
@@ -532,6 +533,7 @@ struct savestate_data
     size_t current_draft_savestate_size = 0;
     std::vector<uint8_t> current_draft_savestate_buffer;
     std::vector<gpt_vocab::id> savestate_context_tokens; //for context clones
+    int64_t last_used = 0; //unix timestamp, updated on save or load
 };
 
 const float default_norm_eps = 1e-5f;
