@@ -3810,11 +3810,16 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
     bool blank_prompt = (addedmemory=="" && kcpp_data->prompt=="");
 
     //smart cache logic
-    if(kcpp_data->smartcache)
+    if(kcpp_data->smartcache && file_format==FileFormat::GGUF_GENERIC)
     {
+        bool shiftable = true;
+        if(!kcpp_data->use_contextshift || is_recurrent)
+        {
+            shiftable = false;
+        }
         const float similarity_threshold = 0.7f;
         //If CanBeShifted is true, do nothing. Allow shift as normal.
-        if(!CanContextShift(current_context_tokens, embd_inp, inputs.max_length, nctx))
+        if(!(shiftable && CanContextShift(current_context_tokens, embd_inp, inputs.max_length, nctx)))
         {
             // If CanBeShifted is false, calculate prefix similarity with current_context_tokens of current context
             // If similarity > similarity_threshold, do nothing. Allow fast forward as normal.
@@ -3829,7 +3834,7 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
                 for(int i=0;i<savestate_limit;++i)
                 {
                     float similaritybeat = ComputePrefixMatchPercent(savestates[i].savestate_context_tokens,embd_inp);
-                    if(similaritybeat > similarity_threshold || CanContextShift(savestates[i].savestate_context_tokens, embd_inp, inputs.max_length, nctx))
+                    if(similaritybeat > similarity_threshold || (shiftable && CanContextShift(savestates[i].savestate_context_tokens, embd_inp, inputs.max_length, nctx)))
                     {
                         //found a match. save to the oldest slot thats not the one we are loading
                         int oldest_slot = get_oldest_slot(i);
