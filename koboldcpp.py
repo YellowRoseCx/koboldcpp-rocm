@@ -3804,6 +3804,8 @@ Change Mode<br>
                 response_body = (json.dumps([]).encode())
             else:
                 response_body = (json.dumps([friendlysdmodelname]).encode())
+        elif clean_path=='/api/models/loras' or clean_path=='/models/loras':
+            response_body = (json.dumps([]).encode())
         elif clean_path=='/view' or clean_path=='/view.png' or clean_path=='/api/view' or clean_path.startswith('/view_image'): #emulate comfyui
             content_type = 'image/png'
             response_body = lastgeneratedcomfyimg
