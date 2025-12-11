@@ -662,7 +662,8 @@ static bool ggml_is_view_op(enum ggml_op op) {
 #endif
 
 #ifndef GGML_SCHED_MAX_COPIES
-#define GGML_SCHED_MAX_COPIES 4
+//kcpp reduced from 4 to 2 to try make buffer sizes smaller on multigpu
+#define GGML_SCHED_MAX_COPIES 2
 #endif
 
 struct ggml_backend_sched_split {
