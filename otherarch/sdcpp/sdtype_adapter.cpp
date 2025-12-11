@@ -784,16 +784,16 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
         }
     }
 
-    if(loadedsdver == SDVersion::VERSION_Z_IMAGE)
-    {
-        if(sd_params->cfg_scale > 3.0f)
-        {
-            if (!sd_is_quiet && sddebugmode) {
-                printf("Z-Image: clamping CFG Scale to 3.0 to preserve quality\n");
-            }
-            sd_params->cfg_scale = 3.0f;
-        }
-    }
+    // if(loadedsdver == SDVersion::VERSION_Z_IMAGE)
+    // {
+    //     if(sd_params->cfg_scale > 3.0f)
+    //     {
+    //         if (!sd_is_quiet && sddebugmode) {
+    //             printf("Z-Image: clamping CFG Scale to 3.0 to preserve quality\n");
+    //         }
+    //         sd_params->cfg_scale = 3.0f;
+    //     }
+    // }
 
     if(is_wan && extra_image_data.size()==0 && is_img2img)
     {
