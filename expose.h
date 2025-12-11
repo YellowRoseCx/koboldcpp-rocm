@@ -76,6 +76,7 @@ struct load_model_inputs
     const bool highpriority = false;
     const bool swa_support = false;
     const bool smartcache = false;
+    const bool pipelineparallel = false;
     const float lora_multiplier = 1.0f;
     const bool quiet = false;
     const int debugmode = 0;

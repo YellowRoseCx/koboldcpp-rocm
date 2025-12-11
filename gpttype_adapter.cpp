@@ -2006,6 +2006,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
     kcpp_data->use_contextshift = inputs.use_contextshift;
     kcpp_data->use_fastforward = inputs.use_fastforward;
     kcpp_data->smartcache = inputs.smartcache;
+    kcpp_pipeline_parallelism = inputs.pipelineparallel;
     if(!kcpp_data->use_fastforward && kcpp_data->smartcache)
     {
         kcpp_data->smartcache = false;

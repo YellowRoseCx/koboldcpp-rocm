@@ -17,6 +17,9 @@
 // llama_context
 //
 
+//kcpp: use a global flag to toggle pipeline parallelism to avoid messing with ctx params
+static bool kcpp_pipeline_parallelism = false;
+
 llama_context::llama_context(
         const llama_model & model,
               llama_context_params params) :
@@ -263,6 +266,11 @@ llama_context::llama_context(
             model.params.split_mode == LLAMA_SPLIT_MODE_LAYER &&
             cparams.offload_kqv &&
             !model.has_tensor_overrides();
+
+        if(!kcpp_pipeline_parallelism)
+        {
+            pipeline_parallel = false;
+        }
 
         // pipeline parallelism requires support for async compute and events in all devices
         if (pipeline_parallel) {

@@ -218,6 +218,7 @@ class load_model_inputs(ctypes.Structure):
                 ("highpriority", ctypes.c_bool),
                 ("swa_support", ctypes.c_bool),
                 ("smartcache", ctypes.c_bool),
+                ("pipelineparallel", ctypes.c_bool),
                 ("lora_multiplier", ctypes.c_float),
                 ("quiet", ctypes.c_bool),
                 ("debugmode", ctypes.c_int)]
@@ -1521,6 +1522,7 @@ def load_model(model_filename):
     inputs.highpriority = args.highpriority
     inputs.swa_support = args.useswa
     inputs.smartcache = args.smartcache
+    inputs.pipelineparallel = args.pipelineparallel
     inputs = set_backend_props(inputs)
     ret = handle.load_model(inputs)
     return ret
@@ -5146,6 +5148,7 @@ def show_gui():
     debugmode = ctk.IntVar()
     keepforeground = ctk.IntVar()
     terminalonly = ctk.IntVar()
+    pipelineparallel = ctk.IntVar()
     quietmode = ctk.IntVar(value=0)
     nocertifymode = ctk.IntVar(value=0)
 
@@ -5828,7 +5831,8 @@ def show_gui():
         "Use mlock": [usemlock, "Enables mlock, preventing the RAM used to load the model from being paged out."],
         "Debug Mode": [debugmode, "Enables debug mode, with extra info printed to the terminal."],
         "Keep Foreground": [keepforeground, "Bring KoboldCpp to the foreground every time there is a new generation."],
-        "CLI Terminal Only": [terminalonly, "Does not launch KoboldCpp HTTP server. Instead, enables KoboldCpp from the command line, accepting interactive console input and displaying responses to the terminal."]
+        "CLI Terminal Only": [terminalonly, "Does not launch KoboldCpp HTTP server. Instead, enables KoboldCpp from the command line, accepting interactive console input and displaying responses to the terminal."],
+        "Pipeline Parallel": [pipelineparallel, "Enable Pipeline Parallelism for faster multigpu speeds but using more memory, only active for multigpu."],
     }
 
     for idx, (name, properties) in enumerate(hardware_boxes.items()):
@@ -6155,6 +6159,7 @@ def show_gui():
         args.remotetunnel = remotetunnel_var.get()==1
         args.foreground = keepforeground.get()==1
         args.cli = terminalonly.get()==1
+        args.pipelineparallel = pipelineparallel.get()==1
         args.quiet = quietmode.get()==1
         args.nocertify = nocertifymode.get()==1
         args.nomodel = nomodel.get()==1
@@ -6377,6 +6382,7 @@ def show_gui():
         remotetunnel_var.set(1 if "remotetunnel" in dict and dict["remotetunnel"] else 0)
         keepforeground.set(1 if "foreground" in dict and dict["foreground"] else 0)
         terminalonly.set(1 if "cli" in dict and dict["cli"] else 0)
+        pipelineparallel.set(1 if "pipelineparallel" in dict and dict["pipelineparallel"] else 0)
         quietmode.set(1 if "quiet" in dict and dict["quiet"] else 0)
         nocertifymode.set(1 if "nocertify" in dict and dict["nocertify"] else 0)
         nomodel.set(1 if "nomodel" in dict and dict["nomodel"] else 0)
@@ -8404,6 +8410,7 @@ if __name__ == '__main__':
     compatgroup2.add_argument("--showgui", help="Always show the GUI instead of launching the model right away when loading settings from a .kcpps file.", action='store_true')
     compatgroup2.add_argument("--skiplauncher", help="Doesn't display or use the GUI launcher. Overrides showgui.", action='store_true')
     advparser.add_argument("--singleinstance", help="Allows this KoboldCpp instance to be shut down by any new instance requesting the same port, preventing duplicate servers from clashing on a port.", action='store_true')
+    advparser.add_argument("--pipelineparallel", help="Enable Pipeline Parallelism for faster multigpu speeds but using more memory, only active for multigpu.", action='store_true')
 
     hordeparsergroup = parser.add_argument_group('Horde Worker Commands')
     hordeparsergroup.add_argument("--hordemodelname", metavar=('[name]'), help="Sets your AI Horde display model name.", default="")
