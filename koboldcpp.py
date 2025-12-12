@@ -1867,7 +1867,7 @@ def sd_comfyui_tranform_params(genparams):
         print("Warning: ComfyUI Payload Missing!")
     return genparams
 
-def sd_process_meta_fields(fields, config):
+def sd_process_meta_fields(fields):
     # aliases to match sd.cpp command-line options
     aliases = {
         'cfg-scale': 'cfg_scale',
@@ -1878,15 +1878,12 @@ def sd_process_meta_fields(fields, config):
     }
     fields_dict = {aliases.get(k, k): v for k, v in fields}
     # whitelist accepted parameters
-    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance']
-    if config:
-        # note the current UI always set these
-        whitelist += ['sampler_name', 'cfg_scale']
+    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance', 'sampler_name', 'cfg_scale', 'add_sd_step_limit', 'add_sd_cfg_limit']
     fields_dict = {k: v for k, v in fields_dict.items() if k in whitelist}
     return fields_dict
 
 # json with top-level dict
-def sd_parse_meta_field(prompt, config=False):
+def sd_parse_meta_field(prompt):
     jfields = {}
     kv_dict = {}
     try:
@@ -1900,7 +1897,7 @@ def sd_parse_meta_field(prompt, config=False):
                 print("Warning: couldn't parse meta prompt; it should be valid JSON.")
         if not isinstance(jfields, dict):
             jfields = {}
-        kv_dict = sd_process_meta_fields(jfields.items(), config)
+        kv_dict = sd_process_meta_fields(jfields.items())
     except Exception:
         pass
     return kv_dict
@@ -1909,7 +1906,7 @@ def sd_parse_meta_field(prompt, config=False):
 def sd_generate(genparams):
     global maxctx, args, currentusergenkey, totalgens, pendingabortkey, chatcompl_adapter
 
-    sdgendefaults = sd_parse_meta_field(args.sdgendefaults or '', config=True)
+    sdgendefaults = sd_parse_meta_field(args.sdgendefaults or '')
     params = dict()
     defparams = dict()
     for k, v in sdgendefaults.items():
@@ -1927,7 +1924,8 @@ def sd_generate(genparams):
     adapter_obj = genparams.get('adapter', default_adapter)
     forced_negprompt = adapter_obj.get("add_sd_negative_prompt", "")
     forced_posprompt = adapter_obj.get("add_sd_prompt", "")
-    forced_steplimit = adapter_obj.get("add_sd_step_limit", 80)
+    forced_steplimit = tryparseint(adapter_obj.get("add_sd_step_limit", genparams.get("add_sd_step_limit",80)),80)
+    forced_maxcfg = tryparsefloat(adapter_obj.get("add_sd_cfg_limit", genparams.get("add_sd_cfg_limit",25)),25)
 
     prompt = genparams.get("prompt", "high quality")
     negative_prompt = genparams.get("negative_prompt", "")
@@ -1972,7 +1970,7 @@ def sd_generate(genparams):
     extra_images_arr = extra_images_arr[:extra_images_max]
 
     #clean vars
-    cfg_scale = (1 if cfg_scale < 1 else (25 if cfg_scale > 25 else cfg_scale))
+    cfg_scale = (1 if cfg_scale < 1 else (forced_maxcfg if cfg_scale > forced_maxcfg else cfg_scale))
     if distilled_guidance is not None and (distilled_guidance < 0 or distilled_guidance > 100):
         distilled_guidance = None # fall back to the default
     if shifted_timestep is not None and (shifted_timestep < 0 or shifted_timestep > 1000):
