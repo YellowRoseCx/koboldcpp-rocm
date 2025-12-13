@@ -708,6 +708,12 @@ def end_trim_to_sentence(input_text):
 def tryparseint(value,fallback):
     if value is None:
         return fallback
+    if isinstance(value, str):
+        lower_value = value.lower()
+        if lower_value == "true":
+            return 1
+        if lower_value == "false":
+            return 0
     try:
         return int(value)
     except ValueError:
