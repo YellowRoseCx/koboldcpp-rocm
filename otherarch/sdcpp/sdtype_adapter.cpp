@@ -109,6 +109,7 @@ static std::string sdmodelfilename = "";
 static bool photomaker_enabled = false;
 
 static bool is_vid_model = false;
+static bool remove_limits = false;
 
 static int get_loaded_sd_version(sd_ctx_t* ctx)
 {
@@ -784,16 +785,16 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
         }
     }
 
-    // if(loadedsdver == SDVersion::VERSION_Z_IMAGE)
-    // {
-    //     if(sd_params->cfg_scale > 3.0f)
-    //     {
-    //         if (!sd_is_quiet && sddebugmode) {
-    //             printf("Z-Image: clamping CFG Scale to 3.0 to preserve quality\n");
-    //         }
-    //         sd_params->cfg_scale = 3.0f;
-    //     }
-    // }
+    if(!remove_limits && loadedsdver == SDVersion::VERSION_Z_IMAGE)
+    {
+        if(sd_params->cfg_scale > 3.0f)
+        {
+            if (!sd_is_quiet && sddebugmode) {
+                printf("Z-Image: clamping CFG Scale to 3.0 to preserve quality\n");
+            }
+            sd_params->cfg_scale = 3.0f;
+        }
+    }
 
     if(is_wan && extra_image_data.size()==0 && is_img2img)
     {
@@ -985,6 +986,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
     int vid_req_frames = inputs.vid_req_frames;
     int vid_req_avi = inputs.vid_req_avi;
     int generated_num_results = 1;
+    remove_limits = inputs.remove_limits;
 
     if(is_vid_model)
     {

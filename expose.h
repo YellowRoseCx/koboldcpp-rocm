@@ -213,6 +213,7 @@ struct sd_generation_inputs
     const int clip_skip = -1;
     const int vid_req_frames = 1;
     const int vid_req_avi = 0;
+    const bool remove_limits = false;
 };
 struct sd_generation_outputs
 {

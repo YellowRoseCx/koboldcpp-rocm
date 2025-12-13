@@ -332,7 +332,8 @@ class sd_generation_inputs(ctypes.Structure):
                 ("scheduler", ctypes.c_char_p),
                 ("clip_skip", ctypes.c_int),
                 ("vid_req_frames", ctypes.c_int),
-                ("vid_req_avi", ctypes.c_int)]
+                ("vid_req_avi", ctypes.c_int),
+                ("remove_limits", ctypes.c_bool)]
 
 class sd_generation_outputs(ctypes.Structure):
     _fields_ = [("status", ctypes.c_int),
@@ -1878,7 +1879,7 @@ def sd_process_meta_fields(fields):
     }
     fields_dict = {aliases.get(k, k): v for k, v in fields}
     # whitelist accepted parameters
-    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance', 'sampler_name', 'cfg_scale', 'add_sd_step_limit', 'add_sd_cfg_limit']
+    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance', 'sampler_name', 'cfg_scale', 'add_sd_step_limit', 'add_sd_cfg_limit', 'remove_limits']
     fields_dict = {k: v for k, v in fields_dict.items() if k in whitelist}
     return fields_dict
 
@@ -1926,6 +1927,7 @@ def sd_generate(genparams):
     forced_posprompt = adapter_obj.get("add_sd_prompt", "")
     forced_steplimit = tryparseint(adapter_obj.get("add_sd_step_limit", genparams.get("add_sd_step_limit",80)),80)
     forced_maxcfg = tryparsefloat(adapter_obj.get("add_sd_cfg_limit", genparams.get("add_sd_cfg_limit",25)),25)
+    allow_remove_limits = tryparseint(adapter_obj.get("remove_limits", genparams.get("remove_limits",0)),0)
 
     prompt = genparams.get("prompt", "high quality")
     negative_prompt = genparams.get("negative_prompt", "")
@@ -2007,6 +2009,7 @@ def sd_generate(genparams):
     inputs.clip_skip = clip_skip
     inputs.vid_req_frames = vid_req_frames
     inputs.vid_req_avi = vid_req_avi
+    inputs.remove_limits = allow_remove_limits
     ret = handle.sd_generate(inputs)
     outstr = ""
     animated = False
