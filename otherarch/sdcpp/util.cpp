@@ -3,6 +3,7 @@
 #include <cmath>
 #include <codecvt>
 #include <cstdarg>
+#include <filesystem>
 #include <fstream>
 #include <locale>
 #include <regex>
@@ -98,18 +99,9 @@ bool is_directory(const std::string& path) {
     return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
 }
 
-std::string get_full_path(const std::string& dir, const std::string& filename) {
-    std::string full_path = dir + "\\" + filename;
-
-    WIN32_FIND_DATA find_file_data;
-    HANDLE hFind = FindFirstFile(full_path.c_str(), &find_file_data);
-
-    if (hFind != INVALID_HANDLE_VALUE) {
-        FindClose(hFind);
-        return full_path;
-    } else {
-        return "";
-    }
+std::string sd_get_u8path(const std::string& file_path)
+{
+    return std::filesystem::u8path(file_path).string();
 }
 
 #else  // Unix
@@ -126,24 +118,9 @@ bool is_directory(const std::string& path) {
     return (stat(path.c_str(), &buffer) == 0 && S_ISDIR(buffer.st_mode));
 }
 
-// TODO: add windows version
-std::string get_full_path(const std::string& dir, const std::string& filename) {
-    DIR* dp = opendir(dir.c_str());
-
-    if (dp != nullptr) {
-        struct dirent* entry;
-
-        while ((entry = readdir(dp)) != nullptr) {
-            if (strcasecmp(entry->d_name, filename.c_str()) == 0) {
-                closedir(dp);
-                return dir + "/" + entry->d_name;
-            }
-        }
-
-        closedir(dp);
-    }
-
-    return "";
+std::string sd_get_u8path(const std::string& file_path)
+{
+    return std::filesystem::path(file_path).string();
 }
 
 #endif
