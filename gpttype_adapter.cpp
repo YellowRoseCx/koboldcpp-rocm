@@ -152,7 +152,7 @@ static int delayed_generated_tokens_limit = 0;
 std::deque<std::string> delayed_generated_tokens; //for use with antislop sampling
 static std::map<int,std::vector<int>> antislop_banned_token_ids; //first is the npast position, second is the array of banned ids at that index
 
-const int savestate_limit = 4;
+const int savestate_limit = 5;
 static savestate_data savestates[savestate_limit];
 
 inline int kcpp_cpu_has_blas(void) {

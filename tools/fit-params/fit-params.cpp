@@ -9,6 +9,8 @@
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
+#include <chrono>
+#include <thread>
 
 int main(int argc, char ** argv) {
     common_params params;
@@ -27,6 +29,7 @@ int main(int argc, char ** argv) {
         params.verbosity >= 4 ? GGML_LOG_LEVEL_DEBUG : GGML_LOG_LEVEL_ERROR);
 
     LOG_INF("Printing fitted CLI arguments to stdout...\n");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "-c "    << cparams.n_ctx;
     std::cout << " -ngl " << mparams.n_gpu_layers;
 
