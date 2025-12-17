@@ -376,7 +376,7 @@ static std::vector<std::string> string_split_str(std::string s, const std::strin
 //
 // gguf utils
 //
-
+/*
 static std::string gguf_data_to_str(enum gguf_type type, const void * data, int i) {
     switch (type) {
         case GGUF_TYPE_UINT8:   return std::to_string(((const uint8_t  *)data)[i]);
@@ -430,7 +430,7 @@ static std::string gguf_kv_to_str(const struct gguf_context * ctx_gguf, int i) {
             return gguf_data_to_str(type, gguf_get_val_data(ctx_gguf, i), 0);
     }
 }
-
+*/
 //
 // debugging
 //

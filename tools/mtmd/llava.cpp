@@ -133,7 +133,7 @@ struct llava_embd_batch {
 
 
 //kcpp helper function
-bool audio_embd_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, const whisper_preprocessor::whisper_mel & mel_spec, float ** image_embd_out, int * n_img_pos_out)
+bool audio_embd_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, const mtmd_audio_mel & mel_spec, float ** image_embd_out, int * n_img_pos_out)
 {
     clip_image_f32_ptr mel_f32(clip_image_f32_init());
     mel_f32->nx  = mel_spec.n_len;

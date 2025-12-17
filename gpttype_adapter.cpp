@@ -107,7 +107,7 @@ static llama_context * guidance_ctx = nullptr; //for classifier free guidance, w
 static clip_ctx * clp_ctx_v = nullptr; //for llava
 static clip_image_u8 * clp_img_data = nullptr; //most recent image
 static clip_ctx * clp_ctx_a = nullptr; //for audio multimodal
-static whisper_preprocessor::whisper_filters w_filters; //for audio processing
+static std::unique_ptr<mtmd_audio_preprocessor> audio_preproc; //for audio processing
 static std::vector<media_object> media_objects;
 static std::vector<int> last_media_mem; //for storing dummy tokens that will be consumed by llava
 static std::string media_composite_image_signature = ""; //for identifying when the llava images change, we need to invalidate the cache
@@ -2605,10 +2605,20 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             clp_img_data = clip_image_u8_init();
             if(clp_ctx_a) //init audio
             {
-                if (clip_has_whisper_encoder(clp_ctx_a)) {
-                    // TODO @ngxson : check if model n_mel is 128 or 80
-                    w_filters = whisper_precalc_filters::get_128_bins();
+                projector_type proj = clip_get_projector_type(clp_ctx_a);
+                // set preprocessor
+                switch (proj) {
+                    case PROJECTOR_TYPE_QWEN2A:
+                    case PROJECTOR_TYPE_QWEN25O:
+                    case PROJECTOR_TYPE_ULTRAVOX:
+                    case PROJECTOR_TYPE_VOXTRAL:
+                        audio_preproc = std::make_unique<mtmd_audio_preprocessor_whisper>(clp_ctx_a);
+                        break;
+                    default:
+                        GGML_ABORT("unsupported audio projector type");
                 }
+                // initialize audio preprocessor
+                audio_preproc->initialize();
                 audio_multimodal_supported = true;
             }
         }
@@ -3213,17 +3223,15 @@ static void PrepareMediaEmbds(const int nctx, const std::vector<int> & media_int
                 }
             } else if(media_objects[i].is_audio && audio_on) {
                 //  audio
-                GGML_ASSERT(w_filters.n_mel); // make sure we have filter preloaded
-
                 std::vector<float> pcmf32;
-                bool ok = kcpp_decode_audio_from_buf(media_data_buffer.data(), media_data_buffer.size(), 16000, pcmf32);
+                int samplerate = clip_get_hparams(clp_ctx_a)->audio_sample_rate;
+                bool ok = kcpp_decode_audio_from_buf(media_data_buffer.data(), media_data_buffer.size(), samplerate, pcmf32);
                 if (!ok) {
                    printf("\nError: Clip audio %d failed to convert!",i);
                    continue;
                 }
-
-                std::vector<whisper_preprocessor::whisper_mel> mel_spec_chunks;
-                ok = whisper_preprocessor::preprocess_audio(pcmf32.data(), pcmf32.size(), w_filters, mel_spec_chunks);
+                std::vector<mtmd_audio_mel> mel_spec_chunks;
+                ok = audio_preproc->preprocess(pcmf32.data(), pcmf32.size(), mel_spec_chunks);
                 if (!ok) {
                    printf("\nError: Clip audio %d failed to load!",i);
                    continue;
