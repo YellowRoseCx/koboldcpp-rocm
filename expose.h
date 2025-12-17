@@ -57,7 +57,7 @@ struct load_model_inputs
     const int kcpp_main_gpu = 0;
     const char * vulkan_info = nullptr;
     const int batchsize = 512;
-    const int forceversion = 0;
+    const bool autofit = false;
     const int gpulayers = 0;
     const float rope_freq_scale = 1.0f;
     const float rope_freq_base = 10000.0f;

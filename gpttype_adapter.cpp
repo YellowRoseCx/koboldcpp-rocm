@@ -391,6 +391,38 @@ bool allExtendedUnicode(const std::string& str) {
     return true;
 }
 
+void print_fitted_params(const llama_model_params & mparams, const llama_context_params & cparams)
+{
+    std::cout << "-c "    << cparams.n_ctx;
+    std::cout << " -ngl " << mparams.n_gpu_layers;
+    size_t nd = llama_max_devices();
+    while (nd > 1 && mparams.tensor_split[nd - 1] == 0.0f) {
+        nd--;
+    }
+    if (nd > 1) {
+        for (size_t id = 0; id < nd; id++) {
+            if (id == 0) {
+                std::cout << " -ts ";
+            }
+            if (id > 0) {
+                std::cout << ",";
+            }
+            std::cout << mparams.tensor_split[id];
+        }
+    }
+    const size_t ntbo = llama_max_tensor_buft_overrides();
+    for (size_t itbo = 0; itbo < ntbo && mparams.tensor_buft_overrides[itbo].pattern != nullptr; itbo++) {
+        if (itbo == 0) {
+            std::cout << " -ot ";
+        }
+        if (itbo > 0) {
+            std::cout << ",";
+        }
+        std::cout << mparams.tensor_buft_overrides[itbo].pattern << "=" << ggml_backend_buft_name(mparams.tensor_buft_overrides[itbo].buft);
+    }
+    std::cout << "\n";
+}
+
 // Find tokens that completely contain `str`, either as a single token, or as a sequence of tokens.
 // It's important to use a hash map for head tokens because some models have many of them.
 // For example, the Llama 3 tokenizer has 6570 tokens containing the period ('.') character.
@@ -2297,8 +2329,8 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
         std::vector<llama_model_kv_override> kvos; //ensure it keeps in scope until model is created
         std::vector<llama_model_tensor_buft_override> tenos; //ensure it keeps in scope until model is created
         std::vector<std::string> temp_tensor_names; //store temp tensor names to have mem references.
-        temp_tensor_names.reserve(32); //very important, prevents vector from reallocating
-        tenos.reserve(32);
+        temp_tensor_names.reserve(llama_max_tensor_buft_overrides()); //very important, prevents vector from reallocating
+        tenos.reserve(llama_max_tensor_buft_overrides());
         if(inputs.moe_experts>0)
         {
             printf("\nOverriding number of experts to %d\n",inputs.moe_experts);
@@ -2401,6 +2433,25 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             model_params.tensor_buft_overrides = tenos.data();
         }
 
+        //apply overrides from autofit
+        float tensor_split_temp[128] = {0}; //temp buffer for autofit
+        if(inputs.autofit)
+        {
+            common_params temp_params;
+            printf("\nAttempting to use llama.cpp's automating fitting code. This will override all your layer configs, may or may not work!\n");
+            //zero out any customizations made
+            tenos.clear();
+            tenos.push_back({nullptr, nullptr});
+            model_params.tensor_buft_overrides = tenos.data();
+            model_params.tensor_split = tensor_split_temp;
+            model_params.n_gpu_layers = 999; //must be this value to be considered default
+            llama_params_fit(kcpp_data->model_filename.c_str(), &model_params, &llama_ctx_params,
+            tensor_split_temp, tenos.data(), 1024*1024*1024, kcpp_data->n_ctx,
+            GGML_LOG_LEVEL_DEBUG);
+            printf("Autofit Result: ");
+            print_fitted_params(model_params,llama_ctx_params);
+        }
+
         llama_model * llamamodel = llama_model_load_from_file(kcpp_data->model_filename.c_str(), model_params);
         if(file_format_meta.model_architecture == GGUFArch::ARCH_QWEN2VL || llama_model_rope_type(llamamodel)==LLAMA_ROPE_TYPE_MROPE || llama_model_rope_type(llamamodel)==LLAMA_ROPE_TYPE_IMROPE)
         {
@@ -2452,6 +2503,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
         llama_ctx_params.swa_full = kcpp_data->swa_full;
         llama_ctx_params.type_k = (inputs.quant_k>1?GGML_TYPE_Q4_0:(inputs.quant_k==1?GGML_TYPE_Q8_0:GGML_TYPE_F16));
         llama_ctx_params.type_v = (inputs.quant_v>1?GGML_TYPE_Q4_0:(inputs.quant_v==1?GGML_TYPE_Q8_0:GGML_TYPE_F16));
+
         llama_ctx_v4 = llama_init_from_model(llamamodel, llama_ctx_params);
         if(load_guidance)
         {

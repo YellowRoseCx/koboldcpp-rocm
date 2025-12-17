@@ -199,7 +199,7 @@ class load_model_inputs(ctypes.Structure):
                 ("kcpp_main_gpu", ctypes.c_int),
                 ("vulkan_info", ctypes.c_char_p),
                 ("batchsize", ctypes.c_int),
-                ("forceversion", ctypes.c_int),
+                ("autofit", ctypes.c_bool),
                 ("gpulayers", ctypes.c_int),
                 ("rope_freq_scale", ctypes.c_float),
                 ("rope_freq_base", ctypes.c_float),
@@ -1489,7 +1489,7 @@ def load_model(model_filename):
     else:
         inputs.quant_k = inputs.quant_v = 0
     inputs.batchsize = args.batchsize
-    inputs.forceversion = args.forceversion
+    inputs.autofit = args.autofit
     inputs.gpulayers = args.gpulayers
     if args.overridenativecontext and args.overridenativecontext>0:
         inputs.overridenativecontext = args.overridenativecontext
@@ -5166,7 +5166,7 @@ def show_gui():
     quantkv_var = ctk.IntVar(value=0)
     blas_threads_var = ctk.StringVar()
     blas_size_var = ctk.IntVar()
-    version_var = ctk.StringVar(value="0")
+    autofit_var = ctk.IntVar()
     tensor_split_str_vars = ctk.StringVar(value="")
     rowsplit_var = ctk.IntVar()
     maingpu_var = ctk.StringVar(value="")
@@ -5861,8 +5861,7 @@ def show_gui():
     makeslider(hardware_tab, "Batch Size:", batchsize_text, blas_size_var, 0, len(batchsize_values)-1, 16,width=200, set=6,tooltip="How many tokens to process at once per batch.\nLarger values use more memory.")
     blas_size_var.trace_add("write", changed_gpulayers_estimate)
 
-    # force version
-    makelabelentry(hardware_tab, "Force Version:" , version_var, 100, 50,padx=160,singleline=True,tooltip="If the autodetected version is wrong, you can change it here.\nLeave as 0 for default.")
+    makecheckbox(hardware_tab, "AutoFit (llama.cpp mode)", autofit_var, 100,0, tooltiptxt="Automatically attempt to fit the model in the best possible way. Overrides everything else. Not recommended for multi model setups. Experimental.")
     ctk.CTkButton(hardware_tab , text = "Run Benchmark", command = guibench ).grid(row=110,column=0, stick="nw", padx= 8, pady=2)
 
 
@@ -6243,7 +6242,7 @@ def show_gui():
         args.maingpu = -1 if maingpu_var.get()=="" else int(maingpu_var.get())
         args.blasthreads = None if blas_threads_var.get()=="" else int(blas_threads_var.get())
         args.batchsize = int(batchsize_values[int(blas_size_var.get())])
-        args.forceversion = 0 if version_var.get()=="" else int(version_var.get())
+        args.autofit = autofit_var.get() == 1
         args.contextsize = int(contextsize_text[context_var.get()])
         if customrope_var.get()==1:
             if manualrope_var.get()==1:
@@ -6515,7 +6514,7 @@ def show_gui():
         if "batchsize" in dict and dict["batchsize"]:
             blas_size_var.set(batchsize_values.index(str(dict["batchsize"])))
 
-        version_var.set(str(dict["forceversion"]) if ("forceversion" in dict and dict["forceversion"]) else "0")
+        autofit_var.set(1 if "autofit" in dict and dict["autofit"] else 0)
         model_var.set(dict["model_param"] if ("model_param" in dict and dict["model_param"]) else "")
 
         lora_var.set("")
@@ -8355,6 +8354,7 @@ if __name__ == '__main__':
     parser.add_argument("--contextsize","--ctx-size", "-c", help="Controls the memory allocated for maximum context size, only change if you need more RAM for big contexts. (default 8192).",metavar=('[256 to 262144]'), type=check_range(int,256,262144), default=8192)
     parser.add_argument("--gpulayers","--gpu-layers","--n-gpu-layers","-ngl", help="Set number of layers to offload to GPU when using GPU. Requires GPU. Set to -1 to try autodetect, set to 0 to disable GPU offload.",metavar=('[GPU layers]'), nargs='?', const=1, type=int, default=-1)
     parser.add_argument("--tensor_split","--tensorsplit","--tensor-split","-ts", help="For CUDA and Vulkan only, ratio to split tensors across multiple GPUs, space-separated list of proportions, e.g. 7 3", metavar=('[Ratios]'), type=float, nargs='+')
+    parser.add_argument("--autofit","--fit","-fit", help="Automatically attempt to fit the model in the best possible way. Overrides everything else. Experimental.", action='store_true')
 
     #more advanced params
     advparser = parser.add_argument_group('Advanced Commands')
@@ -8409,7 +8409,6 @@ if __name__ == '__main__':
     advparser.add_argument("--flashattention","--flash-attn","-fa", help="Enables flash attention.", action='store_true')
     advparser.add_argument("--lowvram","-nkvo","--no-kv-offload", help="If supported by the backend, do not offload KV to GPU (lowvram mode). Not recommended, will be slow.", action='store_true')
     advparser.add_argument("--quantkv", help="Sets the KV cache data type quantization, 0=f16, 1=q8, 2=q4. Requires Flash Attention for full effect, otherwise only K cache is quantized.",metavar=('[quantization level 0/1/2]'), type=int, choices=[0,1,2], default=0)
-    advparser.add_argument("--forceversion", help="If the model file format detection fails (e.g. rogue modified model) you can set this to override the detected format (enter desired version, e.g. 401 for GPTNeoX-Type2).",metavar=('[version]'), type=int, default=0)
     advparser.add_argument("--smartcontext", help="Reserving a portion of context to try processing less frequently. Outdated. Not recommended.", action='store_true')
     advparser.add_argument("--unpack", help="Extracts the file contents of the KoboldCpp binary into a target directory.", metavar=('destination'), type=str, default="")
     advparser.add_argument("--exportconfig", help="Exports the current selected arguments as a .kcpps settings file", metavar=('[filename]'), type=str, default="")
@@ -8485,6 +8484,7 @@ if __name__ == '__main__':
     compatgroup.add_argument("--noblas", help=argparse.SUPPRESS, action='store_true')
     compatgroup3.add_argument("--nommap","--no-mmap", help=argparse.SUPPRESS, action='store_true')
     deprecatedgroup.add_argument("--sdnotile", help=argparse.SUPPRESS, action='store_true') # legacy option, see sdtiledvae
+    deprecatedgroup.add_argument("--forceversion", help=argparse.SUPPRESS, action='store_true') #no longer used
 
     debuggroup = parser.add_argument_group('Debug Commands')
     debuggroup.add_argument("--testmemory", help=argparse.SUPPRESS, action='store_true')
