@@ -3461,8 +3461,24 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
             media_object lv;
             lv.b64data = item;
             lv.is_audio = false;
-            TokenizeString("<image>", lv.chunk_start_seq, file_format, false);
-            TokenizeString("</image>\n\n", lv.chunk_end_seq, file_format, false);
+            std::string img_start = "<image>";
+            std::string img_end = "</image>\n\n";
+            if(clp_ctx_v)
+            {
+                int ptype = clip_get_projector_type_ext(clp_ctx_v);
+                if(ptype == PROJECTOR_TYPE_QWEN2VL || ptype == PROJECTOR_TYPE_QWEN25VL || ptype == PROJECTOR_TYPE_QWEN3VL) //qwen
+                {
+                    img_start = "<|vision_start|>";
+                    img_end = "<|vision_end|>\n\n";
+                }
+                else if(ptype==PROJECTOR_TYPE_GLM4V)
+                {
+                    img_start = "<|begin_of_image|>";
+                    img_end = "<|end_of_image|>\n\n";
+                }
+            }
+            TokenizeString(img_start, lv.chunk_start_seq, file_format, false);
+            TokenizeString(img_end, lv.chunk_end_seq, file_format, false);
             media_objects.push_back(lv);
             new_media_composite += item;
         }
@@ -3480,12 +3496,12 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
             if(clp_ctx_a)
             {
                 int ptype = clip_get_projector_type_ext(clp_ctx_a);
-                if(ptype==14) //qwen omni
+                if(ptype==PROJECTOR_TYPE_QWEN2A) //qwen omni
                 {
                     aud_start = "<|audio_bos|>";
                     aud_end = "<|audio_eos|>\n";
                 }
-                else if(ptype==16) //voxtral
+                else if(ptype==PROJECTOR_TYPE_VOXTRAL) //voxtral
                 {
                     aud_start = "[INST][BEGIN_AUDIO]";
                     aud_end = "[/INST]\n";
