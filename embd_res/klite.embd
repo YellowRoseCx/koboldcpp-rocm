@@ -3524,6 +3524,7 @@ Current version indicated by LITEVER below.
 	const a1111_interrogate_endpoint = "/sdapi/v1/interrogate";
 
 	const comfy_models_endpoint = "/models/checkpoints";
+	const comfy_loras_endpoint = "/models/loras";
 	const comfy_generate_endpoint = "/prompt";
 	const comfy_history_endpoint = "/history";
 	const comfy_results_endpoint = "/view?filename=";
@@ -6921,7 +6922,7 @@ Current version indicated by LITEVER below.
 
 			.replace(/\*\*\*([^\s*][\s\S]*?[^\\])\*\*\*/gm, "<b><em>$1</em></b>")
 			.replace(/\*\*(.)\*\*/g, "<b>$1</b>") //handle single char bold
-			.replace(/ \*\*(\w+(?: \w+)?)\*\* /g, " <b>$1</b> ") //hack: support 1 or 2 nested bolded words (not official)
+			.replace(/([ ,.?!:])\*\*(\w+(?: \w+)?)\*\*([ ,.?!:])/g, "$1<b>$2</b>$3") //hack: support 1 or 2 nested bolded words (not official)
 			.replace(/\*\*([^\s*][\s\S]*?[^\\])\*\*/gm, "<b>$1</b>")
 			.replace(/(^|[\s.,;:!?<>])\*(.)\*(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //handle single char italics
 			.replace(/\*([^\s*][\s\S]*?[^\\])\*/gm, "<em>$1</em>")
@@ -7390,6 +7391,31 @@ Current version indicated by LITEVER below.
 			}
 			comfyui_is_connected = false;
 		});
+
+		fetch(localsettings.saved_comfy_url + comfy_loras_endpoint)
+        .then(x => x.json())
+        .then(lorasdata => {
+            //repopulate our lora list
+            let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+            let loraSelectionHtml = ``;
+            if (lorasdata == null || lorasdata.length == 0) {
+                dropdown_lora.disabled = true;
+                loraSelectionHtml = `<option value="" disabled selected>No Lora Found</option>`;
+            } else {
+                dropdown_lora.disabled = false;
+                let current_loaded_model = lorasdata[0];
+                loraSelectionHtml += `<option value="">No Lora Selected</option>`;
+                for (var i = 0; i < lorasdata.length; ++i) {
+                    loraSelectionHtml += `<option value="${lorasdata[i]}" ${(current_loaded_model==lorasdata[i]?"selected":"")}>${lorasdata[i]}</option>`;
+                }
+            }
+            dropdown_lora.innerHTML = loraSelectionHtml;
+        }).catch((error) => {
+			console.log(error);
+			let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+			dropdown_lora.disabled = true;
+			loraSelectionHtml = `<option value="" disabled selected>No Lora Found</option>`;
+		});
 	}
 
 	function uploadBase64ImgToComfy(base64Data,filename) {
@@ -7419,6 +7445,8 @@ Current version indicated by LITEVER below.
 
 	function generate_comfy_image(req_payload, autoappend)
 	{
+		let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+		let use_lora = ((dropdown_lora && dropdown_lora.disabled==false && dropdown_lora.value != "") ? true : false);
 		let splits = req_payload.prompt.split("###");
 		let prompt = splits[0].trim();
 		let negprompt = (splits.length > 1 ? splits[1] : "");
@@ -7432,7 +7460,7 @@ Current version indicated by LITEVER below.
 						"cfg": req_payload.params.cfg_scale,
 						"denoise": 1,
 						"latent_image": ["5", 0],
-						"model": ["4", 0],
+						"model": use_lora ? ["11", 0] : ["4", 0],
 						"negative": ["7", 0],
 						"positive": ["6", 0],
 						"sampler_name": "euler",
@@ -7458,15 +7486,15 @@ Current version indicated by LITEVER below.
 				"6": {
 					"class_type": "CLIPTextEncode",
 					"inputs": {
-						"clip": ["4", 1],
-						"text": prompt
+						"text": prompt,
+						"clip": use_lora ? ["11", 1] : ["4", 1]
 					}
 				},
 				"7": {
 					"class_type": "CLIPTextEncode",
 					"inputs": {
-						"clip": ["4", 1],
-						"text": negprompt
+						"text": negprompt,
+						"clip": use_lora ? ["11", 1] : ["4", 1]
 					}
 				},
 				"8": {
@@ -7485,6 +7513,19 @@ Current version indicated by LITEVER below.
 				}
 			}
 		};
+
+		if (use_lora) {
+			genimg_payload.prompt["11"] = {
+				"class_type": "LoraLoader",
+				"inputs": {
+					"lora_name": dropdown_lora.value,
+					"strength_model": 1.0,
+					"strength_clip": 1.0,
+					"model": ["4", 0],
+					"clip": ["4", 1]
+				}
+			};
+		}
 
 		if(req_payload["source_image"]) //override with img2img nodes
 		{
@@ -27060,6 +27101,9 @@ Current version indicated by LITEVER below.
 									<option value="">[None]</option>
 								</select>
 								<button type="button" class="btn btn-primary" onclick="set_comfy_endpoint()" style="height: 20px; padding: 0px 2px; margin: 0px 0px 0px 3px;">⚙️</button>
+								<select id="generate_images_comfy_lora" class="form-control" style="height:20px;padding:0;margin:0px 0 0; width:calc(100%)">
+									<option value="" disabled selected>No Lora Found</option>
+								</select>
 							</div>
 							<div id="generate_images_dalle_container" class="settinglabel hidden">
 								<table width="100%"><tr>
@@ -27069,11 +27113,10 @@ Current version indicated by LITEVER below.
 								</tr></table>
 							</div>
 							<div id="generate_images_pollinations_container" class="settinglabel hidden">
-								<select title="Select Image Model" class="form-control" id="generate_images_pollinations_model" style="height:20px;padding:0;margin:0px 0 0; width:calc(100% - 30px)">
+								<select title="Select Image Model" class="form-control" id="generate_images_pollinations_model" style="height:20px;padding:0;margin:0px 0 0; width:calc(100%)">
 									<option value="flux" selected>flux</option>
 									<option value="turbo">turbo</option>
 								</select>
-								<button type="button" class="btn btn-primary" onclick="set_comfy_endpoint()" style="height: 20px; padding: 0px 2px; margin: 0px 0px 0px 3px;">⚙️</button>
 							</div>
 
 							<div>
