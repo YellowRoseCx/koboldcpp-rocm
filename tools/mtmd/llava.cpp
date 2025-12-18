@@ -23,22 +23,22 @@ struct clip_image_f32_batch_deleter {
 typedef std::unique_ptr<clip_image_f32_batch, clip_image_f32_batch_deleter> clip_image_f32_batch_ptr;
 
 
-static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, struct clip_image_f32_batch * preprocessed_img, float * image_embd, int * n_img_pos) {
+static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, struct clip_image_f32_batch * preprocessed_img, float * image_embd, int * n_img_pos, int *nx, int *ny) {
 
     const int64_t t_img_enc_start_us = ggml_time_us();
-
     const char * mm_patch_merge_type = clip_patch_merge_type(ctx_clip);
-
     const size_t n_imgs = clip_image_f32_batch_n_images(preprocessed_img);
-
     clip_image_f32 * img_res = clip_image_f32_get_img(preprocessed_img, 0);
     *n_img_pos = clip_n_output_tokens(ctx_clip, img_res);
+    *nx = clip_n_output_tokens_x(ctx_clip,img_res);
+    *ny = clip_n_output_tokens_y(ctx_clip,img_res);
     bool encoded = clip_image_encode(ctx_clip, n_threads, img_res, image_embd); // image_embd shape is 576 x 4096
     if (!encoded) {
         LOG_ERR("Unable to encode image\n");
         return false;
     }
 
+    LOG_INF("%s: CLIP output tokens nx:%d, ny:%d\n", __func__, *nx,*ny);
     LOG_INF("%s: image embedding created: %d tokens\n", __func__, *n_img_pos);
 
     const int64_t t_img_enc_end_us = ggml_time_us();
@@ -49,7 +49,7 @@ static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, struct cl
     return true;
 }
 
-bool llava_image_embed_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, const clip_image_u8 * img, float ** image_embd_out, int * n_img_pos_out) {
+bool llava_image_embed_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, const clip_image_u8 * img, float ** image_embd_out, int * n_img_pos_out, int * nx_out, int * ny_out) {
     // Granite vision uses up to 10 patches + base patch
     int num_max_patches = 11;
     if (clip_is_minicpmv(ctx_clip)) {
@@ -87,13 +87,16 @@ bool llava_image_embed_make_with_clip_img(clip_ctx * ctx_clip, int n_threads, co
     }
 
     int n_img_pos;
-    if (!encode_image_with_clip(ctx_clip, n_threads, preprocessed_img.get(), image_embd, &n_img_pos)) {
+    int nx = 0, ny = 0;
+    if (!encode_image_with_clip(ctx_clip, n_threads, preprocessed_img.get(), image_embd, &n_img_pos, &nx, &ny)) {
         LOG_ERR("%s: cannot encode image, aborting\n", __func__);
         free(image_embd);
         return false;
     }
     *image_embd_out = image_embd;
     *n_img_pos_out = n_img_pos;
+    *nx_out = nx;
+    *ny_out = ny;
 
     return true;
 }
