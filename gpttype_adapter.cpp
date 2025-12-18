@@ -1851,22 +1851,25 @@ static void load_grammar(const std::string & gammarstr)
     }
 }
 
-static bool kcpp_eval_image(llama_context * ctx_llama, float * img_embd, int num_img_tokens, int n_batch, int * n_past) {
-    int n_embd  = llama_model_n_embd_inp(llama_get_model(ctx_llama));
+static bool kcpp_eval_image(llama_context * ctx_llama, const media_chunk & mediachunk, int n_batch, int * n_past, bool is2d) {
+    float * img_embd = mediachunk.clp_img_embd;
+    int num_img_tokens = mediachunk.clp_image_tokens;
+    int img_nx = mediachunk.nx;
+    int img_ny = mediachunk.ny;
+    int n_embd_mmproj  = llama_model_n_embd_inp(llama_get_model(ctx_llama));
+    const int image_n_past = *n_past;
+
+    kcpp_embd_batch media_batch = kcpp_embd_batch(img_embd, num_img_tokens, image_n_past, use_mrope, is2d, img_nx, img_ny);
 
     for (int i = 0; i < num_img_tokens; i += n_batch) {
-        int n_eval = num_img_tokens - i;
-        if (n_eval > n_batch) {
-            n_eval = n_batch;
-        }
-        float * embd = img_embd+i*n_embd;
-        kcpp_embd_batch media_batch = kcpp_embd_batch(embd, n_eval, *n_past, use_mrope);
-        if (llama_decode(ctx_llama, media_batch.batch)) {
+        const int n_eval = std::min(n_batch, num_img_tokens - i);
+        llama_batch batch_embd_view = media_batch.get_view(i, n_eval, n_embd_mmproj);
+        if (llama_decode(ctx_llama, batch_embd_view)) {
             fprintf(stderr, "\n%s : failed to eval image\n", __func__);
             return false;
         }
-        *n_past += n_eval;
     }
+    *n_past += num_img_tokens;
     return true;
 }
 
@@ -4700,7 +4703,8 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
                                 {
                                     printf("\rProcessing Media Embedding %d (%d tokens)",(i+1), chunk.clp_image_tokens);
                                 }
-                                bool err = kcpp_eval_image(llama_ctx_v4,chunk.clp_img_embd,chunk.clp_image_tokens,kcpp_data->n_batch,&n_past);
+                                bool is2d = (media_objects[i].is_audio?false:true);
+                                bool err = kcpp_eval_image(llama_ctx_v4,chunk,kcpp_data->n_batch,&n_past,is2d);
                                 llavatokensevaled += chunk.clp_image_tokens;
                                 if(!err)
                                 {
