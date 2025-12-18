@@ -187,6 +187,17 @@ inline bool LogitsDuplicated(std::vector<float> & arr1, std::vector<float> & arr
     return true;
 }
 
+static inline void string_trim_whitespace(std::string & s) {
+    auto nul = std::find(s.begin(), s.end(), '\0'); //remove everything after the first NUL
+    if (nul != s.end()) {
+        s.erase(nul, s.end());
+    }
+    if (s.empty()) return;
+    // trim leading whitespace
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
+    // trim trailing whitespace
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
+}
 
 static std::string FileFormatTokenizeID(int id, FileFormat file_format, bool return_special = false)
 {
@@ -2414,6 +2425,8 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
                 }
                 std::string tensor_name = overrider.substr(0, pos);
                 std::string buffer_type = overrider.substr(pos + 1);
+                string_trim_whitespace(tensor_name);
+                string_trim_whitespace(buffer_type);
 
                 if (buft_list.find(buffer_type) == buft_list.end()) {
                     printf("\nUnknown Buffer Type: %s\n",buffer_type.c_str());
