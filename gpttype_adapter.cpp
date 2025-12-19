@@ -1851,7 +1851,7 @@ static void load_grammar(const std::string & gammarstr)
     }
 }
 
-static bool kcpp_eval_image(llama_context * ctx_llama, const media_chunk & mediachunk, int n_batch, int * n_past, bool is2d) {
+static bool kcpp_eval_media(llama_context * ctx_llama, const media_chunk & mediachunk, int n_batch, int * n_past, bool is2d) {
     float * img_embd = mediachunk.clp_img_embd;
     int num_img_tokens = mediachunk.clp_image_tokens;
     int img_nx = mediachunk.nx;
@@ -4805,7 +4805,7 @@ generation_outputs gpttype_generate(const generation_inputs inputs)
                                     printf("\rProcessing Media Embedding %d (%d tokens)",(i+1), chunk.clp_image_tokens);
                                 }
                                 bool is2d = (media_objects[i].is_audio?false:true);
-                                bool err = kcpp_eval_image(llama_ctx_v4,chunk,kcpp_data->n_batch,&n_past,is2d);
+                                bool err = kcpp_eval_media(llama_ctx_v4,chunk,kcpp_data->n_batch,&n_past,is2d);
                                 llavatokensevaled += chunk.clp_image_tokens;
                                 if(!err)
                                 {
