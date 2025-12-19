@@ -1,6 +1,6 @@
 # koboldcpp
 
-KoboldCpp is an easy-to-use AI text-generation software for GGML and GGUF models, inspired by the original **KoboldAI**. It's a single self-contained distributable that builds off **llama.cpp** and adds many additional powerful features.
+KoboldCpp is an easy-to-use AI text-generation software for GGML and GGUF models, inspired by the original **KoboldAI**. It's a single self-contained distributable that builds off **llama.cpp** and adds many additional powerful features. [Download Releases Here](https://github.com/LostRuins/koboldcpp/releases/latest).
 
 ![Preview](media/preview.png)
 ![Preview](media/preview2.png)
