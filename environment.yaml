@@ -19,7 +19,12 @@ dependencies:
   - libcblas
   - ocl-icd-system
   - libvulkan-loader
-  - tk=*=xft_*
+  - tk
+  - fontconfig
+  - freetype
+  - libxft
+  - libxrender
+  - dejavu-sans-fonts
   - psutil
   - jinja2
   - pip:
