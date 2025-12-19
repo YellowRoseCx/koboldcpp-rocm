@@ -7939,7 +7939,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
 
         # The chat completions adapter is a list that needs derivation from chat templates
         # Try to derive chat completions adapter from chat template, now that we have the model loaded
-        if not args.nomodel and args.model_param:
+        if args.model_param:
             ctbytes = handle.get_chat_template()
             cached_chat_template = ctypes.string_at(ctbytes).decode("UTF-8","ignore")
             if cached_chat_template != "" and (chatcompl_adapter_list is not None and isinstance(chatcompl_adapter_list, list)):
