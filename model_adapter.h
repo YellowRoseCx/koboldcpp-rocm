@@ -141,3 +141,5 @@ size_t gpttype_save_state_kv(int slot);
 bool gpttype_load_state_kv(int slot);
 bool gpttype_clear_state_kv(bool shrink);
 int get_oldest_slot(int excludeSlotId);
+void touch_slot(int slot);
+int get_identical_existing_slot();
