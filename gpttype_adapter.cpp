@@ -2033,6 +2033,30 @@ static float CalcGradientAIRopeFreqBase(float original_rope_base, int n_ctx_trai
     }
 }
 
+void kcpp_init_audio_proj(clip_ctx * ctx_a)
+{
+    projector_type proj = clip_get_projector_type(ctx_a);
+
+    // set preprocessor
+    switch (proj) {
+        case PROJECTOR_TYPE_QWEN2A:
+        case PROJECTOR_TYPE_QWEN25O:
+        case PROJECTOR_TYPE_ULTRAVOX:
+        case PROJECTOR_TYPE_VOXTRAL:
+        case PROJECTOR_TYPE_GLMA:
+            audio_preproc = std::make_unique<mtmd_audio_preprocessor_whisper>(ctx_a);
+            break;
+        case PROJECTOR_TYPE_LFM2A:
+            audio_preproc = std::make_unique<mtmd_audio_preprocessor_conformer>(ctx_a);
+            break;
+        default:
+            GGML_ABORT("unsupported audio projector type");
+    }
+
+    // initialize audio preprocessor
+    audio_preproc->initialize();
+}
+
 ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in_file_format, FileFormatExtraMeta in_file_format_meta)
 {
     is_quiet = inputs.quiet;
@@ -2621,20 +2645,7 @@ ModelLoadResult gpttype_load_model(const load_model_inputs inputs, FileFormat in
             clp_img_data = clip_image_u8_init();
             if(clp_ctx_a) //init audio
             {
-                projector_type proj = clip_get_projector_type(clp_ctx_a);
-                // set preprocessor
-                switch (proj) {
-                    case PROJECTOR_TYPE_QWEN2A:
-                    case PROJECTOR_TYPE_QWEN25O:
-                    case PROJECTOR_TYPE_ULTRAVOX:
-                    case PROJECTOR_TYPE_VOXTRAL:
-                        audio_preproc = std::make_unique<mtmd_audio_preprocessor_whisper>(clp_ctx_a);
-                        break;
-                    default:
-                        GGML_ABORT("unsupported audio projector type");
-                }
-                // initialize audio preprocessor
-                audio_preproc->initialize();
+                kcpp_init_audio_proj(clp_ctx_a);
                 audio_multimodal_supported = true;
             }
         }
