@@ -22,7 +22,6 @@ dependencies:
   - tk
   - fontconfig
   - freetype
-  - fonts-dejavu
   - psutil
   - jinja2
   - pip:
