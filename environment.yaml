@@ -22,9 +22,7 @@ dependencies:
   - tk
   - fontconfig
   - freetype
-  - libxft
-  - libxrender
-  - dejavu-sans-fonts
+  - fonts-dejavu
   - psutil
   - jinja2
   - pip:
