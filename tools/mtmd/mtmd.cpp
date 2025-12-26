@@ -19,7 +19,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <limits>
 #include <vector>
 
 // represents raw image data, layout is RGBRGBRGB...
@@ -92,14 +91,27 @@ const char * mtmd_default_marker() {
     return "<__media__>";
 }
 
+static clip_flash_attn_type mtmd_get_clip_flash_attn_type(enum llama_flash_attn_type flash_attn_type) {
+    switch (flash_attn_type) {
+        case LLAMA_FLASH_ATTN_TYPE_AUTO:     return CLIP_FLASH_ATTN_TYPE_AUTO;
+        case LLAMA_FLASH_ATTN_TYPE_DISABLED: return CLIP_FLASH_ATTN_TYPE_DISABLED;
+        case LLAMA_FLASH_ATTN_TYPE_ENABLED:  return CLIP_FLASH_ATTN_TYPE_ENABLED;
+    }
+    return CLIP_FLASH_ATTN_TYPE_AUTO;
+}
+
 mtmd_context_params mtmd_context_params_default() {
-    mtmd_context_params params;
-    params.use_gpu = true;
-    params.print_timings = true;
-    params.n_threads = 4;
-    params.verbosity = GGML_LOG_LEVEL_INFO;
-    params.image_marker = MTMD_DEFAULT_IMAGE_MARKER;
-    params.media_marker = mtmd_default_marker();
+    mtmd_context_params params {
+        /* use_gpu           */ true,
+        /* print_timings     */ true,
+        /* n_threads         */ 4,
+        /* image_marker      */ MTMD_DEFAULT_IMAGE_MARKER,
+        /* media_marker      */ mtmd_default_marker(),
+        /* flash_attn_type   */ LLAMA_FLASH_ATTN_TYPE_AUTO,
+        /* warmup            */ true,
+        /* image_min_tokens  */ -1,
+        /* image_max_tokens  */ -1,
+    };
     return params;
 }
 
@@ -139,8 +151,7 @@ struct mtmd_context {
     // string template for slice image delimiters with row/col (idefics3)
     std::string sli_img_start_tmpl;
 
-    // for whisper, we pre-calculate the mel filter bank
-    whisper_preprocessor::whisper_filters w_filters;
+    std::unique_ptr<mtmd_audio_preprocessor> audio_preproc;
 
     // TODO @ngxson : add timings
 
@@ -151,7 +162,7 @@ struct mtmd_context {
         print_timings(ctx_params.print_timings),
         n_threads    (ctx_params.n_threads),
         media_marker (ctx_params.media_marker),
-        n_embd_text  (llama_model_n_embd(text_model))
+        n_embd_text  (llama_model_n_embd_inp(text_model))
     {
         if (std::string(ctx_params.image_marker) != MTMD_DEFAULT_IMAGE_MARKER) {
             throw std::runtime_error("custom image_marker is not supported anymore, use media_marker instead");
@@ -161,9 +172,14 @@ struct mtmd_context {
             throw std::runtime_error("media_marker must not be empty");
         }
 
-        clip_context_params ctx_clip_params;
-        ctx_clip_params.use_gpu   = ctx_params.use_gpu;
-        ctx_clip_params.verbosity = ctx_params.verbosity;
+        clip_context_params ctx_clip_params {
+            /* use_gpu           */ ctx_params.use_gpu,
+            /* flash_attn_type   */ CLIP_FLASH_ATTN_TYPE_AUTO,
+            /* image_min_tokens  */ ctx_params.image_min_tokens,
+            /* image_max_tokens  */ ctx_params.image_max_tokens,
+            /* warmup            */ ctx_params.warmup,
+        };
+
         auto res = clip_init(mmproj_fname, ctx_clip_params);
         ctx_v = res.ctx_v;
         ctx_a = res.ctx_a;
@@ -201,7 +217,7 @@ struct mtmd_context {
 
     void init_vision() {
         GGML_ASSERT(ctx_v != nullptr);
-        use_mrope = clip_is_qwen2vl(ctx_v);
+        use_mrope = clip_is_mrope(ctx_v);
 
         projector_type proj = clip_get_projector_type(ctx_v);
         int minicpmv_version = clip_is_minicpmv(ctx_v);
@@ -289,6 +305,14 @@ struct mtmd_context {
             img_beg = "<|im_start|>";
             img_end = "<|im_end|>";
 
+        } else if (proj == PROJECTOR_TYPE_LFM2) {
+            img_beg = "<|image_start|>";
+            img_end = "<|image_end|>";
+
+        } else if (proj == PROJECTOR_TYPE_GLM4V) {
+            img_beg = "<|begin_of_image|>";
+            img_end = "<|end_of_image|>";
+
         }
     }
 
@@ -296,14 +320,29 @@ struct mtmd_context {
         GGML_ASSERT(ctx_a != nullptr);
         projector_type proj = clip_get_projector_type(ctx_a);
 
-        if (clip_has_whisper_encoder(ctx_a)) {
-            // TODO @ngxson : check if model n_mel is 128 or 80
-            w_filters = whisper_precalc_filters::get_128_bins();
-        }
-
         LOG_WRN("%s: audio input is in experimental stage and may have reduced quality:\n"
                 "    https://github.com/ggml-org/llama.cpp/discussions/13759\n", __func__);
 
+        // set preprocessor
+        switch (proj) {
+            case PROJECTOR_TYPE_QWEN2A:
+            case PROJECTOR_TYPE_QWEN25O:
+            case PROJECTOR_TYPE_ULTRAVOX:
+            case PROJECTOR_TYPE_VOXTRAL:
+            case PROJECTOR_TYPE_GLMA:
+                audio_preproc = std::make_unique<mtmd_audio_preprocessor_whisper>(ctx_a);
+                break;
+            case PROJECTOR_TYPE_LFM2A:
+                audio_preproc = std::make_unique<mtmd_audio_preprocessor_conformer>(ctx_a);
+                break;
+            default:
+                GGML_ABORT("unsupported audio projector type");
+        }
+
+        // initialize audio preprocessor
+        audio_preproc->initialize();
+
+        // set special tokens
         if (proj == PROJECTOR_TYPE_QWEN2A) {
             // <|audio_bos|> ... (embeddings) ... <|audio_eos|>
             aud_beg = "<|audio_bos|>";
@@ -378,9 +417,7 @@ mtmd_context * mtmd_init_from_file(const char * mmproj_fname,
 }
 
 void mtmd_free(mtmd_context * ctx) {
-    if (ctx) {
-        delete ctx;
-    }
+    delete ctx;
 }
 
 struct mtmd_tokenizer {
@@ -634,11 +671,10 @@ struct mtmd_tokenizer {
             }
 
             // preprocess audio
-            GGML_ASSERT(ctx->w_filters.n_mel); // make sure we have filter preloaded
-            std::vector<whisper_preprocessor::whisper_mel> mel_spec_chunks;
+            std::vector<mtmd_audio_mel> mel_spec_chunks;
             const float * samples = (const float *)bitmap->data.data();
             size_t n_samples = bitmap->data.size() / sizeof(float);
-            bool ok = whisper_preprocessor::preprocess_audio(samples, n_samples, ctx->w_filters, mel_spec_chunks);
+            bool ok = ctx->audio_preproc->preprocess(samples, n_samples, mel_spec_chunks);
             if (!ok) {
                 LOG_ERR("Unable to preprocess audio\n");
                 return 2;
@@ -844,8 +880,7 @@ int mtmd_get_audio_bitrate(mtmd_context * ctx) {
     if (!ctx->ctx_a) {
         return -1;
     }
-    // for now, we assume that all audio models have the same bitrate
-    return 16000; // 16kHz
+    return clip_get_hparams(ctx->ctx_a)->audio_sample_rate;
 }
 
 //
@@ -1080,4 +1115,9 @@ mtmd_input_chunks * mtmd_test_create_input_chunks() {
     chunks->entries.emplace_back(std::move(chunk_image));
 
     return chunks;
+}
+
+void mtmd_log_set(ggml_log_callback log_callback, void * user_data) {
+    g_logger_state.log_callback = log_callback ? log_callback : clip_log_callback_default;
+    g_logger_state.log_callback_user_data = user_data;
 }

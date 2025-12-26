@@ -7,7 +7,9 @@ sleep 4
 pip install pyinstaller customtkinter && make clean && \
 # Ensure all backends are built then build executable file
 make LLAMA_HIPBLAS=1 LLAMA_VULKAN=1 LLAMA_OPENBLAS=1 -j$NUMCPUS && \
-pyinstaller --noconfirm --onefile --clean --console --collect-all customtkinter --collect-all libclblast-dev --collect-all clinfo --icon ".\niko.ico" \
+chmod +x "./create_ver_file.sh"
+. create_ver_file.sh
+pyinstaller --noconfirm --onefile --clean --console --collect-all customtkinter --collect-all jinja2 --collect-all psutil --icon "./niko.ico" \
 --add-data "./kcpp_adapters:./kcpp_adapters" \
 --add-data "./koboldcpp.py:." \
 --add-data "./json_to_gbnf.py:." \

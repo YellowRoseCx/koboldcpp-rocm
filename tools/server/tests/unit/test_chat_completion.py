@@ -41,7 +41,8 @@ def test_chat_completion(model, system_prompt, user_prompt, max_tokens, re_conte
     assert res.status_code == 200
     assert "cmpl" in res.body["id"] # make sure the completion id has the expected format
     assert res.body["system_fingerprint"].startswith("b")
-    assert res.body["model"] == model if model is not None else server.model_alias
+    # we no longer reflect back the model name, see https://github.com/ggml-org/llama.cpp/pull/17668
+    # assert res.body["model"] == model if model is not None else server.model_alias
     assert res.body["usage"]["prompt_tokens"] == n_prompt
     assert res.body["usage"]["completion_tokens"] == n_predicted
     choice = res.body["choices"][0]
@@ -59,7 +60,7 @@ def test_chat_completion(model, system_prompt, user_prompt, max_tokens, re_conte
 )
 def test_chat_completion_stream(system_prompt, user_prompt, max_tokens, re_content, n_prompt, n_predicted, finish_reason):
     global server
-    server.model_alias = None # try using DEFAULT_OAICOMPAT_MODEL
+    server.model_alias = "llama-test-model"
     server.start()
     res = server.make_stream_request("POST", "/chat/completions", data={
         "max_tokens": max_tokens,
@@ -81,7 +82,7 @@ def test_chat_completion_stream(system_prompt, user_prompt, max_tokens, re_conte
             else:
                 assert "role" not in choice["delta"]
             assert data["system_fingerprint"].startswith("b")
-            assert "gpt-3.5" in data["model"] # DEFAULT_OAICOMPAT_MODEL, maybe changed in the future
+            assert data["model"] == "llama-test-model"
             if last_cmpl_id is None:
                 last_cmpl_id = data["id"]
             assert last_cmpl_id == data["id"] # make sure the completion id is the same for all events in the stream
@@ -198,7 +199,7 @@ def test_completion_with_response_format(response_format: dict, n_predicted: int
         choice = res.body["choices"][0]
         assert match_regex(re_content, choice["message"]["content"])
     else:
-        assert res.status_code != 200
+        assert res.status_code == 400
         assert "error" in res.body
 
 
@@ -433,21 +434,21 @@ def test_context_size_exceeded_stream():
 @pytest.mark.parametrize(
     "n_batch,batch_count,reuse_cache",
     [
-        (64, 15, False),
+        (64, 3, False),
         (64, 1, True),
     ]
 )
-def test_return_progresssss(n_batch, batch_count, reuse_cache):
+def test_return_progress(n_batch, batch_count, reuse_cache):
     global server
     server.n_batch = n_batch
-    server.n_ctx = 2048
+    server.n_ctx = 256
     server.n_slots = 1
     server.start()
     def make_cmpl_request():
         return server.make_stream_request("POST", "/chat/completions", data={
             "max_tokens": 10,
             "messages": [
-                {"role": "user", "content": "This is a test" * 100},
+                {"role": "user", "content": "This is a test" * 10},
             ],
             "stream": True,
             "return_progress": True,
@@ -476,3 +477,22 @@ def test_return_progresssss(n_batch, batch_count, reuse_cache):
     assert last_progress["total"] > 0
     assert last_progress["processed"] == last_progress["total"]
     assert total_batch_count == batch_count
+
+
+def test_chat_completions_multiple_choices():
+    global server
+    server.start()
+    res = server.make_request("POST", "/chat/completions", data={
+        "max_tokens": 8,
+        "n": 2,
+        "messages": [
+            {"role": "system", "content": "Book"},
+            {"role": "user", "content": "What is the best book"},
+        ],
+    })
+    assert res.status_code == 200
+    assert len(res.body["choices"]) == 2
+    for choice in res.body["choices"]:
+        assert "assistant" == choice["message"]["role"]
+        assert match_regex("Suddenly", choice["message"]["content"])
+        assert choice["finish_reason"] == "length"

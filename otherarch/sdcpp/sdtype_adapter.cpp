@@ -21,10 +21,13 @@ std::string sd_load_merges();
 std::string sd_load_t5();
 std::string sd_load_umt5();
 std::string sd_load_qwen2_merges();
+std::string sd_load_mistral_merges();
+std::string sd_load_mistral_vocab_json();
 
 #include "flux.hpp"
 #include "stable-diffusion.cpp"
 #include "util.cpp"
+#include "name_conversion.cpp"
 #include "upscaler.cpp"
 #include "model.cpp"
 #include "tokenize_util.cpp"
@@ -69,8 +72,8 @@ struct SDParams {
     int width         = 512;
     int height        = 512;
 
-    sample_method_t sample_method = SAMPLE_METHOD_DEFAULT;
-    scheduler_t scheduler         = scheduler_t::DEFAULT;
+    sample_method_t sample_method = sample_method_t::SAMPLE_METHOD_COUNT;
+    scheduler_t scheduler         = scheduler_t::SCHEDULER_COUNT;
     int sample_steps              = 20;
     float distilled_guidance      = -1.0f;
     float shifted_timestep        = 0;
@@ -82,6 +85,10 @@ struct SDParams {
     bool vae_conv_direct          = false;
 
     bool chroma_use_dit_mask     = true;
+
+    std::string lora_path;
+    sd_lora_t lora_spec;
+    uint32_t lora_count;
 };
 
 //shared
@@ -106,6 +113,7 @@ static std::string sdmodelfilename = "";
 static bool photomaker_enabled = false;
 
 static bool is_vid_model = false;
+static bool remove_limits = false;
 
 static int get_loaded_sd_version(sd_ctx_t* ctx)
 {
@@ -158,6 +166,26 @@ std::string sd_load_qwen2_merges()
     qwenmergesstr = read_str_from_disk(filepath);
     return qwenmergesstr;
 }
+std::string sd_load_mistral_merges()
+{
+    static std::string mistralmergesstr;  // cached string
+    if (!mistralmergesstr.empty()) {
+        return mistralmergesstr;  // already loaded
+    }
+    std::string filepath = executable_path + "embd_res/mistral2_merges_utf8_c_str.embd";
+    mistralmergesstr = read_str_from_disk(filepath);
+    return mistralmergesstr;
+}
+std::string sd_load_mistral_vocab_json()
+{
+    static std::string mistralvocabstr;  // cached string
+    if (!mistralvocabstr.empty()) {
+        return mistralvocabstr;  // already loaded
+    }
+    std::string filepath = executable_path + "embd_res/mistral2_vocab_json.embd";
+    mistralvocabstr = read_str_from_disk(filepath);
+    return mistralvocabstr;
+}
 std::string sd_load_t5()
 {
     static std::string t5str = "";
@@ -197,9 +225,15 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     cfg_square_limit = inputs.img_soft_limit;
     printf("\nImageGen Init - Load Model: %s\n",inputs.model_filename);
 
+    int lora_apply_mode = std::max(0, std::min(2, inputs.lora_apply_mode));
+
     if(lorafilename!="")
     {
-        printf("With LoRA: %s at %f power\n",lorafilename.c_str(),inputs.lora_multiplier);
+        const char* lora_apply_mode_name = lora_apply_mode == 1 ? "immediately"
+                                         : lora_apply_mode == 2 ? "at runtime"
+                                         : "auto";
+        printf("With LoRA: %s at %f power, apply mode: %s\n",
+            lorafilename.c_str(),inputs.lora_multiplier,lora_apply_mode_name);
     }
     if(inputs.taesd)
     {
@@ -290,6 +324,7 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     sd_params->clip_l_path = clip1_filename;
     sd_params->clip_g_path = clip2_filename;
     sd_params->stacked_id_embeddings_path = photomaker_filename;
+    sd_params->lora_path = lorafilename;
     //if t5 is set, and model is a gguf, load it as a diffusion model path
     bool endswithgguf = (sd_params->model_path.rfind(".gguf") == sd_params->model_path.size() - 5);
     if((sd_params->t5xxl_path!="" || sd_params->clip_l_path!="" || sd_params->clip_g_path!="") && endswithgguf)
@@ -333,6 +368,7 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     params.offload_params_to_cpu = inputs.offload_cpu;
     params.keep_vae_on_cpu = inputs.vae_cpu;
     params.keep_clip_on_cpu = inputs.clip_cpu;
+    params.lora_apply_mode = (lora_apply_mode_t)lora_apply_mode;
     // params.flow_shift = 5.0f;
 
     if (params.chroma_use_dit_mask && params.diffusion_flash_attn) {
@@ -383,10 +419,15 @@ bool sdtype_load_model(const sd_load_model_inputs inputs) {
     std::filesystem::path mpath(inputs.model_filename);
     sdmodelfilename = mpath.filename().string();
 
-    if(lorafilename!="" && inputs.lora_multiplier>0)
+    sd_params->lora_spec = {};
+    sd_params->lora_spec.path = sd_params->lora_path.c_str();
+    sd_params->lora_spec.multiplier = inputs.lora_multiplier;
+
+    if(sd_params->lora_path!="" && sd_params->lora_spec.multiplier>0)
     {
         printf("\nApply LoRA...\n");
-        sd_ctx->sd->apply_lora_from_file(lorafilename,inputs.lora_multiplier);
+        sd_params->lora_count = 1;
+        sd_ctx->sd->apply_loras(&sd_params->lora_spec, sd_params->lora_count);
     }
 
     input_extraimage_buffers.reserve(max_extra_images);
@@ -408,6 +449,16 @@ std::string clean_input_prompt(const std::string& input) {
     return result;
 }
 
+static std::string get_scheduler_name(scheduler_t scheduler, bool as_sampler_suffix = false)
+{
+    if (scheduler == scheduler_t::SCHEDULER_COUNT) {
+        return as_sampler_suffix ? "" : "default";
+    } else {
+        std::string prefix = as_sampler_suffix ? " " : "";
+        return prefix + sd_scheduler_name(scheduler);
+    }
+}
+
 static std::string get_image_params(const sd_img_gen_params_t & params) {
     std::stringstream ss;
     ss << std::setprecision(3)
@@ -418,9 +469,8 @@ static std::string get_image_params(const sd_img_gen_params_t & params) {
         << " | Guidance: " << params.sample_params.guidance.distilled_guidance
         << " | Seed: " << params.seed
         << " | Size: " << params.width << "x" << params.height
-        << " | Sampler: " << sd_sample_method_name(params.sample_params.sample_method);
-    if (params.sample_params.scheduler != scheduler_t::DEFAULT)
-        ss << " " << sd_schedule_name(params.sample_params.scheduler);
+        << " | Sampler: " << sd_sample_method_name(params.sample_params.sample_method)
+        << get_scheduler_name(params.sample_params.scheduler, true);
     if (params.sample_params.shifted_timestep != 0)
         ss << "| Timestep Shift: " << params.sample_params.shifted_timestep;
     ss  << " | Clip skip: " << params.clip_skip
@@ -536,35 +586,35 @@ static enum sample_method_t sampler_from_name(const std::string& sampler)
     }
     else if(sampler=="euler a"||sampler=="k_euler_a")
     {
-        return sample_method_t::EULER_A;
+        return sample_method_t::EULER_A_SAMPLE_METHOD;
     }
     else if(sampler=="k_euler")
     {
-        return sample_method_t::EULER;
+        return sample_method_t::EULER_SAMPLE_METHOD;
     }
     else if(sampler=="k_heun")
     {
-        return sample_method_t::HEUN;
+        return sample_method_t::HEUN_SAMPLE_METHOD;
     }
     else if(sampler=="k_dpm_2")
     {
-        return sample_method_t::DPM2;
+        return sample_method_t::DPM2_SAMPLE_METHOD;
     }
     else if(sampler=="k_lcm")
     {
-        return sample_method_t::LCM;
+        return sample_method_t::LCM_SAMPLE_METHOD;
     }
     else if(sampler=="ddim")
     {
-        return sample_method_t::DDIM_TRAILING;
+        return sample_method_t::DDIM_TRAILING_SAMPLE_METHOD;
     }
     else if(sampler=="dpm++ 2m karras" || sampler=="dpm++ 2m" || sampler=="k_dpmpp_2m")
     {
-        return sample_method_t::DPMPP2M;
+        return sample_method_t::DPMPP2M_SAMPLE_METHOD;
     }
     else
     {
-        return sample_method_t::SAMPLE_METHOD_DEFAULT;
+        return sample_method_t::SAMPLE_METHOD_COUNT;
     }
 }
 
@@ -669,13 +719,13 @@ uint8_t* load_image_from_b64(const std::string & b64str, int& width, int& height
 static enum scheduler_t scheduler_from_name(const char * scheduler)
 {
     if (scheduler) {
-        enum scheduler_t result = str_to_schedule(scheduler);
-        if (result != scheduler_t::SCHEDULE_COUNT)
+        enum scheduler_t result = str_to_scheduler(scheduler);
+        if (result != scheduler_t::SCHEDULER_COUNT)
         {
             return result;
         }
     }
-    return scheduler_t::DEFAULT;
+    return scheduler_t::SCHEDULER_COUNT;
 }
 
 sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
@@ -717,7 +767,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
     sd_params->sample_method = sampler_from_name(inputs.sample_method);
     sd_params->scheduler = scheduler_from_name(inputs.scheduler);
 
-    if (sd_params->sample_method == SAMPLE_METHOD_DEFAULT) {
+    if (sd_params->sample_method == sample_method_t::SAMPLE_METHOD_COUNT) {
         sd_params->sample_method = sd_get_default_sample_method(sd_ctx);
     }
 
@@ -736,12 +786,23 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
             }
             sd_params->cfg_scale = 1.0f;
         }
-        if (sd_params->sample_method == sample_method_t::EULER_A) {
+        if (sd_params->sample_method == sample_method_t::EULER_A_SAMPLE_METHOD) {
             //euler a broken on flux
             if (!sd_is_quiet && sddebugmode) {
                 printf("%s: switching Euler A to Euler\n", loaded_model_is_chroma(sd_ctx) ? "Chroma" : "Flux");
             }
-            sd_params->sample_method = sample_method_t::EULER;
+            sd_params->sample_method = sample_method_t::EULER_SAMPLE_METHOD;
+        }
+    }
+
+    if(!remove_limits && loadedsdver == SDVersion::VERSION_Z_IMAGE)
+    {
+        if(sd_params->cfg_scale > 3.0f)
+        {
+            if (!sd_is_quiet && sddebugmode) {
+                printf("Z-Image: clamping CFG Scale to 3.0 to preserve quality\n");
+            }
+            sd_params->cfg_scale = 3.0f;
         }
     }
 
@@ -899,7 +960,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
 
         if(!sd_is_quiet && sddebugmode==1)
         {
-            printf("\nImageGen References: RefImg=%d Wan=%d Photomaker=%d\n",reference_imgs.size(),wan_imgs.size(),photomaker_imgs.size());
+            printf("\nImageGen References: RefImg=%zu Wan=%zu Photomaker=%zu\n",reference_imgs.size(),wan_imgs.size(),photomaker_imgs.size());
         }
     }
 
@@ -926,6 +987,11 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
     params.vae_tiling_params.enabled = dotile;
     params.batch_count = 1;
 
+    // needs to be "reapplied" because sdcpp tracks previously applied LoRAs
+    // and weights, and apply/unapply the differences at each gen
+    params.loras = &sd_params->lora_spec;
+    params.lora_count = sd_params->lora_count;
+
     params.ref_images = reference_imgs.data();
     params.ref_images_count = reference_imgs.size();
     params.pm_params.id_images = photomaker_imgs.data();
@@ -935,6 +1001,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
     int vid_req_frames = inputs.vid_req_frames;
     int vid_req_avi = inputs.vid_req_avi;
     int generated_num_results = 1;
+    remove_limits = inputs.remove_limits;
 
     if(is_vid_model)
     {
@@ -998,7 +1065,7 @@ sd_generation_outputs sdtype_generate(const sd_generation_inputs inputs)
                 << "\nCFGSCLE:" << params.sample_params.guidance.txt_cfg
                 << "\nSIZE:" << params.width << "x" << params.height
                 << "\nSM:" << sd_sample_method_name(params.sample_params.sample_method)
-                << "\nSCHED:" << sd_schedule_name(params.sample_params.scheduler)
+                << "\nSCHED:" << get_scheduler_name(params.sample_params.scheduler)
                 << "\nSTEP:" << params.sample_params.sample_steps
                 << "\nSEED:" << params.seed
                 << "\nBATCH:" << params.batch_count

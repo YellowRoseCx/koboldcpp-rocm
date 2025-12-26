@@ -10,6 +10,7 @@ const config = {
 
 	kit: {
 		paths: {
+			base: '/lcpp',
 			relative: true
 		},
 		router: { type: 'hash' },
@@ -22,6 +23,9 @@ const config = {
 		}),
 		output: {
 			bundleStrategy: 'inline'
+		},
+		alias: {
+			$styles: 'src/styles'
 		}
 	},
 

@@ -244,6 +244,11 @@
                             "minimum": 0,
                             "type": "number"
                          },
+                         "dry_penalty_last_n": {
+                            "description": "KoboldCpp ONLY. DRY last n tokens penalized value.",
+                            "minimum": 0,
+                            "type": "number"
+                         },
                          "dry_sequence_breakers": {
                             "description": "An array of string sequence breakers for DRY.",
                             "items": {
@@ -2304,7 +2309,7 @@
                                   "height": 512,
                                   "seed": -1,
                                   "clip_skip": -1,
-                                  "sampler_name": "Euler a"
+                                  "sampler_name": "Euler"
                                },
                                "schema": {
                                   "properties": {
@@ -2399,7 +2404,7 @@
                                   "height": 512,
                                   "seed": -1,
                                   "clip_skip": -1,
-                                  "sampler_name": "Euler a",
+                                  "sampler_name": "Euler",
                                   "denoising_strength": 0.6,
                                   "init_images":[],
                                   "mask":"",

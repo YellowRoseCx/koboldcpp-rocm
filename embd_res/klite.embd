@@ -12,7 +12,7 @@ Current version indicated by LITEVER below.
 -->
 
 <script id="init-config">
-	const LITEVER = 294;
+	const LITEVER = 301;
 	const urlParams = new URLSearchParams(window.location.search);
 	var localflag = urlParams.get('local'); //this will be replaced automatically in embedded kcpp
 	const STORAGE_PREFIX = (localflag?"e_":"")+"kaihordewebui_";
@@ -230,6 +230,31 @@ Current version indicated by LITEVER below.
 		--theme_color_glow_text: #a0bebe;
 		--theme_color_placeholder_text: #c5d5d5;
 		--theme_color_topmenu: #002b36;
+	}
+
+	.theme-6
+	{
+		--theme_color_bg_dark: #000000;
+		--theme_color_bg: #151515;
+		--theme_color_bg_outer: #000000;
+		--theme_color_main: #6c224a;
+		--theme_color_footer: #2c0c1d;
+		--theme_color_text: #ffa8e2;
+		--theme_color_input_text: #ffa8e2;
+		--theme_color_highlight: #ba0f6c;
+		--theme_color_border: #ba0f6c;
+		--theme_color_border_highlight: #be347f;
+		--theme_color_input_bg: #4f0336;
+		--theme_color_disabled_bg: #3c0028;
+		--theme_color_disabled_fg: #17000f;
+		--theme_color_topbtn: #943267;
+		--theme_color_topbtn_highlight: #943267;
+		--theme_color_tabs: #540831;
+		--theme_color_tabs_highlight: #d3348a;
+		--theme_color_tabs_text: #e674c0;
+		--theme_color_glow_text: #f399ca;
+		--theme_color_placeholder_text: #9e9e9e;
+		--theme_color_topmenu: #000000;
 	}
 
 	body.connected.corpoui .topmenu {
@@ -703,11 +728,6 @@ Current version indicated by LITEVER below.
 		gap: 2px;
 		font-size: 12px;
 	}
-	@media (max-width: 340px) {
-		.saveloadgrid {
-			font-size: 8px;
-		}
-	}
 	.btnicon-save
 	{
 		width: 16px;
@@ -999,6 +1019,9 @@ Current version indicated by LITEVER below.
 	.nspopup.moderate {
 		margin-top: 170px;
 	}
+	.nspopup.high {
+		margin-top: 150px;
+	}
 	.nspopup.higher {
 		margin-top: 120px;
 	}
@@ -1242,7 +1265,7 @@ Current version indicated by LITEVER below.
 
 	/* Scenario menu */
 	.scenariopopup {
-		width: 600px;
+		width: 660px;
 		background-color:  var(--theme_color_bg);
 		margin-top: 60px;
 	}
@@ -1274,14 +1297,14 @@ Current version indicated by LITEVER below.
 	}
 	.scenariogrid
 	{
-		height: 240px;
+		height: 246px;
 		overflow-y: auto;
 		margin-top: 4px;
 		padding: 8px;
 		display: grid;
 		gap: 8px;
 		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-		grid-auto-rows: 55px;
+		grid-auto-rows: 50px;
 	}
 	.scenariodesc
 	{
@@ -1293,13 +1316,13 @@ Current version indicated by LITEVER below.
 	}
 	.scenarioitem
 	{
-		font-size: 14px;
+		font-size: 13px;
 		color: white;
 		font-weight: 500;
 		font-family: 'Segoe UI', Tahoma;
 		background-repeat: no-repeat;
-		background-position: top 4px left 4px, center;
-		background-size: 24px, 100%;
+		background-position: top 3px left 3px, center;
+		background-size: 16px, 100%;
 		padding: 2px 2px;
 		text-wrap: wrap;
 	}
@@ -1348,6 +1371,15 @@ Current version indicated by LITEVER below.
 	}
 	.scenarioitem.yellow:focus {
 		background-image: var(--img_compass),linear-gradient(to right, #6b5530, #6b5530);
+	}
+	.scenarioitem.brown {
+		background-image: none,	linear-gradient(to right, #a26f41, #73572f);
+	}
+	.scenarioitem.brown:hover {
+		background-image: none,	linear-gradient(to right, #ba7f4c, #8a693a);
+	}
+	.scenarioitem.brown:focus {
+		background-image: none,	linear-gradient(to right, #845a35, #523e22);
 	}
 
 	.branchmenu {
@@ -2919,7 +2951,7 @@ Current version indicated by LITEVER below.
 
 	// whitelisted auto selected horde model names
 	const defaultmodels = ["gpt4all","supercot","pygmalion-6","pygmalion-v8","pygmalion-2","hermes","airoboros","chrono","wizard","mantis","vicuna","manticore","alpaca","myth","xwin","spicyboros","mlewd","mxlewd","westlake","anubis","skyfall","llama2","llama3","llama-2","llama-3-","llama-3.","mistral","maid","mixtral","estopia","fighter","fimbul","euryale","nemo","gemma","lunaris","stheno","magnum","cydonia","qwen2.5-32b","behemoth","exaone","glm4","glm-4","tutu","deepseek"];
-	const ignoredmodels = ["tinyllama","debug-","-1b"]; //blacklisted model names
+	const ignoredmodels = ["tinyllama","debug-","-1b","-270m"]; //blacklisted model names
 
 	const instructstartplaceholder = "\n{{[INPUT]}}\n";
 	const instructendplaceholder = "\n{{[OUTPUT]}}\n";
@@ -3483,6 +3515,8 @@ Current version indicated by LITEVER below.
 	const default_gemini_stream_suffix = ":streamGenerateContent?alt=sse&key=";
 	const default_cohere_base = "https://api.cohere.ai/v1/chat";
 
+	const openrouter_credits_endpoint = "/credits";
+
 	const a1111_models_endpoint = "/sdapi/v1/sd-models";
 	const a1111_options_endpoint = "/sdapi/v1/options";
 	const a1111_txt2img_endpoint = "/sdapi/v1/txt2img";
@@ -3490,6 +3524,7 @@ Current version indicated by LITEVER below.
 	const a1111_interrogate_endpoint = "/sdapi/v1/interrogate";
 
 	const comfy_models_endpoint = "/models/checkpoints";
+	const comfy_loras_endpoint = "/models/loras";
 	const comfy_generate_endpoint = "/prompt";
 	const comfy_history_endpoint = "/history";
 	const comfy_results_endpoint = "/view?filename=";
@@ -3541,6 +3576,7 @@ Current version indicated by LITEVER below.
 	const PREVIEW_RES_PX = 200;
 	const AVATAR_PX = 384;
 	const SAVE_SLOTS = 12;
+	const SCENARIO_SLOTS = 6;
 	const num_regex_rows = 4;
 	const default_websearch_template = "### New Task:\nFrom above text, rephrase the search engine query \"{{QUERY}}\" as a single short phrase (for search engines) using proper nouns, references and names to avoid ambiguity.\n\n### Rephrased Search Query Created:\n";
 
@@ -3709,7 +3745,7 @@ Current version indicated by LITEVER below.
 		saved_palm_jailbreak:"", //gemini system prompt
 		saved_palm_jailbreak2:"", //gemini postfix
 		saved_openrouter_provider:"", //for overriding provider
-		saved_openrouter_reasoning:0, //enable or disable openrouter thinking, 0=default, 1=disable, 2=enable
+		saved_oai_reasoning:"", //if set, reasoning level "none,minimal,low,medium,high", else default
 		saved_oai_custommodel: "", //customized oai custom model
 		saved_oai_role: 3, //0=user,1=assistant,2=system, 3=auto
 		saved_a1111_url: default_a1111_base,
@@ -3774,7 +3810,7 @@ Current version indicated by LITEVER below.
 		img_gen_from_instruct: true,
 		img_autogen_type: 0, //0 is off, 1 is on, 2 is smart
 		img_allownsfw: true,
-		img_cfgscale: 6,
+		img_cfgscale: 5,
 		img_allowhd: true,
 		img_crop: false,
 		img_newturn: false,
@@ -3823,6 +3859,8 @@ Current version indicated by LITEVER below.
 		no_compress_audio: false,
 		autoguess_third_party:false,
 		legacy_savefile:false,
+		allow_continue_user_turn: false,
+		proxy_disable_stream:false,
 
 		//section migrated from story itself
 		extrastopseq: "",
@@ -3858,6 +3896,7 @@ Current version indicated by LITEVER below.
 		dynatemp_range: 0.0,
 		dynatemp_exponent: 1.0,
 		smoothing_factor: 0.0,
+		smoothing_curve: 1.0,
 		nsigma: 0.0,
 		top_p: 0.92,
 		min_p: 0.00,
@@ -3894,6 +3933,7 @@ Current version indicated by LITEVER below.
 			dynatemp_range: defaultsettings.dynatemp_range,
 			dynatemp_exponent: defaultsettings.dynatemp_exponent,
 			smoothing_factor: defaultsettings.smoothing_factor,
+			smoothing_curve: defaultsettings.smoothing_curve,
 			nsigma: defaultsettings.nsigma,
 			top_k: defaultsettings.top_k,
 			top_p: defaultsettings.top_p,
@@ -3907,7 +3947,7 @@ Current version indicated by LITEVER below.
 			rep_pen_slope: defaultsettings.rep_pen_slope,
 			sampler_order: defaultsettings.sampler_order
 		},
-		{"preset":"Simple Logical","description":"A very predictable preset with low randomness.","temp":0.3,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":100,"top_p":0.6,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.02,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Simple Balanced","description":"A good balanced preset with medium randomness.","temp":0.75,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":100,"top_p":0.92,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.05,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Simple Creative","description":"A wild and unpredictable preset with higher randomness.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":100,"top_p":0.98,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.1,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Basic Min-P","description":"A good default for Min-P, only works on backends with min-p.","temp":1.25,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.1,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic Top-nsigma","description":"A good default for Top-nsigma, only works on backends with Top-nsigma.","temp":1,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":1.0,"top_k":0,"top_p":1,"min_p":0.01,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic DynaTemp","description":"A good default for DynaTemp, only works on backends with it.","temp":1.25,"dynatemp_range":0.75,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.05,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic SmoothSample","description":"A good default for Smooth Sampling, only works on backends with it.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.25,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.05,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic SillyTavern","description":"Similar to default preset used in SillyTavern.","temp":0.75,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":40,"top_p":0.6,"min_p":0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1.0,"rep_pen":1.18,"rep_pen_range":1024,"rep_pen_slope":0.8,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Immortal","description":"Modernized version of the Godlike preset, designed for creative and longer story co-writing use.","temp":0.7,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":1.75,"top_k":0,"top_p":1.0,"min_p":0.0,"presence_penalty":0.0,"top_a":0.75,"typical":0.19,"tfs":0.97,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,5,4,3,2,1,0]},{"preset":"Neutral (Disabled)","description":"Sets all samplers neutralized, allowing you to customize your own.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":200,"top_p":1.0,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.0,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"CoherentCreativity (Legacy)","description":"Legacy preset. A good balance between coherence, creativity, and quality of prose.","rep_pen":1.2,"rep_pen_range":360,"rep_pen_slope":0,"sampler_order":[6,5,0,2,3,1,4],"temp":0.5,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"tfs":0.99,"top_a":0,"top_k":0,"top_p":1,"min_p":0.0,"presence_penalty":0.0,"typical":1},{"preset":"Godlike (Legacy)","description":"Legacy preset. Makes AI give a descriptive and sensual output.","temp":0.7,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":0,"top_p":0.5,"min_p":0.0,"presence_penalty":0.0,"top_a":0.75,"typical":0.19,"tfs":0.97,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,5,4,3,2,1,0]},{"preset":"LiminalDrift (Legacy)","description":"Legacy preset. Sometimes surreal situations arise based on information already present in the story.","temp":0.66,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.0,"presence_penalty":0.0,"top_a":0.96,"typical":0.6,"tfs":1,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,4,5,1,0,2,3]}
+		{"preset":"Simple Logical","description":"A very predictable preset with low randomness.","temp":0.3,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":100,"top_p":0.6,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.02,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Simple Balanced","description":"A good balanced preset with medium randomness.","temp":0.75,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":100,"top_p":0.92,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.05,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Simple Creative","description":"A wild and unpredictable preset with higher randomness.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":100,"top_p":0.98,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.1,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Basic Min-P","description":"A good default for Min-P, only works on backends with min-p.","temp":1.25,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.1,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic Top-nsigma","description":"A good default for Top-nsigma, only works on backends with Top-nsigma.","temp":1,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":1.0,"top_k":0,"top_p":1,"min_p":0.01,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic DynaTemp","description":"A good default for DynaTemp, only works on backends with it.","temp":1.25,"dynatemp_range":0.75,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.05,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic SmoothSample","description":"A good default for Smooth Sampling, only works on backends with it.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.25,"smoothing_curve":1.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.05,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.03,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,5,0,1,3,4,2]},{"preset":"Basic SillyTavern","description":"Similar to default preset used in SillyTavern.","temp":0.75,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":40,"top_p":0.6,"min_p":0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1.0,"rep_pen":1.18,"rep_pen_range":1024,"rep_pen_slope":0.8,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"Immortal","description":"Modernized version of the Godlike preset, designed for creative and longer story co-writing use.","temp":0.7,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":1.75,"top_k":0,"top_p":1.0,"min_p":0.0,"presence_penalty":0.0,"top_a":0.75,"typical":0.19,"tfs":0.97,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,5,4,3,2,1,0]},{"preset":"Neutral (Disabled)","description":"Sets all samplers neutralized, allowing you to customize your own.","temp":1.0,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":200,"top_p":1.0,"min_p":0.0,"presence_penalty":0.0,"top_a":0,"typical":1,"tfs":1,"rep_pen":1.0,"rep_pen_range":360,"rep_pen_slope":0.7,"sampler_order":[6,0,1,3,4,2,5]},{"preset":"CoherentCreativity (Legacy)","description":"Legacy preset. A good balance between coherence, creativity, and quality of prose.","rep_pen":1.2,"rep_pen_range":360,"rep_pen_slope":0,"sampler_order":[6,5,0,2,3,1,4],"temp":0.5,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"tfs":0.99,"top_a":0,"top_k":0,"top_p":1,"min_p":0.0,"presence_penalty":0.0,"typical":1},{"preset":"Godlike (Legacy)","description":"Legacy preset. Makes AI give a descriptive and sensual output.","temp":0.7,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":0,"top_p":0.5,"min_p":0.0,"presence_penalty":0.0,"top_a":0.75,"typical":0.19,"tfs":0.97,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,5,4,3,2,1,0]},{"preset":"LiminalDrift (Legacy)","description":"Legacy preset. Sometimes surreal situations arise based on information already present in the story.","temp":0.66,"dynatemp_range":0.0,"dynatemp_exponent":1.0,"smoothing_factor":0.0,"smoothing_curve":1.0,"nsigma":0.0,"top_k":0,"top_p":1,"min_p":0.0,"presence_penalty":0.0,"top_a":0.96,"typical":0.6,"tfs":1,"rep_pen":1.1,"rep_pen_range":1024,"rep_pen_slope":0.7,"sampler_order":[6,4,5,1,0,2,3]}
 	];
 
 	const instructpresets = [
@@ -4012,6 +4052,15 @@ Current version indicated by LITEVER below.
 		"system_end":"<|end_of_text|>\\n",
 	},
 	{
+		"name":"Kimi ChatML",
+		"user":"<|im_user|>user<|im_middle|>",
+		"user_end":"<|im_end|>",
+		"assistant":"<|im_assistant|>assistant<|im_middle|>",
+		"assistant_end":"<|im_end|>",
+		"system":"<|im_system|>system<|im_middle|>",
+		"system_end":"<|im_end|>",
+	},
+	{
 		"name":"Llama 2 Chat",
 		"user":"[INST] ",
 		"user_end":"",
@@ -4114,7 +4163,7 @@ Current version indicated by LITEVER below.
 		"name":"OpenAI Harmony Non-Thinking",
 		"user":"<|start|>user<|message|>",
 		"user_end":"<|end|>",
-		"assistant":"<|start|>assistant<|channel|>final<|message|>",
+		"assistant":"<<|start|>assistant<|channel|>analysis<|message|>We can answer immediately.<|end|><|start|>assistant<|channel|>final<|message|>",
 		"assistant_end":"<|end|>",
 		"system":"<|start|>developer<|message|>",
 		"system_end":"<|end|>",
@@ -4726,6 +4775,11 @@ Current version indicated by LITEVER below.
 
 	//setup drag and drop zone for files
 	setupDragDrop();
+
+	//setup autoscroll disabling when manual scroll
+    attach_scroll_detection(document.getElementById("gametext"));
+	attach_scroll_detection(document.getElementById("chat_msg_body"));
+	attach_scroll_detection(document.getElementById("corpostylemain"));
 
 	//fix for iphone zooming
 	if(navigator.userAgent.indexOf('iPhone') > -1 )
@@ -6383,20 +6437,23 @@ Current version indicated by LITEVER below.
 									{
 										if(!synchro_polled_respimg && event.data.candidates[0].content.parts[x].inlineData && event.data.candidates[0].content.parts[x].inlineData.data)
 										{
-											synchro_polled_respimg = event.data.candidates[0].content.parts[x].inlineData.data;
+											if(!event.data.candidates[0].content.parts[x].thought) //ignore thought images
+											{
+												synchro_polled_respimg = event.data.candidates[0].content.parts[x].inlineData.data;
+											}
 										}
 										if(event.data.candidates[0].content.parts[x].thought)
 										{
 											streaming_was_thinking = true;
 										}
-										if(!event.data.candidates[0].content.parts[x].text)
-										{
-											continue;
-										}
 										if(!event.data.candidates[0].content.parts[x].thought && streaming_was_thinking)
 										{
 											synchro_pending_stream = `${localsettings.start_thinking_tag}${synchro_pending_stream}${localsettings.stop_thinking_tag}`;
 											streaming_was_thinking = false;
+										}
+										if(!event.data.candidates[0].content.parts[x].text)
+										{
+											continue;
 										}
 										synchro_pending_stream += event.data.candidates[0].content.parts[x].text;
 									}
@@ -6412,12 +6469,26 @@ Current version indicated by LITEVER below.
 								}
 								else if(event.data.choices[0].delta && event.data.choices[0].delta.content)
 								{
-									if(streaming_was_thinking)
+									let cnt = event.data.choices[0].delta.content;
+
+									if(cnt && cnt.length>0 && cnt[0].type=="thinking") //mistral
+									{
+										if(cnt[0].thinking && cnt[0].thinking.length>0 && cnt[0].thinking[0].text)
+										{
+											streaming_was_thinking = true;
+											cnt = cnt[0].thinking[0].text;
+										}
+										else
+										{
+											cnt = "";
+										}
+									}
+									else if(streaming_was_thinking)
 									{
 										streaming_was_thinking = false;
 										synchro_pending_stream = `${localsettings.start_thinking_tag}${synchro_pending_stream}${localsettings.stop_thinking_tag}`;
 									}
-									synchro_pending_stream += event.data.choices[0].delta.content;
+									synchro_pending_stream += cnt;
 								}
 								else if(event.data.choices[0].delta && !event.data.choices[0].delta.content && event.data.choices[0].delta.reasoning_content!=null&& event.data.choices[0].delta.reasoning_content!="")
 								{
@@ -6765,26 +6836,27 @@ Current version indicated by LITEVER below.
 			let previousIndentation = 0;
 			let inCodeBlock = false;
 			input = input.replace(/\t/g, "    "); //replace tabs with 4 spaces
-			const lines = input.split("\n");
-			const regex = /^( {4,10})(.*)/;
-			let prevIsNewline = false;
-			let withinCodeBlock = false;
-			input = lines.map((line) => {
-				let isNewline = (line.trim()=="");
-				const match = line.match(regex);
-				if (match && (withinCodeBlock||prevIsNewline)) {
-					const [, spaces, content] = match;
-					let lessspaces = spaces.substring(4);
-					withinCodeBlock = true;
-					line = `<pre><code>${lessspaces}${escapeHTML(content)}</code></pre>`;
-				}
-				else
-				{
-					withinCodeBlock = false;
-				}
-				prevIsNewline = isNewline;
-				return line; // Return unmodified if no match or condition not met
-			}).join("\n");
+			// 15nov25: no longer recommended to replace spaced rows with code blocks due to false positives
+			// const lines = input.split("\n");
+			// const regex = /^( {4,10})(.*)/;
+			// let prevIsNewline = false;
+			// let withinCodeBlock = false;
+			// input = lines.map((line) => {
+			// 	let isNewline = (line.trim()=="");
+			// 	const match = line.match(regex);
+			// 	if (match && (withinCodeBlock||prevIsNewline)) {
+			// 		const [, spaces, content] = match;
+			// 		let lessspaces = spaces.substring(4);
+			// 		withinCodeBlock = true;
+			// 		line = `<pre><code>${lessspaces}${escapeHTML(content)}</code></pre>`;
+			// 	}
+			// 	else
+			// 	{
+			// 		withinCodeBlock = false;
+			// 	}
+			// 	prevIsNewline = isNewline;
+			// 	return line; // Return unmodified if no match or condition not met
+			// }).join("\n");
 			return input;
 		};
 		const formatMarkdown = (md) => {
@@ -6850,6 +6922,7 @@ Current version indicated by LITEVER below.
 
 			.replace(/\*\*\*([^\s*][\s\S]*?[^\\])\*\*\*/gm, "<b><em>$1</em></b>")
 			.replace(/\*\*(.)\*\*/g, "<b>$1</b>") //handle single char bold
+			.replace(/([ ,.?!:])\*\*(\w+(?: \w+)?)\*\*([ ,.?!:])/g, "$1<b>$2</b>$3") //hack: support 1 or 2 nested bolded words (not official)
 			.replace(/\*\*([^\s*][\s\S]*?[^\\])\*\*/gm, "<b>$1</b>")
 			.replace(/(^|[\s.,;:!?<>])\*(.)\*(?=[\s.,;:!?<>]|$)/g, "$1<em>$2</em>") //handle single char italics
 			.replace(/\*([^\s*][\s\S]*?[^\\])\*/gm, "<em>$1</em>")
@@ -6860,7 +6933,9 @@ Current version indicated by LITEVER below.
 			.replace(/\^\^(\w.*?)\^\^/gm, "<ins>$1</ins>")
 			.replace(/\{\{(\w.*?)\}\}/gm, "<mark>$1</mark>")
 			.replace(/^((?:(?:\|[^|\r\n]+)*\|[^|\r\n]*[^\s|\r\n][^|\r\n]*(?:\|[^|\r\n]+)*\| {0,2}(?:\r?\n|\r|$))+)/gm,
-				(matchedTable) => convertMarkdownTableToHtml(matchedTable));
+				(matchedTable) => convertMarkdownTableToHtml(matchedTable))
+			.replace(/&lt;sub&gt;(.+?)&lt;\/sub&gt;/g, "<sub>$1</sub>")
+			.replace(/&lt;sup&gt;(.+?)&lt;\/sup&gt;/g, "<sup>$1</sup>");
 			//.replace(/  \n/g, "\n<br/>"); //this is the reddit behavior where spacespacenewline generates extra newline
 
 
@@ -7316,6 +7391,31 @@ Current version indicated by LITEVER below.
 			}
 			comfyui_is_connected = false;
 		});
+
+		fetch(localsettings.saved_comfy_url + comfy_loras_endpoint)
+        .then(x => x.json())
+        .then(lorasdata => {
+            //repopulate our lora list
+            let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+            let loraSelectionHtml = ``;
+            if (lorasdata == null || lorasdata.length == 0) {
+                dropdown_lora.disabled = true;
+                loraSelectionHtml = `<option value="" disabled selected>No Lora Found</option>`;
+            } else {
+                dropdown_lora.disabled = false;
+                let current_loaded_model = lorasdata[0];
+                loraSelectionHtml += `<option value="">No Lora Selected</option>`;
+                for (var i = 0; i < lorasdata.length; ++i) {
+                    loraSelectionHtml += `<option value="${lorasdata[i]}" ${(current_loaded_model==lorasdata[i]?"selected":"")}>${lorasdata[i]}</option>`;
+                }
+            }
+            dropdown_lora.innerHTML = loraSelectionHtml;
+        }).catch((error) => {
+			console.log(error);
+			let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+			dropdown_lora.disabled = true;
+			loraSelectionHtml = `<option value="" disabled selected>No Lora Found</option>`;
+		});
 	}
 
 	function uploadBase64ImgToComfy(base64Data,filename) {
@@ -7345,6 +7445,8 @@ Current version indicated by LITEVER below.
 
 	function generate_comfy_image(req_payload, autoappend)
 	{
+		let dropdown_lora = document.getElementById("generate_images_comfy_lora");
+		let use_lora = ((dropdown_lora && dropdown_lora.disabled==false && dropdown_lora.value != "") ? true : false);
 		let splits = req_payload.prompt.split("###");
 		let prompt = splits[0].trim();
 		let negprompt = (splits.length > 1 ? splits[1] : "");
@@ -7358,7 +7460,7 @@ Current version indicated by LITEVER below.
 						"cfg": req_payload.params.cfg_scale,
 						"denoise": 1,
 						"latent_image": ["5", 0],
-						"model": ["4", 0],
+						"model": use_lora ? ["11", 0] : ["4", 0],
 						"negative": ["7", 0],
 						"positive": ["6", 0],
 						"sampler_name": "euler",
@@ -7384,15 +7486,15 @@ Current version indicated by LITEVER below.
 				"6": {
 					"class_type": "CLIPTextEncode",
 					"inputs": {
-						"clip": ["4", 1],
-						"text": prompt
+						"text": prompt,
+						"clip": use_lora ? ["11", 1] : ["4", 1]
 					}
 				},
 				"7": {
 					"class_type": "CLIPTextEncode",
 					"inputs": {
-						"clip": ["4", 1],
-						"text": negprompt
+						"text": negprompt,
+						"clip": use_lora ? ["11", 1] : ["4", 1]
 					}
 				},
 				"8": {
@@ -7411,6 +7513,19 @@ Current version indicated by LITEVER below.
 				}
 			}
 		};
+
+		if (use_lora) {
+			genimg_payload.prompt["11"] = {
+				"class_type": "LoraLoader",
+				"inputs": {
+					"lora_name": dropdown_lora.value,
+					"strength_model": 1.0,
+					"strength_clip": 1.0,
+					"model": ["4", 0],
+					"clip": ["4", 1]
+				}
+			};
+		}
 
 		if(req_payload["source_image"]) //override with img2img nodes
 		{
@@ -7666,7 +7781,7 @@ Current version indicated by LITEVER below.
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				let origImg = reader.result;
-				let imgres = localsettings.img_allowhd?(localsettings.img_aspect==0?NO_HD_RES_PX:HD_RES_PX):NO_HD_RES_PX;
+				let imgres = localsettings.img_allowhd?VHD_RES_PX:NO_HD_RES_PX;
 				compressImage(origImg, (newDataUri) => {
 					image_db[imgid].done = true;
 					image_db[imgid].result = newDataUri;
@@ -7920,6 +8035,10 @@ Current version indicated by LITEVER below.
 	{
 		return (custom_kobold_endpoint!="" && koboldcpp_version && koboldcpp_version!="" && compare_version_str(koboldcpp_version, "1.90") >= 0 && koboldcpp_has_guidance);
 	}
+	function is_using_kcpp_with_lcppui()
+	{
+		return (custom_kobold_endpoint!="" && koboldcpp_version && koboldcpp_version!="" && compare_version_str(koboldcpp_version, "1.102") >= 0);
+	}
 	function is_using_web_lite()
 	{
 		return (window.location.hostname.includes("koboldai.net") || window.location.hostname.includes("lostruins.github.io"));
@@ -8137,7 +8256,7 @@ Current version indicated by LITEVER below.
 				document.getElementById("enhancedchatinterface").classList.add("transparentbg");
 				document.getElementById("enhancedchatinterface_inner").classList.add("transparentbg");
 				indexeddb_save("bgimg", compressedImageURI);
-			}, false, 1024, 0.5);
+			}, false, 1024);
 		}
 	};
 	function clear_bg_img()
@@ -8366,20 +8485,28 @@ Current version indicated by LITEVER below.
 			//redact some values
 			new_save_storyobj.savedsettings.my_api_key = "0000000000";
 			new_save_storyobj.savedsettings.saved_oai_key = "";
+			new_save_storyobj.savedsettings.saved_oai_addr = "";
 			new_save_storyobj.savedsettings.saved_dalle_key = "";
 			new_save_storyobj.savedsettings.saved_dalle_url = "";
-			new_save_storyobj.savedsettings.saved_oai_addr = "";
-			new_save_storyobj.savedsettings.saved_claude_key = "";
-			new_save_storyobj.savedsettings.saved_claude_addr = "";
-			new_save_storyobj.savedsettings.saved_kai_addr = "";
-			new_save_storyobj.savedsettings.saved_kai_key = "";
+			new_save_storyobj.savedsettings.saved_oai_tts_key = "";
+			new_save_storyobj.savedsettings.saved_oai_tts_url = "";
+			new_save_storyobj.savedsettings.saved_oai_embd_key = "";
+			new_save_storyobj.savedsettings.saved_oai_embd_url = "";
 			new_save_storyobj.savedsettings.saved_openrouter_key = "";
 			new_save_storyobj.savedsettings.saved_mistralai_key = "";
 			new_save_storyobj.savedsettings.saved_featherless_key = "";
+			new_save_storyobj.savedsettings.saved_nvidianim_key = "";
+			new_save_storyobj.savedsettings.saved_pollinations_key = "";
 			new_save_storyobj.savedsettings.saved_grok_key = "";
+			new_save_storyobj.savedsettings.saved_claude_key = "";
+			new_save_storyobj.savedsettings.saved_claude_addr = "";
 			new_save_storyobj.savedsettings.saved_palm_key = "";
 			new_save_storyobj.savedsettings.saved_cohere_key = "";
-			new_save_storyobj.savedsettings.saved_pollinations_key = "";
+			new_save_storyobj.savedsettings.saved_kai_addr = "";
+			new_save_storyobj.savedsettings.saved_kai_key = "";
+			new_save_storyobj.savedsettings.saved_a1111_url = "";
+			new_save_storyobj.savedsettings.saved_comfy_url = "";
+			new_save_storyobj.savedsettings.saved_xtts_url = "";
 
 			new_save_storyobj.savedsettings.modelhashes = [];
 
@@ -8931,6 +9058,73 @@ Current version indicated by LITEVER below.
 			}
 		});
 	}
+
+	function kai_scenario_load(storyobj) //retain all current settings, but overwrite story and a few key items
+	{
+		temp_scenario = {
+			"title":"Custom Scenario",
+			"author":"Unknown",
+			"desc":"Unknown",
+			"prompt":"",
+			"memory":"",
+			"authorsnote": "",
+			"worldinfo": []
+		};
+		if (storyobj.prompt != "") {
+			temp_scenario.prompt += storyobj.prompt;
+		}
+		for (var i = 0; i < storyobj.actions.length; ++i) {
+			temp_scenario.prompt += storyobj.actions[i];
+		}
+		if (storyobj.authorsnote) {
+			temp_scenario.authorsnote = storyobj.authorsnote;
+		}
+		if (storyobj.memory) {
+			temp_scenario.memory = storyobj.memory;
+		}
+		if (storyobj.worldinfo) {
+			temp_scenario.worldinfo = storyobj.worldinfo;
+		}
+		if (storyobj.savedsettings) {
+			if(storyobj.savedsettings.opmode)
+			{
+				temp_scenario.opmode = storyobj.savedsettings.opmode;
+			}
+			if(temp_scenario.opmode==1) //story
+			{
+				temp_scenario.gui_type = storyobj.savedsettings.gui_type_story?storyobj.savedsettings.gui_type_story:0;
+			}
+			else if(temp_scenario.opmode==2) //adventure
+			{
+				temp_scenario.adventure_context_mod = storyobj.savedsettings.adventure_context_mod?true:false;
+				temp_scenario.adventure_switch_mode = 1;
+				temp_scenario.gui_type = storyobj.savedsettings.gui_type_adventure?storyobj.savedsettings.gui_type_adventure:0;
+			}
+			else if(temp_scenario.opmode==3) //chat
+			{
+				temp_scenario.gui_type = storyobj.savedsettings.gui_type_chat?storyobj.savedsettings.gui_type_chat:0;
+			}
+			else if(temp_scenario.opmode==4) //instruct
+			{
+				temp_scenario.gui_type = storyobj.savedsettings.gui_type_instruct?storyobj.savedsettings.gui_type_instruct:0;
+			}
+
+			if(temp_scenario.opmode==3 || (temp_scenario.opmode==4 && storyobj.savedsettings.inject_chatnames_instruct))
+			{
+				if(storyobj.savedsettings.chatopponent)
+				{
+					temp_scenario.chatopponent = storyobj.savedsettings.chatopponent;
+				}
+				if(storyobj.savedaestheticsettings && storyobj.savedaestheticsettings.AI_portrait && storyobj.savedaestheticsettings.portrait_ratio_AI)
+				{
+					temp_scenario.image = storyobj.savedaestheticsettings.AI_portrait;
+					temp_scenario.image_aspect = parseFloat(storyobj.savedaestheticsettings.portrait_ratio_AI);
+				}
+			}
+		}
+		complete_load_scenario();
+	}
+
 	function has_tavern_wi_check(obj)
 	{
 		let checkresult = false;
@@ -10314,11 +10508,14 @@ Current version indicated by LITEVER below.
 		document.getElementById("quickstartcontainer").classList.remove("hidden");
 
 		let scenarios = ``;
+		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="hide_popups();document.getElementById('loadfileinput').click()">Load Character Card or JSON File</button>`;
+		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="hide_popups();display_scenariolibrary();">Load or Save Custom Scenario</button>`;
+		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="character_creator()">New Character Creator</button>`;
+
 		for(let i=0;i<scenario_sources.length;++i) {
 			scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="import_scenario(scenario_sources[${i}])">${scenario_sources[i].name}</button>`
 		}
 
-		scenarios += `<button type="button" name="" class="scenarioitem purple btn btn-primary" onclick="character_creator()">New Character Creator</button>`;
 		for(let i=0;i<scenario_db.length;++i)
 		{
 			let curr = scenario_db[i];
@@ -10835,6 +11032,10 @@ Current version indicated by LITEVER below.
 	{
 		window.open('./sdui','_blank');
 	}
+	function go_to_lcppui()
+	{
+		window.open('./lcpp','_blank');
+	}
 
 	var pendinggrammar = "";
 	function selectGrammar()
@@ -11216,7 +11417,7 @@ Current version indicated by LITEVER below.
 	function togglegeminimodel()
 	{
 		let mdlname = document.getElementById("custom_gemini_model").value;
-		if(mdlname.includes("gemini-2") || mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-exp-"))
+		if(mdlname.includes("gemini-3") || mdlname.includes("gemini-2") || mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-exp-"))
 		{
 			document.getElementById("gemini_system_instruction").classList.remove("hidden");
 			document.getElementById("gemini_role_options").classList.remove("hidden");
@@ -11502,6 +11703,10 @@ Current version indicated by LITEVER below.
 				return;
 			}
 		}
+		if(uses_cors_proxy && localsettings.proxy_disable_stream)
+		{
+			oaiheaders['nostream'] = true;
+		}
 
 		autofetch_attempt_dict[desired_oai_ep] = true;
 
@@ -11592,6 +11797,42 @@ Current version indicated by LITEVER below.
 			}
 		}
 	}
+	function fetch_openrouter_balance()
+	{
+		let desired_oai_key = document.getElementById("custom_oai_key").value.trim();
+
+		let oaiheaders = {};
+		if(desired_oai_key!="" && desired_oai_key!=dummy_api_key){
+			oaiheaders["Authorization"] = "Bearer " + desired_oai_key;
+		};
+
+		let fetchurl = default_openrouter_base + openrouter_credits_endpoint;
+
+		fetch(fetchurl, {
+			method: 'GET',
+			headers: oaiheaders,
+			referrerPolicy: 'no-referrer',
+		})
+		.then((response) => response.json())
+		.then((data) => {
+			console.log(data);
+			if(data.data)
+			{
+				msgbox(`Total Credits: $${data.data.total_credits.toFixed(2)}\nCredits Used: $${data.data.total_usage.toFixed(2)}\nBalance: $${(data.data.total_credits-data.data.total_usage).toFixed(2)}`,"OpenRouter Balances")
+			}
+			else
+			{
+				msgbox("Error fetching credit balance: " + JSON.stringify(data),"Error Encountered");
+			}
+		})
+		.catch(error => {
+			console.log("Error: " + error);
+			msgbox("Error fetching credit balance: " + error,"Error Encountered",false,false,()=>{
+				hide_msgbox();
+			});
+		});
+	}
+
 	function customapi_dropdown(force_autotoggle_chatcompl = false)
 	{
 		let epchoice = document.getElementById("customapidropdown").value;
@@ -11636,6 +11877,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("oaidesc").classList.add("hidden");
 			document.getElementById("pollinationsdesc").classList.add("hidden");
 			document.getElementById("openrouterproviderbox").classList.add("hidden");
+			document.getElementById("oaireasoningeffort").value = localsettings.saved_oai_reasoning;
 			if(epchoice==2)
 			{
 				document.getElementById("oaidesc").classList.remove("hidden");
@@ -11655,7 +11897,6 @@ Current version indicated by LITEVER below.
 				document.getElementById("openrouterproviderbox").classList.remove("hidden");
 				document.getElementById("custom_oai_endpoint").value = default_openrouter_base;
 				document.getElementById("openrouterproviders").value = localsettings.saved_openrouter_provider;
-				document.getElementById("openrouterreasoning").value = localsettings.saved_openrouter_reasoning;
 				document.getElementById("custom_oai_key").value =(localsettings.saved_openrouter_key==dummy_api_key?"":localsettings.saved_openrouter_key);
 				try_fetch_oai_models_auto();
 			}
@@ -12081,7 +12322,7 @@ Current version indicated by LITEVER below.
 									}
 									else if(localflag && koboldcpp_has_txt2img && no_txt_model && safe_to_overwrite())
 									{
-										msgboxYesNo("This KoboldCpp instance seems to be running an Image Generation model without any Text Generation model loaded.\n\nWould you like to launch StableUI (Dedicated Image Generation WebUI bundled with KoboldCpp)?\n\nIf unsure, select 'No'.","Launch StableUI?", ()=>{
+										msgboxYesNo("This KoboldCpp instance seems to be running an Image Generation model without any Text Generation model loaded.\n\nWould you like to launch StableUI (Dedicated Image Generation WebUI bundled with KoboldCpp)?\n\nIf unsure, select 'Yes'.","Launch StableUI?", ()=>{
 											go_to_stableui();
 										},()=>{
 										});
@@ -12231,8 +12472,8 @@ Current version indicated by LITEVER below.
 				{
 					localsettings.saved_openrouter_key = custom_oai_key;
 					localsettings.saved_openrouter_provider = document.getElementById("openrouterproviders").value;
-					localsettings.saved_openrouter_reasoning = document.getElementById("openrouterreasoning").value;
 				}
+				localsettings.saved_oai_reasoning = document.getElementById("oaireasoningeffort").value;
 				localsettings.saved_oai_jailbreak = document.getElementById("jailbreakprompttext").value;
 				if(localsettings.saved_oai_jailbreak=="")
 				{
@@ -12626,6 +12867,7 @@ Current version indicated by LITEVER below.
 
 	var cachedsaveslotlabels = [];
 	var netsaveslotlabels = [];
+	var cachedsavescenariolabels = [];
 	function saveloadchangeslot(updatelist=false)
 	{
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
@@ -12633,8 +12875,10 @@ Current version indicated by LITEVER below.
 		let selectedslotlabel = null;
 		let choices = "";
 		let foundoption = false;
-		if(selectedlocation=="1") //local
+		let locationdesc = document.getElementById("saveslotlocationtext");
+		if(selectedlocation=="1") //local save
 		{
+			locationdesc.innerText = "Local Browser Storage stores the story and all settings.\nData is saved to a temporary cache and can be deleted by your browser. To avoid losing data, use the download save button.";
 			for(let i=0;i<cachedsaveslotlabels.length;++i)
 			{
 				let testslot = cachedsaveslotlabels[i];
@@ -12649,6 +12893,7 @@ Current version indicated by LITEVER below.
 				choices += `<option value=${i}${(selectedslot==i)?" selected":""}>${slotname}</option>`;
 			}
 		} else if(selectedlocation=="2") { //remote saves
+			locationdesc.innerText = "KoboldCpp Remote Storage stores the story and all settings.\nData is saved to a database file in your KoboldCpp server.";
 			for(let i=0;i<netsaveslotlabels.length;++i)
 			{
 				let testslot = netsaveslotlabels[i];
@@ -12660,6 +12905,23 @@ Current version indicated by LITEVER below.
 				let lbl = (i+1);
 				let tsdesc = (testslot.length>50)?testslot.substring(0,50)+"...":testslot;
 				let slotname = (testslot?`Server Slot `+(lbl)+` - `+tsdesc+``:`Server Slot `+(lbl)+` - [ Empty ]`);
+				choices += `<option value=${i}${(selectedslot==i)?" selected":""}>${slotname}</option>`;
+			}
+		}
+		else if(selectedlocation=="3") //local scenario
+		{
+			locationdesc.innerText = "Local Scenario Library stores your story as a Custom Scenario, without any generation settings.\nData is saved to a temporary cache and can be deleted by your browser. To avoid losing data, use the download save button.";
+			for(let i=0;i<cachedsavescenariolabels.length;++i)
+			{
+				let testslot = cachedsavescenariolabels[i];
+				if(selectedslot==i)
+				{
+					selectedslotlabel = testslot;
+					foundoption = true;
+				}
+				let lbl = (i+1);
+				let tsdesc = (testslot.length>50)?testslot.substring(0,50)+"...":testslot;
+				let slotname = (testslot?`Local Scenario `+(lbl)+` - `+tsdesc+``:`Local Scenario `+(lbl)+` - [ Empty ]`);
 				choices += `<option value=${i}${(selectedslot==i)?" selected":""}>${slotname}</option>`;
 			}
 		}
@@ -12696,6 +12958,11 @@ Current version indicated by LITEVER below.
 			onDoneCallback(esid);
 		});
 	}
+	function display_scenariolibrary()
+	{
+		document.getElementById("saveslotlocationdropdown").value = 3; //scenario library
+		display_saveloadcontainer();
+	}
 	function display_saveloadcontainer()
 	{
 		mainmenu_untab(true);
@@ -12708,15 +12975,24 @@ Current version indicated by LITEVER below.
 		}
 
 		let slotpromises = [];
+		let scenariopromises = [];
 		for(let i=0;i<SAVE_SLOTS;++i)
 		{
 			slotpromises.push(indexeddb_load("slot_"+i+"_meta",""));
 		}
+		for(let i=0;i<SCENARIO_SLOTS;++i)
+		{
+			scenariopromises.push(indexeddb_load("scenario_"+i+"_meta",""));
+		}
 		Promise.all(slotpromises).then(slotlabels=>
 		{
-			cachedsaveslotlabels = slotlabels;
-			saveloadchangeslot(true);
-			populate_corpo_leftpanel();
+			Promise.all(scenariopromises).then(scenariolabels=>
+			{
+				cachedsaveslotlabels = slotlabels;
+				cachedsavescenariolabels = scenariolabels;
+				saveloadchangeslot(true);
+				populate_corpo_leftpanel();
+			});
 		});
 		if(is_using_kcpp_with_savedatafile())
 		{
@@ -12745,7 +13021,7 @@ Current version indicated by LITEVER below.
 				find_unused_saveslot((slot)=>{
 					if(slot!=-1)
 					{
-						save_to_slot(slot,true,false);
+						save_to_slot(slot,true,false,false);
 					}else
 					{
 						msgbox("Unable to Save - No Available New Slots.","Storage Slots Full");
@@ -12759,40 +13035,47 @@ Current version indicated by LITEVER below.
 		}
 		else
 		{
-			save_to_slot(last_used_saveslot,true,false);
+			save_to_slot(last_used_saveslot,true,false,false);
 		}
 	}
 	function quickdelete()
 	{
 		if(last_used_saveslot!=-1)
 		{
-			delete_from_slot(last_used_saveslot,true,false);
+			delete_from_slot(last_used_saveslot,true,false,false);
 		}else
 		{
 			msgbox("Nothing to delete - Select a slot first.","No Action Taken");
 		}
 	}
-	function save_to_slot(slot,islocal,showcontainer)
+	function save_to_slot(slot,islocal,isscenario,showcontainer)
 	{
 		let defaultsavename = (localsettings.opmode==1?"Untitled Story":(localsettings.opmode==2?"Untitled Adventure":(localsettings.opmode==3?"Untitled Chat":"Untitled Instruct")));
 		let savename = defaultsavename + " " + new Date().toLocaleString();
 		let slotnumshown = (parseInt(slot)+1);
 		let newcompressedstory = generate_compressed_story(true, true, true);
-		if(islocal)
+		if(islocal || isscenario)
 		{
-			indexeddb_load("slot_"+slot+"_meta","").then(testslot=>{
+			if(isscenario)
+			{
+				savename = `Custom Scenario ${slotnumshown}`;
+			}
+			let metakey = (isscenario?"scenario_"+slot+"_meta":"slot_"+slot+"_meta");
+			let datakey = (isscenario?"scenario_"+slot+"_data":"slot_"+slot+"_data");
+			let lbltype = (isscenario?"Scenario":"Browser Storage Slot");
+			indexeddb_load(metakey,"").then(testslot=>{
 				if (testslot) {
 					savename = testslot;
 				}
 				const slotwrite = function () {
 					warn_unsaved = false;
-					inputBox("Enter a label for this Browser Storage Slot data", "Enter a label", savename, defaultsavename, () => {
+					inputBox(`Enter a label for this ${lbltype} data`, "Enter a label", savename, defaultsavename, () => {
 						let userinput = getInputBoxValue();
 						if (userinput.trim() == "") {
 							userinput = defaultsavename;
 						}
-						indexeddb_save("slot_" + slot + "_data", newcompressedstory)
-						indexeddb_save("slot_" + slot + "_meta", userinput).then(()=>{
+						indexeddb_save(datakey, newcompressedstory)
+						indexeddb_save(metakey, userinput).then(()=>{
 							if(showcontainer)
 							{
 								display_saveloadcontainer();
@@ -12804,11 +13087,14 @@ Current version indicated by LITEVER below.
 							}
 						});
 					});
-					last_used_saveslot = slot;
+					if(!isscenario)
+					{
+						last_used_saveslot = slot;
+					}
 				}
 
 				if (testslot) {
-					msgboxYesNo("Overwrite existing story in Browser Storage Slot " + slotnumshown + "?", "Overwrite Browser Storage Slot " + slotnumshown, () => {
+					msgboxYesNo(`Overwrite existing data in ${lbltype} ${slotnumshown}?`, `Overwrite ${lbltype} ${slotnumshown}`, () => {
 						slotwrite();
 					}, null);
 				}
@@ -12871,17 +13157,29 @@ Current version indicated by LITEVER below.
 			}
 		}
 	}
-	function load_from_slot(slot,islocal,switch_to_corpo)
+	function load_from_slot(slot,islocal,isscenario,switch_to_corpo)
 	{
 		const proceed_load_from_slot = function() {
-			if(islocal)
+			if(islocal || isscenario)
 			{
-				indexeddb_load("slot_"+slot+"_data","").then(loadedstorycompressed=>{
+				let datakey = (isscenario?"scenario_"+slot+"_data":"slot_"+slot+"_data");
+				indexeddb_load(datakey,"").then(loadedstorycompressed=>{
 					if(loadedstorycompressed)
 					{
 						hide_popups();
-						import_compressed_story(loadedstorycompressed,false);
-						last_used_saveslot = slot;
+						if(isscenario)
+						{
+							var story = decompress_story(loadedstorycompressed);
+							if (story != null) {
+								kai_scenario_load(story);
+							}
+						}
+						else
+						{
+							import_compressed_story(loadedstorycompressed,false);
+							last_used_saveslot = slot;
+						}
+
 						if(switch_to_corpo)
 						{
 							localsettings.gui_type_chat = 3;
@@ -12930,10 +13228,17 @@ Current version indicated by LITEVER below.
 			proceed_load_from_slot();
 		}
 	}
-	function download_from_slot(slot,islocal)
+	function download_from_slot(slot,islocal,isscenario)
 	{
 		let slotlabel = "";
-		if(islocal)
+		if(isscenario)
+		{
+			if(cachedsavescenariolabels && slot<cachedsavescenariolabels.length)
+			{
+				slotlabel = cachedsavescenariolabels[slot];
+			}
+		}
+		else if(islocal)
 		{
 			if(cachedsaveslotlabels && slot<cachedsaveslotlabels.length)
 			{
@@ -12961,9 +13266,10 @@ Current version indicated by LITEVER below.
 			}
 		};
 
-		if(islocal)
+		if(islocal || isscenario)
 		{
-			indexeddb_load("slot_"+slot+"_data","").then(loadedstorycompressed=>{
+			let datakey = (isscenario?"scenario_"+slot+"_data":"slot_"+slot+"_data");
+			indexeddb_load(datakey,"").then(loadedstorycompressed=>{
 				ondl(loadedstorycompressed);
 			});
 		}
@@ -12993,10 +13299,13 @@ Current version indicated by LITEVER below.
 			});
 		}
 	}
-	function delete_from_slot(slot,islocal,showcontainer)
+	function delete_from_slot(slot,islocal,isscenario,showcontainer)
 	{
 		let slotnumshown = (parseInt(slot)+1);
-		if (islocal) {
+		if (islocal || isscenario) {
+			let metakey = (isscenario?"scenario_"+slot+"_meta":"slot_"+slot+"_meta");
+			let datakey = (isscenario?"scenario_"+slot+"_data":"slot_"+slot+"_data");
+			let lbltype = (isscenario?"Scenario":"Browser Storage Slot");
 			let postdel = function(){
 				if(showcontainer)
 				{
@@ -13008,11 +13317,11 @@ Current version indicated by LITEVER below.
 					populate_corpo_leftpanel();
 				}
 			};
-			msgboxYesNo("Delete story in Browser Storage Slot " + slotnumshown + "?", "Delete Browser Storage Slot " + slotnumshown, () => {
-				indexeddb_save("slot_" + slot + "_data", "");
-				indexeddb_save("slot_" + slot + "_meta", "").then(() => {
+			msgboxYesNo(`Delete data in ${lbltype} ${slotnumshown}?`, `Delete ${lbltype} ${slotnumshown}`, () => {
+				indexeddb_save(datakey, "");
+				indexeddb_save(metakey, "").then(() => {
 					postdel();
-					if(slot==last_used_saveslot)
+					if(!isscenario && slot==last_used_saveslot)
 					{
 						last_used_saveslot = -1;
 					}
@@ -13062,28 +13371,32 @@ Current version indicated by LITEVER below.
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
 		let selectedlocation = document.getElementById("saveslotlocationdropdown").value;
 		let islocal = (selectedlocation=="1");
-		save_to_slot(selectedslot,islocal,true);
+		let isscenario = (selectedlocation=="3");
+		save_to_slot(selectedslot,islocal,isscenario,true);
 	}
 	function load_from_curr_slot()
 	{
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
 		let selectedlocation = document.getElementById("saveslotlocationdropdown").value;
 		let islocal = (selectedlocation=="1");
-		load_from_slot(selectedslot,islocal,false);
+		let isscenario = (selectedlocation=="3");
+		load_from_slot(selectedslot,islocal,isscenario,false);
 	}
 	function download_from_curr_slot()
 	{
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
 		let selectedlocation = document.getElementById("saveslotlocationdropdown").value;
 		let islocal = (selectedlocation=="1");
-		download_from_slot(selectedslot,islocal);
+		let isscenario = (selectedlocation=="3");
+		download_from_slot(selectedslot,islocal,isscenario);
 	}
 	function delete_from_curr_slot()
 	{
 		let selectedslot = document.getElementById("saveslotselecteddropdown").value;
 		let selectedlocation = document.getElementById("saveslotlocationdropdown").value;
 		let islocal = (selectedlocation=="1");
-		delete_from_slot(selectedslot,islocal,true);
+		let isscenario = (selectedlocation=="3");
+		delete_from_slot(selectedslot,islocal,isscenario,true);
 	}
 
 	var cached_model_list = null;
@@ -13610,11 +13923,14 @@ Current version indicated by LITEVER below.
 		document.getElementById("no_compress_audio").checked = localsettings.no_compress_audio;
 		document.getElementById("autoguess_third_party").checked = localsettings.autoguess_third_party;
 		document.getElementById("legacy_savefile").checked = localsettings.legacy_savefile;
+		document.getElementById("allow_continue_user_turn").checked = localsettings.allow_continue_user_turn;
+		document.getElementById("proxy_disable_stream").checked = localsettings.proxy_disable_stream;
 		document.getElementById("render_streaming_markdown").checked = localsettings.render_streaming_markdown;
 		document.getElementById("min_p").value = localsettings.min_p;
 		document.getElementById("dynatemp_range").value = localsettings.dynatemp_range;
 		document.getElementById("dynatemp_exponent").value = localsettings.dynatemp_exponent;
 		document.getElementById("smoothing_factor").value = localsettings.smoothing_factor;
+		document.getElementById("smoothing_curve").value = localsettings.smoothing_curve;
 		document.getElementById("nsigma").value = localsettings.nsigma;
 		document.getElementById("dynatemp_overview").innerText = (localsettings.dynatemp_range!=0?"ON":"OFF");
 		document.getElementById("second_ep_overview").innerText = (localsettings.second_ep_qty>0 && localsettings.second_ep_url?"ON":"OFF");
@@ -13878,6 +14194,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("dynatemp_range").value = found.dynatemp_range;
 			document.getElementById("dynatemp_exponent").value = found.dynatemp_exponent;
 			document.getElementById("smoothing_factor").value = found.smoothing_factor;
+			document.getElementById("smoothing_curve").value = found.smoothing_curve;
 			document.getElementById("nsigma").value = found.nsigma;
 			document.getElementById("top_k").value = document.getElementById("top_k_slide").value = found.top_k;
 			document.getElementById("top_p").value = document.getElementById("top_p_slide").value = found.top_p;
@@ -13966,6 +14283,7 @@ Current version indicated by LITEVER below.
 			document.getElementById("dynatemp_range").value != found.dynatemp_range ||
 			document.getElementById("dynatemp_exponent").value != found.dynatemp_exponent ||
 			document.getElementById("smoothing_factor").value != found.smoothing_factor ||
+			document.getElementById("smoothing_curve").value != found.smoothing_curve ||
 			document.getElementById("nsigma").value != found.nsigma ||
 			document.getElementById("top_k").value != found.top_k ||
 			document.getElementById("top_p").value != found.top_p ||
@@ -14070,30 +14388,13 @@ Current version indicated by LITEVER below.
 			document.body.classList.remove("invert_colors");
 		}
 
-		document.body.classList.remove("theme-1");
-		document.body.classList.remove("theme-2");
-		document.body.classList.remove("theme-3");
-		document.body.classList.remove("theme-4");
-		document.body.classList.remove("theme-5");
-		if(localsettings.colortheme==1)
+		for(let i=1;i<=6;++i) //increment as more themes are added
 		{
-			document.body.classList.add("theme-1");
-		}
-		else if(localsettings.colortheme==2)
-		{
-			document.body.classList.add("theme-2");
-		}
-		else if(localsettings.colortheme==3)
-		{
-			document.body.classList.add("theme-3");
-		}
-		else if(localsettings.colortheme==4)
-		{
-			document.body.classList.add("theme-4");
-		}
-		else if(localsettings.colortheme==5)
-		{
-			document.body.classList.add("theme-5");
+			document.body.classList.remove(`theme-${i}`);
+			if(localsettings.colortheme==i)
+			{
+				document.body.classList.add(`theme-${i}`);
+			}
 		}
 	}
 
@@ -14121,6 +14422,15 @@ Current version indicated by LITEVER below.
 		else
 		{
 			document.getElementById("btn_open_stableui").classList.add("hidden");
+		}
+
+		if(is_using_kcpp_with_lcppui())
+		{
+			document.getElementById("btn_open_lcppui").classList.remove("hidden");
+		}
+		else
+		{
+			document.getElementById("btn_open_lcppui").classList.add("hidden");
 		}
 	}
 
@@ -14208,6 +14518,8 @@ Current version indicated by LITEVER below.
 		localsettings.no_compress_audio = (document.getElementById("no_compress_audio").checked ? true : false);
 		localsettings.autoguess_third_party = (document.getElementById("autoguess_third_party").checked ? true : false);
 		localsettings.legacy_savefile = (document.getElementById("legacy_savefile").checked ? true : false);
+		localsettings.allow_continue_user_turn = (document.getElementById("allow_continue_user_turn").checked ? true : false);
+		localsettings.proxy_disable_stream = (document.getElementById("proxy_disable_stream").checked ? true : false);
 		localsettings.render_streaming_markdown = (document.getElementById("render_streaming_markdown").checked ? true : false);
 		if(document.getElementById("opmode").value==1)
 		{
@@ -14253,6 +14565,7 @@ Current version indicated by LITEVER below.
 		localsettings.dynatemp_range = parseFloat(document.getElementById("dynatemp_range").value);
 		localsettings.dynatemp_exponent = parseFloat(document.getElementById("dynatemp_exponent").value);
 		localsettings.smoothing_factor = parseFloat(document.getElementById("smoothing_factor").value);
+		localsettings.smoothing_curve = parseFloat(document.getElementById("smoothing_curve").value);
 		localsettings.nsigma = parseFloat(document.getElementById("nsigma").value);
 		localsettings.presence_penalty = parseFloat(document.getElementById("presence_penalty").value);
 		localsettings.top_k = parseInt(document.getElementById("top_k").value);
@@ -14462,6 +14775,7 @@ Current version indicated by LITEVER below.
 		localsettings.dynatemp_range = ((localsettings.dynatemp_range > localsettings.temperature) ? localsettings.temperature : ((localsettings.dynatemp_range < -localsettings.temperature) ? -localsettings.temperature : localsettings.dynatemp_range));
 		localsettings.dynatemp_exponent = cleannum(localsettings.dynatemp_exponent, 0.0, 10.0);
 		localsettings.smoothing_factor = cleannum(localsettings.smoothing_factor, 0.0, 10.0);
+		localsettings.smoothing_curve = cleannum(localsettings.smoothing_curve, 0.1, 5.0);
 		localsettings.nsigma = cleannum(localsettings.nsigma, 0.0, 5.0);
 		localsettings.presence_penalty = cleannum(localsettings.presence_penalty, -2, 2);
 		localsettings.top_k = cleannum(Math.floor(localsettings.top_k), 0, 300);
@@ -14838,6 +15152,13 @@ Current version indicated by LITEVER below.
 		mainmenu_untab(true);
 		document.getElementById("keep_ai_selected").checked = true;
 		document.getElementById("newgamecontainer").classList.remove("hidden");
+		if(localflag)
+		{
+			document.getElementById("keep_ai_selected_row").classList.add("hidden");
+		}else
+		{
+			document.getElementById("keep_ai_selected_row").classList.remove("hidden");
+		}
 	}
 
 	function confirm_newgame() {
@@ -15514,7 +15835,7 @@ Current version indicated by LITEVER below.
 
 	function end_trim_to_sentence(input, include_newline = false) {
 		let last = -1;
-		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…'];
+		let enders = ['.', '!', '?', '*', '"', ')', '}', '`', ']', ';', '…', '~'];
 		for (let i = 0; i < enders.length; ++i) {
 			last = Math.max(last, input.lastIndexOf(enders[i]));
 		}
@@ -15903,7 +16224,7 @@ Current version indicated by LITEVER below.
 			{
 				image_db[imgid].aspect = 2; //landscape
 			}
-		}, false, imgres,0.35,true);
+		}, false, imgres, true);
 	}
 
 	function self_upload_audio(origAudio,filename,modify_curr_turn=false)
@@ -17006,6 +17327,15 @@ Current version indicated by LITEVER below.
 					pending_context_preinjection = ist; //bot response as first msg
 					pending_context_postinjection = iet;
 				}
+				if (localsettings.inject_timestamps) {
+					pending_context_preinjection += get_current_timestamp();
+				}
+				if (localsettings.inject_chatnames_instruct) {
+					if (localsettings.inject_timestamps) {
+						pending_context_preinjection += " ";
+					}
+					pending_context_preinjection += get_my_multiplayer_chatname() + "\:";
+				}
 			} else {
 				if (gametext_arr.length == 0) {
 					newgen = iet;
@@ -17046,15 +17376,19 @@ Current version indicated by LITEVER below.
 
 		//match the request for creating images in instruct modes
 		let model_allow_imggen = localsettings.img_gen_from_instruct;
-		if(custom_gemini_key!="" && document.getElementById("custom_gemini_model").value=="gemini-2.5-flash-image-preview")
+		if(custom_gemini_key!=""
+		&& (document.getElementById("custom_gemini_model").value.toLowerCase().includes("-flash-image")
+		|| document.getElementById("custom_gemini_model").value.toLowerCase().includes("-pro-image")
+		|| document.getElementById("custom_gemini_model").value.toLowerCase().includes("nano-banana")))
 		{
 			model_allow_imggen = false; //nano banana interferes with imggen instructions
 		}
 		if(newgen!="" && model_allow_imggen && localsettings.opmode == 4 && localsettings.generate_images_mode!=0 && localsettings.img_autogen_type!=2 && !newgen.includes("\n"))
 		{
 			let newgenlc = newgen.toLowerCase().trim();
+			const imgTriggerRe = /^(?:\w+\s+){0,3}(?:draw\s+(?:a|an)?\b|draw me\s+(?:a|an)\b|(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s+\w+){0,4}\s+(?:image|picture|drawing|photo))|(?: (?:draw\s+(?:a|an)?\b|draw me\s+(?:a|an)\b|(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s+\w+){0,4}\s+(?:image|picture|drawing|photo)) (?:\s+\w+){0,3} )$/i;
 			if (newgenlc.startsWith("draw ") ||
-				newgenlc.match(/\b(?:draw (?:a|an)\b)|(?:draw me (?:a|an)\b)|(?:(?:draw|show me|generate|create|make|illustrate|visualize|produce|give me)(?:\s\w+){0,4}\s(?:image\b|picture\b|drawing\b|photo))/))
+				newgenlc.match(imgTriggerRe))
 			{
 				img_gen_trigger_prompt = newgen;
 				doNotGenerate = true;
@@ -17096,7 +17430,7 @@ Current version indicated by LITEVER below.
 			{
 				newgen = wrap_newgen_instruct_format(newgen,true);
 				let latest_human = is_instruct_latest_human_turn();
-				if(newgen=="" && latest_human) //assume the user is trying to get the AI to respond even though there's no output tag
+				if(!localsettings.allow_continue_user_turn && newgen=="" && latest_human) //assume the user is trying to get the AI to respond even though there's no output tag
 				{
 					//so we force one
 					let iet = get_instructendplaceholder();
@@ -17368,8 +17702,19 @@ Current version indicated by LITEVER below.
 			{
 				if (pending_context_preinjection == "" && truncated_context != "")
 				{
+					let force_new_turn = false;
 					let endmatcher = get_instructendplaceholder();
-					if (truncated_context.toLowerCase().trim().endsWith(endmatcher.toLowerCase().trim())) {
+					let ends_with_assistant_tag = truncated_context.toLowerCase().trim().endsWith(endmatcher.toLowerCase().trim());
+					if(!localsettings.allow_continue_chat && newgen.trim() == "" && localsettings.inject_chatnames_instruct && localsettings.chatopponent!="")
+					{
+						force_new_turn = true; //interject the chat opponent name into the convo before continue
+						if(!ends_with_assistant_tag)
+						{
+							pending_context_preinjection += endmatcher;
+						}
+					}
+
+					if (force_new_turn || ends_with_assistant_tag) {
 						if (localsettings.inject_timestamps) {
 							pending_context_preinjection += get_current_timestamp();
 						}
@@ -17870,12 +18215,17 @@ Current version indicated by LITEVER below.
 				}
 				if(localsettings.chatopponent!="")
 				{
-					let m_opps = localsettings.chatopponent.split("||$||");
-					for(let i=0;i<m_opps.length;++i)
+					//NOTE: we do not add our opponents name as a stop sequence IF thinking is forced
+					//the model just gets too confused and is likely to repeat the tag.
+					if(localsettings.think_injected!=1)
 					{
-						if(m_opps[i] && m_opps[i].trim()!="")
+						let m_opps = localsettings.chatopponent.split("||$||");
+						for(let i=0;i<m_opps.length;++i)
 						{
-							seqs.push(m_opps[i] + "\:");
+							if(m_opps[i] && m_opps[i].trim()!="")
+							{
+								seqs.push(m_opps[i] + "\:");
+							}
 						}
 					}
 				}
@@ -17975,6 +18325,7 @@ Current version indicated by LITEVER below.
 			submit_payload.params.dynatemp_range = localsettings.dynatemp_range;
 			submit_payload.params.dynatemp_exponent = localsettings.dynatemp_exponent;
 			submit_payload.params.smoothing_factor = localsettings.smoothing_factor;
+			submit_payload.params.smoothing_curve = localsettings.smoothing_curve;
 			submit_payload.params.nsigma = localsettings.nsigma;
 			submit_payload.params.banned_tokens = get_token_bans();
 			submit_payload.params.render_special = localsettings.render_special_tags;
@@ -18112,7 +18463,7 @@ Current version indicated by LITEVER below.
 					//mistral api does not support presence pen
 					oai_payload.presence_penalty = scaled_rep_pen;
 				}
-				if(document.getElementById("useoainonstandard").checked || targetep.toLowerCase().includes("featherless.ai"))
+				if(document.getElementById("useoainonstandard").checked)
 				{
 					//featherless api supports additional fields, include them
 					oai_payload.top_k = (submit_payload.params.top_k<1?300:submit_payload.params.top_k);
@@ -18142,7 +18493,14 @@ Current version indicated by LITEVER below.
 					}
 				}
 
-				if (document.getElementById("useoaichatcompl").checked) {
+				if (document.getElementById("useoaichatcompl").checked)
+				{
+					let reasoneffort = document.getElementById("oaireasoningeffort").value;
+					if(reasoneffort && reasoneffort!="")
+					{
+						oai_payload.reasoning_effort = reasoneffort;
+					}
+
 					let mainoaibody = submit_payload.prompt; //can be string or array
 					if(insertAIVisionImages.length>0 || insertAIAudioSounds.length>0)
 					{
@@ -18302,19 +18660,39 @@ Current version indicated by LITEVER below.
                     oaiheaders['Authorization'] = 'Bearer ' + custom_oai_key;
                 }
 
+				if(uses_cors_proxy && localsettings.proxy_disable_stream)
+				{
+					oaiheaders['nostream'] = true;
+				}
+
+				if(targetep.toLowerCase().includes("api.novita.ai"))
+				{
+					if(oai_payload.reasoning_effort && oai_payload.reasoning_effort!="") //adapt reasoning effort for openrouter
+					{
+						oai_payload.enable_thinking = (oai_payload.reasoning_effort=="none"?false:true);
+						delete oai_payload["reasoning_effort"];
+					}
+				}
+
 				if(targetep.toLowerCase().includes("openrouter.ai"))
 				{
 					oaiheaders["HTTP-Referer"] = "https://lite.koboldai.net";
 					if (document.getElementById("openrouterproviders").value.trim() != "") {
+						let provarr = document.getElementById("openrouterproviders").value.trim().split(",").map(item => item.trim());
 						oai_payload.provider = {
-							"order": [document.getElementById("openrouterproviders").value.trim()],
+							"order": provarr,
 							"allow_fallbacks": false, //always explicitly selected
 						};
 					}
-					let reasonselect = document.getElementById("openrouterreasoning").value;
-					if(reasonselect!=0)
+
+					if(oai_payload.reasoning_effort && oai_payload.reasoning_effort!="") //adapt reasoning effort for openrouter
 					{
-						oai_payload.reasoning = {"enabled":(reasonselect==2?true:false)};
+						oai_payload.reasoning = {"enabled":(oai_payload.reasoning_effort=="none"?false:true)};
+						if(oai_payload.reasoning_effort!="none")
+						{
+							oai_payload.reasoning.effort = oai_payload.reasoning_effort;
+						}
+						delete oai_payload["reasoning_effort"];
 					}
 				}
 
@@ -18572,13 +18950,14 @@ Current version indicated by LITEVER below.
 					payload["tools"] = [{"google_search": {}}];
 				}
 
-				if(mdlname.includes("gemini-2.5") && !mdlname.includes("image"))
+				if((mdlname.includes("gemini-2.5") && !mdlname.includes("image")) || mdlname.includes("gemini-3-"))
 				{
 					if(!document.getElementById("usegeminithink").checked)
 					{
 						//gemini pro cannot fully disable thinking
 						payload["generationConfig"]["thinkingConfig"] = {"includeThoughts": false, "thinkingBudget": (mdlname.includes("gemini-2.5-pro")?128:0)};
-					}else
+					}
+					else
 					{
 						payload["generationConfig"]["thinkingConfig"] = {"includeThoughts": true};
 					}
@@ -18607,7 +18986,7 @@ Current version indicated by LITEVER below.
 				}
 
 				let sysinst = document.getElementById("gemini_system_instruction").value;
-				if(sysinst!="" && (mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-2") || mdlname.includes("gemini-exp-")))
+				if(sysinst!="" && (mdlname.includes("gemini-1.5-") || mdlname.includes("gemini-2") || mdlname.includes("gemini-3") || mdlname.includes("gemini-exp-")))
 				{
 					payload["systemInstruction"] = {
 						"role": "system",
@@ -18741,6 +19120,7 @@ Current version indicated by LITEVER below.
 				submit_payload.params.dynatemp_range = localsettings.dynatemp_range;
 				submit_payload.params.dynatemp_exponent = localsettings.dynatemp_exponent;
 				submit_payload.params.smoothing_factor = localsettings.smoothing_factor;
+				// submit_payload.params.smoothing_curve = localsettings.smoothing_curve; //no idea if horde supports this, dont care to check
 				submit_payload.params.nsigma = localsettings.nsigma;
 			}
 
@@ -19016,7 +19396,7 @@ Current version indicated by LITEVER below.
 				{
 					//console.log(outputimg);
 					let origImg = "data:image/jpeg;base64," + outputimg;
-					let imgres = localsettings.img_allowhd?(localsettings.img_aspect==0?NO_HD_RES_PX:HD_RES_PX):NO_HD_RES_PX;
+					let imgres = localsettings.img_allowhd?VHD_RES_PX:NO_HD_RES_PX;
 					compressImage(origImg, (newDataUri) => {
 						image_db[imgid].done = true;
 						image_db[imgid].result = newDataUri;
@@ -19061,11 +19441,11 @@ Current version indicated by LITEVER below.
 					{
 						//console.log(outputimg);
 						let origImg = "data:image/jpeg;base64," + outputimg;
-						let imgres = localsettings.img_allowhd?HD_RES_PX:NO_HD_RES_PX;
+						let imgres = localsettings.img_allowhd?VHD_RES_PX:NO_HD_RES_PX;
 						compressImage(origImg, (newDataUri) => {
 							image_db[imgid].done = true;
 							image_db[imgid].result = newDataUri;
-						}, true, imgres);
+						}, false, imgres);
 					}else{
 						image_db[imgid].queue = "Failed";
 						msgbox(`Image Generation Failed!\n\n${outputerr?(outputerr+"\n\n"):""}Please make sure your OpenAI key is set correctly and you are allowed to use DALL-E.\n`);
@@ -19888,7 +20268,7 @@ Current version indicated by LITEVER below.
 						gentxt = splitresponse[0];
 					}
 				}
-				if(localsettings.chatopponent!="" && !localsettings.chatopponent.includes("||$||"))
+				if(localsettings.chatopponent!="" && !localsettings.chatopponent.includes("||$||") && localsettings.think_injected!=1)
 				{
 					found = gentxt.indexOf(et2);
 					splitresponse = [];
@@ -20076,8 +20456,7 @@ Current version indicated by LITEVER below.
 										else {
 											img.queue = 0;
 											let origImg = "data:image/jpeg;base64," + finalimg.generations[0].img;
-											//console.log("Original image: " + origImg);
-											let imgres = localsettings.img_allowhd ? (localsettings.img_aspect == 0 ? NO_HD_RES_PX : HD_RES_PX) : NO_HD_RES_PX;
+											let imgres = localsettings.img_allowhd?VHD_RES_PX:NO_HD_RES_PX;
 											compressImage(origImg, (newDataUri) => {
 												img.result = newDataUri;
 											}, false, imgres);
@@ -20131,7 +20510,7 @@ Current version indicated by LITEVER below.
 								reader.onloadend = () => {
 									img.queue = 0;
 									let origImg = reader.result;
-									let imgres = localsettings.img_allowhd?(localsettings.img_aspect==0?NO_HD_RES_PX:HD_RES_PX):NO_HD_RES_PX;
+									let imgres = localsettings.img_allowhd?VHD_RES_PX:NO_HD_RES_PX;
 									compressImage(origImg, (newDataUri) => {
 										img.result = newDataUri;
 									}, false, imgres);
@@ -20197,7 +20576,7 @@ Current version indicated by LITEVER below.
 		}
 	}
 
-	function compressImage(inputDataUri, onDone, fixedSize=true, maxSize=NO_HD_RES_PX, quality = 0.35, letterboxAspect=false) {
+	function compressImage(inputDataUri, onDone, fixedSize=true, maxSize=NO_HD_RES_PX, letterboxAspect=false) {
 		let img = document.createElement('img');
 		let wantedWidth = maxSize;
 		let wantedHeight = maxSize;
@@ -20216,15 +20595,25 @@ Current version indicated by LITEVER below.
 			// We set the dimensions at the wanted size for fixedsize.
 			if(!fixedSize)
 			{
+				const minAllowedSize = 256; //do not allow smaller than this
 				//otherwise, we preserve the original ratio but scale them down to fit
-				let maxImgDim = Math.max(origW,origH);
 				wantedWidth = origW;
 				wantedHeight = origH;
-				if(maxImgDim > maxSize)
+
+				let smallestSide = Math.min(wantedWidth,wantedHeight);
+				if(smallestSide<minAllowedSize && smallestSide>0)
+				{
+					let scalef = minAllowedSize/smallestSide;
+					wantedWidth *= scalef;
+					wantedHeight *= scalef;
+				}
+
+				let maxImgDim = Math.max(wantedWidth,wantedHeight);
+				if(maxImgDim > maxSize && maxImgDim>0)
 				{
 					let scalef = maxImgDim/maxSize;
-					wantedWidth = origW/scalef;
-					wantedHeight = origH/scalef;
+					wantedWidth = wantedWidth/scalef;
+					wantedHeight = wantedHeight/scalef;
 				}
 			}
 
@@ -20307,6 +20696,7 @@ Current version indicated by LITEVER below.
 			}
 
 			var dataURI = "";
+			let quality = 0.5; //standardize quality for all, too many conflicting answers
 			if(isJpeg)
 			{
 				dataURI = canvas.toDataURL(`image/jpeg`, quality);
@@ -20360,7 +20750,7 @@ Current version indicated by LITEVER below.
 				let nextcounter = ++idle_triggered_counter;
 				if(localsettings.opmode == 4) //handle idle messages
 				{
-					if(!localsettings.allow_continue_chat)
+					if(!localsettings.allow_continue_chat && !localsettings.inject_chatnames_instruct) //NOTE: response continue if inject chatname is ALREADY handled inside submit_generation, this is for without chatnames
 					{
 						pending_context_preinjection = get_instructendplaceholder();
 
@@ -21254,6 +21644,29 @@ Current version indicated by LITEVER below.
 					}
 				}
 
+				if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
+				{
+					let cl = editedChunks[editedChunks.length-1].length;
+					if(cl>0)
+					{
+						newestChunk = fullmergedstory.slice(-cl);
+						fullmergedstory = fullmergedstory.slice(0,-cl);
+					}
+				}
+
+				//if it ends with a single newline, remove it to avoid ghost newlines
+				if (newestChunk) {
+					if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
+						newestChunk = newestChunk.slice(0, -1);
+					}
+				}
+				else
+				{
+					if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
+						fullmergedstory = fullmergedstory.slice(0, -1);
+					}
+				}
+
 				if(splitbyinsttags)
 				{
 					let ins = get_instructstartplaceholder();
@@ -21301,29 +21714,6 @@ Current version indicated by LITEVER below.
 				}
 				else
 				{
-					if(editedChunks.length>1) //split by chunk lengths in reverse order, we only want the newest
-					{
-						let cl = editedChunks[editedChunks.length-1].length;
-						if(cl>0)
-						{
-							newestChunk = fullmergedstory.slice(-cl);
-							fullmergedstory = fullmergedstory.slice(0,-cl);
-						}
-					}
-
-					//if it ends with a single newline, remove it to avoid ghost newlines
-					if (newestChunk) {
-						if (newestChunk.endsWith("\n") && !newestChunk.endsWith("\n\n")) {
-							newestChunk = newestChunk.slice(0, -1);
-						}
-					}
-					else
-					{
-						if (fullmergedstory.endsWith("\n") && !fullmergedstory.endsWith("\n\n")) {
-							fullmergedstory = fullmergedstory.slice(0, -1);
-						}
-					}
-
 					//split by newlines for the rest
 					if(fullmergedstory.length>0)
 					{
@@ -21340,14 +21730,15 @@ Current version indicated by LITEVER below.
 							}
 						}
 					}
-					if(newestChunk!="")
-					{
-						//little hack to merge a row with only a newline into the last chunk
-						if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
-							gametext_arr[gametext_arr.length - 1] += newestChunk;
-						} else {
-							gametext_arr.push(newestChunk);
-						}
+				}
+
+				if(newestChunk!="")
+				{
+					//little hack to merge a row with only a newline into the last chunk
+					if (gametext_arr.length > 0 && gametext_arr[gametext_arr.length - 1] == "\n") {
+						gametext_arr[gametext_arr.length - 1] += newestChunk;
+					} else {
+						gametext_arr.push(newestChunk);
 					}
 				}
 
@@ -21612,6 +22003,9 @@ Current version indicated by LITEVER below.
 
 	}
 
+	var autoscrollEnabled = true;
+	var suppressScrollEvent = false;
+	var autoscrollTimeout = null;
 	function handle_autoscroll(alwaysscroll=true)
 	{
 		if (localsettings.autoscroll) {
@@ -21619,8 +22013,9 @@ Current version indicated by LITEVER below.
 			let box2 = document.getElementById("chat_msg_body");
 			let box3 = document.getElementById("corpostylemain");
 			function isScrolledToBottom(element) {
-				return element.scrollHeight - element.scrollTop - element.clientHeight <= 100;
+				return element.scrollHeight - element.scrollTop - element.clientHeight <= (autoscrollEnabled?180:60);
 			}
+			suppressScrollEvent = true;
 			if(alwaysscroll || isScrolledToBottom(box1))
 			{
 				box1.scrollTop = box1.scrollHeight - box1.clientHeight + 10;
@@ -21633,7 +22028,21 @@ Current version indicated by LITEVER below.
 			{
 				box3.scrollTop = box3.scrollHeight - box3.clientHeight + 10;
 			}
+			suppressScrollEvent = false;
 		}
+	}
+	function attach_scroll_detection(element)
+	{
+		element.addEventListener("scroll", () => {
+			if (suppressScrollEvent) { return; }
+			autoscrollEnabled = false;
+			if (autoscrollTimeout) {
+				clearTimeout(autoscrollTimeout);
+			}
+			autoscrollTimeout = setTimeout(() => {
+				autoscrollEnabled = true;
+			}, 100);
+		});
 	}
 
 	function render_gametext(save=true, force_scroll=true)
@@ -21838,14 +22247,14 @@ Current version indicated by LITEVER below.
 
 					if(curr.myturn)
 					{
-						fulltxt += `<hr style="margin-top: 12px; margin-bottom: 12px;"><span class="color_kobotext"><img src="${human_square}" style="height:38px;width:auto;padding:3px 6px 3px 3px;border-radius: 8%;"/>${currmsg}</span>`;
+						fulltxt += `<hr style="margin-top: 12px; margin-bottom: 12px;"><span class="color_kobotext"><img src="${human_square}" onclick="classic_click_turn(this,${i})" style="height:38px;width:auto;padding:3px 6px 3px 3px;border-radius: 8%;"/>${currmsg}</span>`;
 					}
 					else
 					{
 						if (i == 0) {
 							fulltxt += `${currmsg}`;
 						} else {
-							fulltxt += `<hr style="margin-top: 12px; margin-bottom: 12px;"><img src="${niko_square}" style="height:38px;width:auto;padding:3px 6px 3px 3px;border-radius: 8%;"/>${currmsg}</span>`;
+							fulltxt += `<hr style="margin-top: 12px; margin-bottom: 12px;"><img src="${niko_square}" onclick="classic_click_turn(this,${i})" style="height:38px;width:auto;padding:3px 6px 3px 3px;border-radius: 8%;"/>${currmsg}</span>`;
 						}
 					}
 				}
@@ -22244,6 +22653,79 @@ Current version indicated by LITEVER below.
 		}
 	}
 
+	function classic_delete_turn(idx)
+	{
+		edit_chunk_save(idx,"",true);
+	}
+	function classic_edit_turn(idx)
+	{
+		let chatunits = []; //todo: eventually refactor
+		let currctx = concat_gametext(false, "", "", "", false);
+		currctx = replace_instruct_placeholders(currctx);
+		if(localsettings.opmode==3)
+		{
+			chatunits = repack_chat_history(currctx);
+		}
+		else if(localsettings.opmode==2)
+		{
+			chatunits = repack_adventure_history(currctx);
+		}
+		else if(localsettings.opmode==1)
+		{
+			chatunits = repack_story_history(currctx);
+		}
+		else
+		{
+			chatunits = repack_instruct_history(currctx, true);
+		}
+
+		let currmsg = chatunits[idx].msg;
+		currmsg = stash_image_placeholders(currmsg, false);
+
+		inputBoxOkCancel("Quickly edit a previous turn message","Quick Edit Turn",currmsg,"(Delete Turn)",()=>{
+			let userinput = getInputBoxValue();
+			edit_chunk_save(idx,userinput,true);
+		},()=>{
+			//do nothing on cancel
+		},true,true);
+	}
+
+	function classic_click_turn(button,idx,toggleopen = true)
+	{
+		let incomplete_resp = (synchro_pending_stream != "" || pending_response_id != "");
+		if (incomplete_resp) { return; }
+
+		function handleOutsideClickClassicTurn(event) {
+			popupMenu.style.display = 'none';
+			document.removeEventListener('click', handleOutsideClickClassicTurn);
+		}
+
+		const rect = button.getBoundingClientRect();
+		const popupMenu = document.getElementById('classicturnmenu');
+
+		let popcontent = `<button type="button" onclick="classic_edit_turn(${idx})">Edit Turn</button>`;
+		popcontent += `<button type="button" onclick="classic_delete_turn(${idx})">Delete Turn</button>`;
+		popcontent += `<button type="button" onclick="">Cancel</button>`;
+		popupMenu.innerHTML = popcontent;
+
+		popupMenu.style.left = `${rect.left}px`;
+		popupMenu.style.top = `${rect.top - 10}px`;
+		popupMenu.style.transform = 'translateY(-100%)'; // makes it grow upward
+
+		document.removeEventListener('click', handleOutsideClickClassicTurn);
+		popupMenu.style.display = (popupMenu.style.display === 'flex' ? 'none' : 'flex');
+		if (!toggleopen || popupMenu.style.display === 'none') {
+			popupMenu.style.display = 'none';
+			return;
+		}
+		// if menu is open, attach outside click handler
+		if (popupMenu.style.display === 'flex') {
+			setTimeout(() => { // delay so the current button click doesn't immediately close it
+				document.addEventListener('click', handleOutsideClickClassicTurn);
+			}, 50);
+		}
+	}
+
 	function render_corpo_welcome()
 	{
 		return `<div class='corpowelcome'>
@@ -22403,7 +22885,7 @@ Current version indicated by LITEVER below.
 		return currchatunit;
 	}
 
-	function repack_instruct_history(input) //repack all history into individual turns
+	function repack_instruct_history(input, allow_blank=false) //repack all history into individual turns
 	{
 		if(localsettings.separate_end_tags) {
 			if (get_instruct_starttag_end(true)) {
@@ -22423,7 +22905,7 @@ Current version indicated by LITEVER below.
 		let st = get_instruct_starttag(false);
 		let et = get_instruct_endtag(false);
 
-		let turns = repack_instruct_turns(input,st,et,false);
+		let turns = repack_instruct_turns(input,st,et,allow_blank);
 		return turns;
 	}
 
@@ -22513,10 +22995,9 @@ Current version indicated by LITEVER below.
 		let incomplete_resp = (synchro_pending_stream != "" || pending_response_id != "");
 		if (incomplete_resp) { return; }
 
+		let chatunits = [];
 		let currctx = concat_gametext(false, "", "", "", false);
 		currctx = replace_instruct_placeholders(currctx);
-
-		let chatunits = [];
 		if(localsettings.opmode==3)
 		{
 			chatunits = repack_chat_history(currctx);
@@ -22624,15 +23105,16 @@ Current version indicated by LITEVER below.
 		textarea.value = "";
 		corpo_edit_chunk_save();
 	}
-	function corpo_edit_chunk_save()
+
+	function edit_chunk_save(modified_turn, modified_message, allow_blank=false)
 	{
 		let incomplete_resp = (synchro_pending_stream != "" || pending_response_id != "");
 		if (incomplete_resp) { return; }
 
-		let idx = corpo_editing_turn;
+		let idx = modified_turn;
+		let chatunits = [];
 		let currctx = concat_gametext(false, "", "", "", false);
 		currctx = replace_instruct_placeholders(currctx);
-		let chatunits = [];
 		if(localsettings.opmode==3)
 		{
 			chatunits = repack_chat_history(currctx);
@@ -22647,14 +23129,13 @@ Current version indicated by LITEVER below.
 		}
 		else
 		{
-			chatunits = repack_instruct_history(currctx);
+			chatunits = repack_instruct_history(currctx, allow_blank);
 		}
 
-		let textarea = document.getElementById("corpo_edit_inp");
 		let needsave = false;
 
 		let existing_msg_compare = stash_image_placeholders(chatunits[idx].msg,false);
-		if(idx < chatunits.length && textarea.value != existing_msg_compare)
+		if(idx < chatunits.length && modified_message != existing_msg_compare)
 		{
 			needsave = true;
 			gametext_arr = [];
@@ -22664,7 +23145,7 @@ Current version indicated by LITEVER below.
 			retry_preserve_last = false;
 			redo_prev_text = [];
 
-			let newtxt = textarea.value;
+			let newtxt = modified_message;
 			newtxt = unstash_image_placeholders(newtxt);
 
 			if(localsettings.opmode==3) //chat mode
@@ -22738,11 +23219,19 @@ Current version indicated by LITEVER below.
 				}
 			}
 
-			console.log("Merged corpo edit field. Parts:" + gametext_arr.length);
+			console.log("Merged edit done. Parts:" + gametext_arr.length);
 		}
 
 		corpo_editing_turn = -1;
 		render_gametext(needsave,false);
+	}
+
+	function corpo_edit_chunk_save()
+	{
+		let textarea = document.getElementById("corpo_edit_inp");
+		let modified_message = textarea.value;
+		edit_chunk_save(corpo_editing_turn, modified_message);
+
 	}
 	function corpo_edit_chunk_resend(idx)
 	{
@@ -22776,8 +23265,8 @@ Current version indicated by LITEVER below.
 		}
 
 		let newbodystr = "";
-		input = replace_instruct_placeholders(input);
 		let chatunits = [];
+		input = replace_instruct_placeholders(input);
 		if(localsettings.opmode==3) //chat mode
 		{
 			chatunits = repack_chat_history(input);
@@ -22939,7 +23428,7 @@ Current version indicated by LITEVER below.
 				let entry = "";
 				if(testslot)
 				{
-					entry = `<div onclick="load_from_slot(`+i+`, true, true)" class="corpo_leftpanel_btn" type="button">`+testslot+`</div>`;
+					entry = `<div onclick="load_from_slot(`+i+`, true, false, true)" class="corpo_leftpanel_btn" type="button">`+testslot+`</div>`;
 				}
 				panelitems += entry;
 			}
@@ -24716,8 +25205,8 @@ Current version indicated by LITEVER below.
 		`;
 
 		//refactor - repack as turns
-		input = replace_instruct_placeholders(input);
 		let chatunits = [];
+		input = replace_instruct_placeholders(input);
 		if(localsettings.opmode==3) //chat mode
 		{
 			chatunits = repack_chat_history(input);
@@ -24742,21 +25231,21 @@ Current version indicated by LITEVER below.
 		let pendstream = "";
 		if (synchro_pending_stream != "" && !isPreview) {
 			pendstream = escape_html(pending_context_preinjection) + format_streaming_text(escape_html(synchro_pending_stream));
-			let allow_cont_prev_turn = (localsettings.opmode==4 || (localsettings.opmode==3 && localsettings.allow_continue_chat));
+			let allow_cont_prev_turn = ((localsettings.opmode==4 && pending_context_preinjection=="") || (localsettings.opmode==3 && localsettings.allow_continue_chat));
 			let appended = false;
-			if(chatunits.length>0 && chatunits[chatunits.length-1].myturn==false && chatunits[chatunits.length-1].msg && allow_cont_prev_turn)
+			if(!appended && chatunits.length>0 && chatunits[chatunits.length-1].myturn==false && chatunits[chatunits.length-1].msg && allow_cont_prev_turn)
 			{
 				let codeblockcount = (chatunits[chatunits.length-1].msg.match(/```/g) || []).length; //only allow continue if not in codeblock
 				//inject into previous turn, only for instruct OR continuechat
 				if(codeblockcount==0 || codeblockcount%2==0)
 				{
-					chatunits[chatunits.length-1].msg += `<span class='pending_text'>${pendstream}</span>`;
+					chatunits[chatunits.length-1].add_stream_msg = `<span class='pending_text'>${pendstream}</span>`;
 					appended = true;
 				}
 			}
 			if(!appended)
 			{
-				chatunits.push({"msg":`<span class='pending_text'>${pendstream}</span>`,"myturn":false,"unlabelled_name":true, "unlabelled_img":false});
+				chatunits.push({"msg":"","add_stream_msg":`<span class='pending_text'>${pendstream}</span>`,"myturn":false,"unlabelled_name":true, "unlabelled_img":false});
 			}
 		}
 		for(var i=0;i<chatunits.length;++i)
@@ -24788,6 +25277,11 @@ Current version indicated by LITEVER below.
 			});
 
 			curr = repack_postprocess_turn(curr, countmap);
+			if(curr.add_stream_msg)
+			{
+				curr.msg += curr.add_stream_msg; //add it last so it doesnt mess up the pending_text tags
+			}
+
 			if(!curr.msg)
 			{
 				continue; //if turn is empty skip it
@@ -24826,7 +25320,7 @@ Current version indicated by LITEVER below.
 			newbodystr += ` style='flex: 1; display:flex; padding: ${as.padding()}; margin: ${as.margin()}; min-height:${as.background_minHeight}px;`
 			+ ` font-size: ${as.font_size}px; flex-direction:column; align-items: ${as.centerHorizontally ? 'center' : 'flex-start'};`
 			+ ` justify-content: center; border-radius: ${as.rounded_bubbles ? '15px' : '0px'}'>`
-			+ `<span>${namepart}${curr.msg}</span></div></div>`;
+			+ `<div>${namepart}${curr.msg}</div></div></div>`;
 		}
 
 		return portraitsStyling + newbodystr.replaceAll(/(\r\n|\r|\n)/g,'<br>'); // Finally, convert newlines to HTML format and return the stylized string.
@@ -25485,7 +25979,9 @@ Current version indicated by LITEVER below.
 				const containerRect = gametext.getBoundingClientRect();
 				if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
 					if (range.startContainer && range.startContainer.nodeType === Node.TEXT_NODE) {
+						suppressScrollEvent = true;
 						gametext.scrollTop = 0; //simple fix for safari scrolling
+						suppressScrollEvent = false;
 						const span = document.createElement("span");
 						span.style.display = "inline";
 						span.style.background = "transparent";
@@ -25806,6 +26302,8 @@ Current version indicated by LITEVER below.
 	</div>
 
 	<div class="branchmenu" id="branchmenu">
+	</div>
+	<div class="branchmenu" id="classicturnmenu">
 	</div>
 
 	<div class="popupcontainer flex hidden" id="memorycontainer">
@@ -26403,6 +26901,11 @@ Current version indicated by LITEVER below.
 								<input title="Smoothing Factor" class="settinglabel miniinput" type="text" inputmode="decimal" placeholder="0" value="0" id="smoothing_factor"></div>
 							</div>
 							<div class="settinglabel settingcell">
+								<div title="Smoothing Curve" class="justifyleft settingsmall" style="width:100%">Smooth.C</div>
+								<div class="justifyleft settingsmall" style="width:100%">
+								<input title="Smoothing Curve" class="settinglabel miniinput" type="text" inputmode="decimal" placeholder="0" value="0" id="smoothing_curve"></div>
+							</div>
+							<div class="settinglabel settingcell">
 								<div title="DynaTemp Configs. Range 0 to Deactivate." class="justifyleft settingsmall" style="width:100%">DyTemp</div>
 								<div class="justifyleft settingsmall" style="width:100%">
 								<button title="Dynamic Temperature Configuration" type="button" class="btn btn-primary" style="padding:2px 4px;font-size:9px;" onclick="show_dynatemp()"><span id="dynatemp_overview">OFF</span></button>
@@ -26598,6 +27101,9 @@ Current version indicated by LITEVER below.
 									<option value="">[None]</option>
 								</select>
 								<button type="button" class="btn btn-primary" onclick="set_comfy_endpoint()" style="height: 20px; padding: 0px 2px; margin: 0px 0px 0px 3px;">⚙️</button>
+								<select id="generate_images_comfy_lora" class="form-control" style="height:20px;padding:0;margin:0px 0 0; width:calc(100%)">
+									<option value="" disabled selected>No Lora Found</option>
+								</select>
 							</div>
 							<div id="generate_images_dalle_container" class="settinglabel hidden">
 								<table width="100%"><tr>
@@ -26607,11 +27113,10 @@ Current version indicated by LITEVER below.
 								</tr></table>
 							</div>
 							<div id="generate_images_pollinations_container" class="settinglabel hidden">
-								<select title="Select Image Model" class="form-control" id="generate_images_pollinations_model" style="height:20px;padding:0;margin:0px 0 0; width:calc(100% - 30px)">
+								<select title="Select Image Model" class="form-control" id="generate_images_pollinations_model" style="height:20px;padding:0;margin:0px 0 0; width:calc(100%)">
 									<option value="flux" selected>flux</option>
 									<option value="turbo">turbo</option>
 								</select>
-								<button type="button" class="btn btn-primary" onclick="set_comfy_endpoint()" style="height: 20px; padding: 0px 2px; margin: 0px 0px 0px 3px;">⚙️</button>
 							</div>
 
 							<div>
@@ -27185,6 +27690,7 @@ Current version indicated by LITEVER below.
 								<option value="3">Shadow</option>
 								<option value="4">Candy</option>
 								<option value="5">Aqua</option>
+								<option value="6">CherryPink</option>
 							</select>
 						</div>
 					</div>
@@ -27219,6 +27725,16 @@ Current version indicated by LITEVER below.
 							<div class="justifyleft settingsmall">LegacySavefile <span class="helpicon">?<span
 								class="helptext">Adds extra data to the savefile for better legacy support. Will make your savefile much larger.</span></span></div>
 							<input title="Legacy Savefile" type="checkbox" id="legacy_savefile" style="margin:0px 0px 0px 0px;">
+						</div>
+						<div class="settinglabel">
+							<div class="justifyleft settingsmall">AllowContinueUserTurn <span class="helpicon">?<span
+								class="helptext">In instruct mode, allows the AI to continue generating the user's turn when pressing Generate More.</span></span></div>
+							<input title="Legacy Savefile" type="checkbox" id="allow_continue_user_turn" style="margin:0px 0px 0px 0px;">
+						</div>
+						<div class="settinglabel">
+							<div class="justifyleft settingsmall">ProxyDisableStream <span class="helpicon">?<span
+								class="helptext">Prevent the CORS proxy from streaming, if applicable.</span></span></div>
+							<input title="Proxy Disable Stream" type="checkbox" id="proxy_disable_stream" style="margin:0px 0px 0px 0px;">
 						</div>
 					</div>
 
@@ -27492,19 +28008,24 @@ Current version indicated by LITEVER below.
 			<div style="overflow: auto;">
 				<div id="saveloadentries" class="menutext saveloadgrid">
 					<div style="display:flex">
-						<button type="button" style="font-size:12px; margin:2px;width:33%" name="localsave" class="btn btn-primary" onclick="hide_popups();save_file_button()">💾<br>Download File</button>
-						<button type="button" style="font-size:12px; margin:2px;width:33%" name="localload" class="btn btn-primary" onclick="hide_popups();load_file_button()">📁<br>Open File</button>
-						<button type="button" style="font-size:12px; margin:2px;width:34%" name="shareurl" class="btn btn-primary" onclick="hide_popups();share_story_button()">🌐<br>Share</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localsave" class="btn btn-primary" onclick="hide_popups();save_file_button()">💾<br>Download Save</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:33%" name="localload" class="btn btn-primary" onclick="hide_popups();load_file_button()">📁<br>Open File</button>
+						<button type="button" style="font-size:12px; margin:2px; padding-left:2px; padding-right:2px; width:34%" name="shareurl" class="btn btn-primary" onclick="hide_popups();share_story_button()">🌐<br>Share</button>
 					</div>
+
 					<div style="margin-top:3px; text-align: center; align-self: center; width: 100%">
 						<span style="font-weight:bold;text-decoration: underline;">Slot Storage Option</span>
+						<span style="float:right; text-align: right;">
+							<button type="button" class="btn btn-primary" style="font-size:10px;padding:2px 5px;margin-left:4px;margin:2px;" onclick="hide_popups();display_settings();display_settings_tab(4);">Configure</button>
+						</span>
 					</div>
 					<div style="display:flex;">
 						<div style="width: 92px; margin:8px; margin-left: 4px; margin-right: 4px; font-size: 14px;">Data Location</div>
 						<div style="margin:3px; text-align: center; align-self: center; width: calc(100% - 94px);">
 						<select title="Select Slot Location" style="padding:4px;" class="form-control" id="saveslotlocationdropdown" onchange="saveloadchangeslot(true)">
-						<option value="1">Local Browser Cache</option>
+						<option value="1">Local Browser Storage</option>
 						<option value="2" id="kcppsaveavailable" class="hidden">KoboldCpp Server Storage</option>
+						<option value="3">Local Scenario Library</option>
 						</select>
 						</div>
 					</div>
@@ -27522,7 +28043,7 @@ Current version indicated by LITEVER below.
 						<button type="button" id="deleteslot" title="Delete Slot" class="btn btn-primary" onclick="delete_from_curr_slot()"><img class="btnicon-delete"/> Delete Slot</button>
 					</div>
 				</div>
-				<div class="menutext"><p style="padding:6px;font-size: 10px;" class="color_red">Caution: Local Storage Slots are saved to a temporary cache and can be deleted by your browser. KoboldCpp remote storage will save data to a file in your KoboldCpp server. To avoid losing data, use the download file button.</p></div>
+				<div class="menutext"><p style="padding:6px;font-size: 10px;" id="saveslotlocationtext"></p></div>
 				<div class="popupfooter">
 					<button type="button" class="btn btn-primary" id=""
 						onclick="hide_popups()">Back</button>
@@ -27533,7 +28054,7 @@ Current version indicated by LITEVER below.
 
 	<div class="popupcontainer flex hidden" id="customendpointcontainer">
 		<div class="popupbg flex"></div>
-		<div class="nspopup flexsize evenhigher">
+		<div class="nspopup flexsize highest">
 			<div class="popuptitlebar">
 				<div class="popuptitletext">Select your AI provider</div>
 			</div>
@@ -27608,8 +28129,8 @@ Current version indicated by LITEVER below.
 			<div id="oaicustom" class="menutext hidden">
 				<span id="oaidesc">
 				Entering your <a class="color_blueurl" target="_blank" href="https://platform.openai.com/api-keys">OpenAI API key</a> will allow you to use KoboldAI Lite with their API.<br>
-				<b>Or, set a custom API URL to use ANY 3rd-party OAI Compatible API</b><br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenAI API, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				<b>Set a custom URL to use any 3rd-party Compatible API</b><br><br>
+				You are responsibile for your own usage. API keys are used with OpenAI API directly, <span class="color_red">unless CORS proxy is used</span>. Reconnecting resets all custom OpenAI URLs.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenAI API URL and Key.</span><br>
 				<div style="display:inline-flex">
 					<div><input type="checkbox" id="corsproxy_oai" title="Use CORS Proxy">
@@ -27620,32 +28141,32 @@ Current version indicated by LITEVER below.
 				</span>
 				<span id="openrouterdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://openrouter.ai/settings/keys">OpenRouter API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the OpenRouter API and is not transmitted to us.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with OpenRouter API directly.<br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><a class="color_blueurl" onclick="fetch_openrouter_balance()" href="#">Click here to see your credit balance.</a><br><br>
 				<span class="color_green" style="font-weight: bold;">Please input OpenRouter Key.</span><br><br>
 				</span>
 				<span id="mistralaidesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">MistralAI API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the MistralAI API and is not transmitted to us.<br>Only Temperature and Top-P samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with MistralAI API directly.<br>Only Temperature and Top-P samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input MistralAI Key.</span><br><br>
 				</span>
 				<span id="featherlessdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://featherless.ai/docs/getting-started">Featherless API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Featherless API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with Featherless API directly.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Featherless Key.</span><br><br>
 				</span>
 				<span id="grokdesc" class="hidden">
 				Entering your Grok API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Grok API and is not transmitted to us.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. API keys are used with Grok API directly.<br>Only Temperature, Top-P, Top-K, Min-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Grok Key.</span><br><br>
 				</span>
 				<span id="pollinationsdesc" class="hidden">
 				Pollinations.ai API is free to use without any key required.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. This service is ad driven, ads may appear in the output.<br>Only Temperature, Top-P, Top-K and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">No Key Required.</span><br><br>
 				</span>
 				<span id="nvidianimdesc" class="hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://build.nvidia.com/explore/discover">Nvidia NIM API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
+				You are responsibile for your own usage. <span class="color_red">Due to CORS restrictions, your connection WILL be proxied.</span><br>Only Temperature, Top-P and Repetition Penalty samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Nvidia NIM Key.</span><br><br>
 				</span>
 
@@ -27771,29 +28292,39 @@ Current version indicated by LITEVER below.
 					<div><input type="checkbox" id="useoaichatcompl" title="Use ChatCompletions API" onchange="toggleoaichatcompl()">
 					<div class="box-label">Chat-Completions API</div></div>
 					<div><input type="checkbox" id="useoainonstandard" title="Send Non-Standard Fields">
-					<div class="box-label">Non-Standard Fields</div></div>
+					<div class="box-label">Non-Standard Fields <span class="helpicon">?<span class="helptext">Send extra non-standard samplers like Min-P, Top-K and Top-A.</span></span></div></div>
 				</div>
-				<span id="useoaichatcomplbox" class="hidden" onload="toggleoaichatcompl();">
-					<br>
+				<div id="useoaichatcomplbox" class="hidden" onload="toggleoaichatcompl();">
+					<div style="display: inline-block;">
 					Main Message Role:
-					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:4px;display:inline;width:100px" id="oairoledropdown">
+					<select title="Main Message Role" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; margin-right:4px; padding:4px;display:inline;width:100px" id="oairoledropdown">
 						<option value="0" selected>User</option>
 						<option value="1">Assistant</option>
 						<option value="2">System</option>
 						<option value="3">AutoRole</option>
 					</select>
+					</div>
+					<div style="display: inline-block;">
 					<input type="checkbox" title="Add Prefix Prompt" id="jailbreakprompt" onchange="togglejailbreak()">
-					<div class="box-label" title="Add Prefix. Forcefully inserts extra text at the start of the prompt to steer the AI.">Add Prefix</div>
+					<div class="box-label" style="padding:4px" title="Add Prefix. Forcefully inserts extra text at the start of the prompt to steer the AI.">Add Prefix</div>
 					<input type="checkbox" title="Add Postfix Prompt" id="jailbreakprompt2" onchange="togglejailbreak2()">
-					<div class="box-label" title="Add Postfix. Forcefully inserts extra text to before the AI response to steer the AI.">Add Postfix</div>
-
+					<div class="box-label" style="padding:4px" title="Add Postfix. Forcefully inserts extra text to before the AI response to steer the AI.">Add Postfix</div>
+					<select title="Reasoning Effort" class="form-control" style="height: 22px; font-size:10px; padding:2px;display:inline;width:120px" id="oaireasoningeffort">
+						<option value="" selected>Reasoning: Default</option>
+						<option value="none">Reasoning: None</option>
+						<option value="minimal">Reasoning: Minimal</option>
+						<option value="low">Reasoning: Low</option>
+						<option value="medium">Reasoning: Medium</option>
+						<option value="high">Reasoning: High</option>
+					</select>
+					</div>
 					<div style="display:flex" id="oaijailbreakpromptblock1">
 					<select title="Injected Prefix Message Role" class="form-control" style="height: 25px; font-size:12px; padding:4px;display:inline;width:100px" id="jailbreakprompttextrole">
 						<option value="0">User</option>
 						<option value="1">Assistant</option>
 						<option value="2" selected>System</option>
 					</select>
-					<textarea title="Enter Prefix Prompt String" class="form-control" rows="3" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="jailbreakprompttext" placeholder="(Enter System Prefix)"
+					<textarea title="Enter Prefix Prompt String" class="form-control" rows="2" style="resize: vertical; line-height:1.1; padding:4px; display:inline; width: 100%" type="text" id="jailbreakprompttext" placeholder="(Enter System Prefix)"
 					value="" onload="togglejailbreak();"></textarea>
 					</div>
 
@@ -27803,27 +28334,18 @@ Current version indicated by LITEVER below.
 						<option value="1" selected>Assistant</option>
 						<option value="2">System</option>
 					</select>
-					<textarea title="Enter Postfix Prompt String" class="form-control" rows="3" style="resize: vertical; line-height:1.1; padding:4px;  display:inline; width: 100%;" type="text" id="jailbreakprompttext2" placeholder="(Enter Assistant Postfix)"
+					<textarea title="Enter Postfix Prompt String" class="form-control" rows="2" style="resize: vertical; line-height:1.1; padding:4px;  display:inline; width: 100%;" type="text" id="jailbreakprompttext2" placeholder="(Enter Assistant Postfix)"
 					value="" onload="togglejailbreak2();"></textarea>
 					</div>
-				</span>
-				<span id="openrouterproviderbox" class="hidden">
-					<br>
-					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 256px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
-					<div id="openrouterreasoningbox" style="display:inline;">
-						<div style="padding-left:2px;padding-right:2px" class="box-label">Thinking</div>
-						<select title="Thinking Settings" class="form-control" style="height: 25px; font-size:12px; margin-bottom: 2px; padding:3px;display:inline;width:72px" id="openrouterreasoning">
-						<option value="0" selected>Default</option>
-						<option value="1">Disable</option>
-						<option value="2">Enable</option>
-						</select>
-					</div>
-				</span>
+				</div>
+				<div id="openrouterproviderbox" class="hidden">
+					<div style="display:inline;">Prefer Provider: <input title="Enter Preferred AI Provider" style="height: 25px; font-size:12px;padding:4px;display:inline;width:calc(100% - 110px)" class="form-control" type="text" id="openrouterproviders" placeholder="(Automatic)" value=""></div>
+				</div>
 
 			</div>
 			<div id="claudecustom" class="menutext hidden">
 				Entering your Claude API key will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
+				You are responsibile for your own usage. <br>Only Temperature, Top-P and Top-K samplers are used.<br><br>
 				<span class="color_green" style="font-weight: bold;">Please input Claude API URL and Key.</span><br><br>
 				<input class="form-control" type="text" id="custom_claude_endpoint" placeholder="Claude API URL" value="">
 				<input class="form-control" type="password" id="custom_claude_key" placeholder="Claude API Key (Required)" value="" onfocus="focus_api_keys()" onblur="blur_api_keys()"><br>
@@ -27859,7 +28381,7 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="geminicustom" class="menutext hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://docs.mistral.ai/getting-started/quickstart">Google Gemini API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Gemini API and is not transmitted to us.<br><br>
+				You are responsibile for your own usage. API keys are used with Gemini API directly.<br><br>
 				<div>
 				<select title="Gemini AI Model Selection" style="padding:4px; width:calc(100% - 110px); display:inline-block" class="form-control" id="custom_gemini_model" onchange="togglegeminimodel()">
 					<option value="gemini-1.5-flash-latest" selected="selected">gemini-1.5-flash-latest</option>
@@ -27869,8 +28391,12 @@ Current version indicated by LITEVER below.
 					<option value="gemini-2.0-flash">gemini-2.0-flash</option>
 					<option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
 					<option value="gemini-2.0-pro-exp">gemini-2.0-pro-exp</option>
-					<option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17</option>
-					<option value="gemini-2.5-pro-preview-05-06">gemini-2.5-pro-preview-05-06</option>
+					<option value="gemini-2.5-flash">gemini-2.5-flash</option>
+					<option value="gemini-2.5-flash-image-preview">gemini-2.5-flash-image-preview</option>
+					<option value="gemini-2.5-pro">gemini-2.5-pro</option>
+					<option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
+					<option value="gemini-3-pro-image-preview">gemini-3-pro-image-preview</option>
+					<option value="nano-banana-pro-preview">nano-banana-pro-preview</option>
 					<option value="gemma-3-1b-it">gemma-3-1b-it</option>
 					<option value="gemma-3-4b-it">gemma-3-4b-it</option>
 					<option value="gemma-3-12b-it">gemma-3-12b-it</option>
@@ -27913,7 +28439,7 @@ Current version indicated by LITEVER below.
 			</div>
 			<div id="coherecustom" class="menutext hidden">
 				Entering your <a class="color_blueurl" target="_blank" href="https://dashboard.cohere.com/api-keys">Cohere API key</a> will allow you to use KoboldAI Lite with their API.<br><br>
-				KoboldAI Lite takes no responsibility for your usage of this feature. Your API key is used directly with the Cohere API and is not transmitted to us.<br><br>
+				You are responsibile for your own usage. API keys are used with Cohere API directly.<br><br>
 				<select title="Cohere AI Model Selection" style="padding:4px;" class="form-control" id="custom_cohere_model">
 					<option value="command-r-08-2024" selected="selected">command-r-08-2024</option>
 					<option value="command-r-plus-08-2024">command-r-plus-08-2024</option>
@@ -27987,7 +28513,7 @@ Current version indicated by LITEVER below.
 				Unsaved data will be lost.<br><br>
 				<div>
 					<div style="vertical-align: middle;">
-						<div title="If disabled, brings you back to the start page">
+						<div id="keep_ai_selected_row" title="If disabled, brings you back to the start page">
 							<span>Keep AI Selected? </span>
 							<input type="checkbox" id="keep_ai_selected" style=" vertical-align: top;" checked>
 						</div>
@@ -28117,11 +28643,11 @@ Current version indicated by LITEVER below.
 			<div id="shareasurl" class="hidden">
 			<div class="inlinelabel">
 			<h3>Please Note</h3>
-			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.org/about/" target="_blank" class="color_blueurl">dpaste.org</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
+			<p>Clicking the button below will <b>upload</b> your current story to <b><a href="https://dpaste.com/about/" target="_blank" class="color_blueurl">dpaste.com</a></b> where it will be <u><b>publically available</b></u> to <i>anyone</i> who has the link.</p>
 			<p>Once shared, the file will be available online, and cannot be removed until it expires! Therefore, you're not recommended to use this service for any senstive content.</p>
-			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.org, you are personally responsible for whatever you upload or share to their service.</p>
+			<p class="color_red">Disclaimer: KoboldAI is not associated with dpaste.com, you are personally responsible for whatever you upload or share to their service.</p>
 			<div style="width:100%">
-			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.org/api/" id="dpaste_server_url">
+			<input class="settinglabel" style="padding:2px;margin:0px;margin-bottom: 4px; width:100%" type="text" placeholder="(dPaste Server URL)" value="https://dpaste.com/api/" id="dpaste_server_url">
 			<select class="form-control" id="dpaste_duration" style="width:100%">
 				<option value="3600">Expires in 1 hour</option>
 				<option value="86400" selected>Expires in 1 day</option>
@@ -28208,7 +28734,7 @@ Current version indicated by LITEVER below.
 
 	<div class="popupcontainer flex hidden" id="addmediacontainer">
 		<div class="popupbg flex"></div>
-		<div class="nspopup flexsizevsmall moderate">
+		<div class="nspopup flexsizevsmall high">
 			<div class="popuptitlebar">
 				<div class="popuptitletext">Add Audio or Image</div>
 			</div>
@@ -28231,7 +28757,10 @@ Current version indicated by LITEVER below.
 				<button type="button" class="btn btn-primary" onclick="hide_popups();display_settings();display_settings_tab(2);">Customize Media Settings</button>
 			</div>
 			<div class="menutext hidden" id="btn_open_stableui">
-				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_stableui()">Go To StableUI</button>
+				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_stableui()">Launch StableUI</button>
+			</div>
+			<div class="menutext hidden" id="btn_open_lcppui">
+				<button type="button" class="btn btn-primary bg_purple" onclick="go_to_lcppui()">Launch llama.cpp UI</button>
 			</div>
 			<br>
 			<input type="file" id="addimgfileinput" style="display:none" accept="image/*,audio/mpeg,audio/wav,audio/ogg,audio/aac,audio/flac,audio/opus,audio/mp4">

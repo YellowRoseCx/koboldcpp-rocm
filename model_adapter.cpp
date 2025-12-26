@@ -221,7 +221,7 @@ std::string gguf_get_model_arch(const std::string & gguf_filename)
                 }
            }
        }
-       else if(vocabsiz < 31998 || vocabsiz > 33000)
+       else if((vocabsiz < 31998 || vocabsiz > 33000) && vocabsiz<51864) //avoid whisper false positive
        {
            //anything outside the llama v1 range is assumed to be NeoX
            fileformat = FileFormat::NEOX_6;
@@ -268,7 +268,11 @@ std::string gguf_get_model_arch(const std::string & gguf_filename)
                     }
                 }
            }
-
+       }
+       else if (vocabsiz>=51864 && vocabsiz<=51865)
+       {
+            printf("\nWhisper model detected - you should load it as a whisper model instead, not a text model!\n");
+            fileformat = FileFormat::BADFORMAT; //known whisper formats, do not proceed
        }
     }
     else if(magic == 0x67676d66) //v2 format ggmf
@@ -509,7 +513,7 @@ std::string gguf_get_model_arch(const std::string & gguf_filename)
 
  void ContextFastForward(std::vector<int> &current_context_tokens, std::vector<int> &embd_inp,
  int &n_past, std::vector<int> &last_n_tokens, const int nctx, std::vector<int> &smartcontext,
- bool useSmartContext, const bool requireFullSubset)
+ bool useSmartContext, const bool requireFullSubset, const int minimum_to_proceed)
  {
      const int SCCtxLenThreshold = nctx * 0.8; //how much context length must be reach to trigger smartcontext
      const int SCInpLenThreshold = nctx * 0.6; //how big must the input array be to trigger smartcontext
@@ -562,6 +566,13 @@ std::string gguf_get_model_arch(const std::string & gguf_filename)
                 break;
             }
         }
+    }
+
+    if(n_past < minimum_to_proceed) //too few tokens to fast forward, so lets start fresh
+    {
+        last_n_tokens.erase(last_n_tokens.end() - n_past, last_n_tokens.end());
+        n_past = 0;
+        fastforwardok = false;
     }
 
     if(fastforwardok)

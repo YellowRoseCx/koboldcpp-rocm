@@ -36,15 +36,7 @@ extern "C"
         mmproj_filename = inputs.mmproj_filename;
         draftmodel_filename = inputs.draftmodel_filename;
 
-        int forceversion = inputs.forceversion;
-
         file_format = check_file_format(model.c_str(),&file_format_meta);
-
-        if(forceversion!=0)
-        {
-            printf("\nWARNING: FILE FORMAT FORCED TO VER %d\nIf incorrect, loading may fail or crash.\n",forceversion);
-            file_format = (FileFormat)forceversion;
-        }
 
         //first digit is whether configured, second is platform, third is devices
         int cl_parseinfo = inputs.clblast_info;
@@ -187,7 +179,7 @@ extern "C"
             }
             else if(file_format==FileFormat::GGUF_GENERIC)
             {
-                printf("\n---\nIdentified as GGUF model.\nAttempting to Load...\n---\n", file_format);
+                printf("\n---\nIdentified as GGUF model.\nAttempting to Load...\n---\n");
             }
             else if(file_format==FileFormat::GGML || file_format==FileFormat::GGHF || file_format==FileFormat::GGJT || file_format==FileFormat::GGJT_2 || file_format==FileFormat::GGJT_3)
             {

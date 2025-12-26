@@ -39,6 +39,7 @@ from datetime import datetime, timezone
 from typing import Tuple
 import shutil
 import subprocess
+import gzip
 
 # constants
 sampler_order_max = 7
@@ -52,7 +53,7 @@ default_draft_amount = 8
 default_ttsmaxlen = 4096
 default_visionmaxres = 1024
 net_save_slots = 12
-savestate_limit = 3 #3 savestate slots
+savestate_limit = 5 #savestate slots
 default_vae_tile_threshold = 768
 default_native_ctx = 16384
 overridekv_max = 4
@@ -65,7 +66,7 @@ dry_seq_break_max = 128
 extra_images_max = 4 # for kontext/qwen img
 
 # global vars
-KcppVersion = "1.101.1.yr0-ROCm"
+KcppVersion = "1.104.yr0-ROCm"
 showdebug = True
 kcpp_instance = None #global running instance
 global_memory = {"tunnel_url": "", "restart_target":"", "input_to_exit":False, "load_complete":False, "restart_override_config_target":""}
@@ -109,6 +110,7 @@ importvars_in_progress = False
 has_multiplayer = False
 has_audio_support = False
 has_vision_support = False
+cached_chat_template = None
 savedata_obj = None
 multiplayer_story_data_compressed = None #stores the full compressed story of the current multiplayer session
 multiplayer_turn_major = 1 # to keep track of when a client needs to sync their stories
@@ -121,8 +123,12 @@ preloaded_story = None
 chatcompl_adapter = None
 chatcompl_adapter_list = None #if using autoguess, will populate this will potential adapters
 embedded_kailite = None
+embedded_kailite_gz = None
 embedded_kcpp_docs = None
+embedded_kcpp_docs_gz = None
 embedded_kcpp_sdui = None
+embedded_kcpp_sdui_gz = None
+embedded_lcpp_ui_gz = None
 sslvalid = False
 nocertify = False
 start_time = time.time()
@@ -193,7 +199,7 @@ class load_model_inputs(ctypes.Structure):
                 ("kcpp_main_gpu", ctypes.c_int),
                 ("vulkan_info", ctypes.c_char_p),
                 ("batchsize", ctypes.c_int),
-                ("forceversion", ctypes.c_int),
+                ("autofit", ctypes.c_bool),
                 ("gpulayers", ctypes.c_int),
                 ("rope_freq_scale", ctypes.c_float),
                 ("rope_freq_base", ctypes.c_float),
@@ -211,6 +217,8 @@ class load_model_inputs(ctypes.Structure):
                 ("check_slowness", ctypes.c_bool),
                 ("highpriority", ctypes.c_bool),
                 ("swa_support", ctypes.c_bool),
+                ("smartcache", ctypes.c_bool),
+                ("pipelineparallel", ctypes.c_bool),
                 ("lora_multiplier", ctypes.c_float),
                 ("quiet", ctypes.c_bool),
                 ("debugmode", ctypes.c_int)]
@@ -254,6 +262,7 @@ class generation_inputs(ctypes.Structure):
                 ("dynatemp_range", ctypes.c_float),
                 ("dynatemp_exponent", ctypes.c_float),
                 ("smoothing_factor", ctypes.c_float),
+                ("smoothing_curve", ctypes.c_float),
                 ("dry_multiplier", ctypes.c_float),
                 ("dry_base", ctypes.c_float),
                 ("dry_allowed_length", ctypes.c_int),
@@ -296,6 +305,7 @@ class sd_load_model_inputs(ctypes.Structure):
                 ("vae_filename", ctypes.c_char_p),
                 ("lora_filename", ctypes.c_char_p),
                 ("lora_multiplier", ctypes.c_float),
+                ("lora_apply_mode", ctypes.c_int),
                 ("photomaker_filename", ctypes.c_char_p),
                 ("img_hard_limit", ctypes.c_int),
                 ("img_soft_limit", ctypes.c_int),
@@ -322,7 +332,8 @@ class sd_generation_inputs(ctypes.Structure):
                 ("scheduler", ctypes.c_char_p),
                 ("clip_skip", ctypes.c_int),
                 ("vid_req_frames", ctypes.c_int),
-                ("vid_req_avi", ctypes.c_int)]
+                ("vid_req_avi", ctypes.c_int),
+                ("remove_limits", ctypes.c_bool)]
 
 class sd_generation_outputs(ctypes.Structure):
     _fields_ = [("status", ctypes.c_int),
@@ -397,6 +408,25 @@ class embeddings_generation_outputs(ctypes.Structure):
                 ("count", ctypes.c_int),
                 ("data", ctypes.c_char_p)]
 
+class StdoutRedirector:
+    def __init__(self, writer):
+        self.writer = writer
+        self.terminal = sys.__stdout__
+    def write(self, message):
+        try:
+            # Always write to terminal, then duplicate to pipe writer
+            self.terminal.write(message)
+            self.terminal.flush()
+            if self.writer:
+                try:
+                    self.writer.write(message)
+                    self.writer.flush()
+                except Exception:
+                    self.writer = None
+        except Exception:
+            pass
+    def flush(self):
+        self.terminal.flush()
 
 
 def getdirpath():
@@ -703,6 +733,12 @@ def end_trim_to_sentence(input_text):
 def tryparseint(value,fallback):
     if value is None:
         return fallback
+    if isinstance(value, str):
+        lower_value = value.lower()
+        if lower_value == "true":
+            return 1
+        if lower_value == "false":
+            return 0
     try:
         return int(value)
     except ValueError:
@@ -954,8 +990,9 @@ def get_capabilities():
     has_tts = (ttsmodelpath!="")
     has_embeddings = (embeddingsmodelpath!="")
     has_guidance = True if args.enableguidance else False
+    has_jinja = True if args.jinja else False
     admin_type = (2 if args.admin and args.admindir and args.adminpassword else (1 if args.admin and args.admindir else 0))
-    return {"result":"KoboldCpp", "version":KcppVersion, "protected":has_password, "llm":has_llm, "txt2img":has_txt2img,"vision":has_vision_support,"audio":has_audio_support,"transcribe":has_whisper,"multiplayer":has_multiplayer,"websearch":has_search,"tts":has_tts, "embeddings":has_embeddings, "savedata":(savedata_obj is not None), "admin": admin_type, "guidance": has_guidance}
+    return {"result":"KoboldCpp", "version":KcppVersion, "protected":has_password, "llm":has_llm, "txt2img":has_txt2img,"vision":has_vision_support,"audio":has_audio_support,"transcribe":has_whisper,"multiplayer":has_multiplayer,"websearch":has_search,"tts":has_tts, "embeddings":has_embeddings, "savedata":(savedata_obj is not None), "admin": admin_type, "guidance": has_guidance, "jinja": has_jinja}
 
 def dump_gguf_metadata(file_path): #if you're gonna copy this into your own project at least credit concedo
     chunk_size = 1024*1024*12  # read first 12mb of file
@@ -1213,11 +1250,7 @@ def autoset_gpu_layers(ctxsize, sdquanted, bbs, qkv_level): #shitty algo to dete
     except Exception:
         return 0
 
-def fetch_gpu_properties(testCL,testCU,testVK):
-    gpumem_ignore_limit_min = 1024*1024*600 #600 mb min
-    gpumem_ignore_limit_max = 1024*1024*1024*300 #300 gb max
-
-    if testCU:
+def detect_memory_cu(gpumem_ignore_limit_min, gpumem_ignore_limit_max):
         FetchedCUdevices = []
         FetchedCUdeviceMem = []
         FetchedCUfreeMem = []
@@ -1294,10 +1327,11 @@ def fetch_gpu_properties(testCL,testCU,testVK):
             lowestcumem = 0
             lowestfreecumem = 0
 
-        MaxMemory[0] = max(lowestcumem,MaxMemory[0])
-        MaxFreeMemory[0] = max(lowestfreecumem,MaxFreeMemory[0])
+        return lowestcumem, lowestfreecumem
 
-    if testVK:
+
+def detect_memory_vk(gpumem_ignore_limit_min, gpumem_ignore_limit_max):
+
         try: # Get Vulkan names
             foundVkGPU = False
             lowestvkmem = 0
@@ -1336,11 +1370,15 @@ def fetch_gpu_properties(testCL,testCU,testVK):
                         gpuidx += 1
                 except Exception: # failed to get vulkan vram
                     pass
-            MaxMemory[0] = max(lowestvkmem,MaxMemory[0])
+            return lowestvkmem
         except Exception:
             pass
 
-    if testCL:
+        return 0
+
+
+def detect_memory_cl(gpumem_ignore_limit_min, gpumem_ignore_limit_max):
+
         try: # Get OpenCL GPU names on windows using a special binary. overwrite at known index if found.
             basepath = os.path.abspath(os.path.dirname(__file__))
             output = ""
@@ -1366,9 +1404,36 @@ def fetch_gpu_properties(testCL,testCU,testVK):
                             lowestclmem = dmem if lowestclmem==0 else (dmem if dmem<lowestclmem else lowestclmem)
                     dev += 1
                 plat += 1
-            MaxMemory[0] = max(lowestclmem,MaxMemory[0])
+            return lowestclmem
         except Exception:
             pass
+
+        return 0
+
+
+def fetch_gpu_properties(testCL,testCU,testVK,testmemory=False):
+    gpumem_ignore_limit_min = 1024*1024*600 #600 mb min
+    gpumem_ignore_limit_max = 1024*1024*1024*300 #300 gb max
+
+    if testCU:
+        cumem, freecumem = detect_memory_cu(gpumem_ignore_limit_min, gpumem_ignore_limit_max)
+        MaxMemory[0] = max(cumem,MaxMemory[0])
+        MaxFreeMemory[0] = max(freecumem,MaxFreeMemory[0])
+        if testmemory:
+            print(f'detected CUDA memory: {cumem/(1024*1024)} MB, {freecumem/(1024*102)} MB free')
+
+    if testVK:
+        vkmem = detect_memory_vk(gpumem_ignore_limit_min, gpumem_ignore_limit_max)
+        MaxMemory[0] = max(vkmem,MaxMemory[0])
+        if testmemory:
+            print(f'detected Vulkan memory: {vkmem/(1024*1024)} MB')
+
+    if testCL:
+        clmem = detect_memory_cl(gpumem_ignore_limit_min, gpumem_ignore_limit_max)
+        MaxMemory[0] = max(clmem,MaxMemory[0])
+        if testmemory:
+            print(f'detected OpenCL memory: {clmem/(1024*1024)} MB')
+
 
     # Check VRAM detection after all backends have been tested
     if MaxMemory[0] < (1024*1024*256):
@@ -1449,7 +1514,7 @@ def load_model(model_filename):
     else:
         inputs.quant_k = inputs.quant_v = 0
     inputs.batchsize = args.batchsize
-    inputs.forceversion = args.forceversion
+    inputs.autofit = args.autofit
     inputs.gpulayers = args.gpulayers
     if args.overridenativecontext and args.overridenativecontext>0:
         inputs.overridenativecontext = args.overridenativecontext
@@ -1488,6 +1553,8 @@ def load_model(model_filename):
     inputs.check_slowness = (not args.highpriority and os.name == 'nt' and 'Intel' in platform.processor())
     inputs.highpriority = args.highpriority
     inputs.swa_support = args.useswa
+    inputs.smartcache = args.smartcache
+    inputs.pipelineparallel = args.pipelineparallel
     inputs = set_backend_props(inputs)
     ret = handle.load_model(inputs)
     return ret
@@ -1547,6 +1614,7 @@ def generate(genparams, stream_flag=False):
     dynatemp_range = tryparsefloat(genparams.get('dynatemp_range', 0.0),0.0)
     dynatemp_exponent = tryparsefloat(genparams.get('dynatemp_exponent', 1.0),1.0)
     smoothing_factor = tryparsefloat(genparams.get('smoothing_factor', 0.0),0.0)
+    smoothing_curve = tryparsefloat(genparams.get('smoothing_curve', 1.0),1.0)
     logit_biases = genparams.get('logit_bias', {})
     render_special = genparams.get('render_special', False)
     banned_strings = genparams.get('banned_strings', []) # SillyTavern uses that name
@@ -1609,6 +1677,7 @@ def generate(genparams, stream_flag=False):
     inputs.dynatemp_range = dynatemp_range
     inputs.dynatemp_exponent = dynatemp_exponent
     inputs.smoothing_factor = smoothing_factor
+    inputs.smoothing_curve = smoothing_curve
     inputs.grammar = grammar.encode("UTF-8")
     inputs.grammar_retain_state = grammar_retain_state
     inputs.allow_eos_token = not ban_eos_token
@@ -1772,6 +1841,7 @@ def sd_load_model(model_filename,vae_filename,lora_filename,t5xxl_filename,clip1
     inputs.photomaker_filename = photomaker_filename.encode("UTF-8")
     inputs.img_hard_limit = args.sdclamped
     inputs.img_soft_limit = args.sdclampedsoft
+    inputs.lora_apply_mode = 0 #auto for now
     inputs = set_backend_props(inputs)
     ret = handle.sd_load_model(inputs)
     return ret
@@ -1829,7 +1899,7 @@ def sd_comfyui_tranform_params(genparams):
         print("Warning: ComfyUI Payload Missing!")
     return genparams
 
-def sd_process_meta_fields(fields, config):
+def sd_process_meta_fields(fields):
     # aliases to match sd.cpp command-line options
     aliases = {
         'cfg-scale': 'cfg_scale',
@@ -1840,15 +1910,12 @@ def sd_process_meta_fields(fields, config):
     }
     fields_dict = {aliases.get(k, k): v for k, v in fields}
     # whitelist accepted parameters
-    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance']
-    if config:
-        # note the current UI always set these
-        whitelist += ['sampler_name', 'cfg_scale']
+    whitelist = ['scheduler', 'shifted_timestep', 'distilled_guidance', 'sampler_name', 'cfg_scale', 'add_sd_step_limit', 'add_sd_cfg_limit', 'remove_limits']
     fields_dict = {k: v for k, v in fields_dict.items() if k in whitelist}
     return fields_dict
 
 # json with top-level dict
-def sd_parse_meta_field(prompt, config=False):
+def sd_parse_meta_field(prompt):
     jfields = {}
     kv_dict = {}
     try:
@@ -1862,7 +1929,7 @@ def sd_parse_meta_field(prompt, config=False):
                 print("Warning: couldn't parse meta prompt; it should be valid JSON.")
         if not isinstance(jfields, dict):
             jfields = {}
-        kv_dict = sd_process_meta_fields(jfields.items(), config)
+        kv_dict = sd_process_meta_fields(jfields.items())
     except Exception:
         pass
     return kv_dict
@@ -1871,7 +1938,7 @@ def sd_parse_meta_field(prompt, config=False):
 def sd_generate(genparams):
     global maxctx, args, currentusergenkey, totalgens, pendingabortkey, chatcompl_adapter
 
-    sdgendefaults = sd_parse_meta_field(args.sdgendefaults or '', config=True)
+    sdgendefaults = sd_parse_meta_field(args.sdgendefaults or '')
     params = dict()
     defparams = dict()
     for k, v in sdgendefaults.items():
@@ -1889,7 +1956,9 @@ def sd_generate(genparams):
     adapter_obj = genparams.get('adapter', default_adapter)
     forced_negprompt = adapter_obj.get("add_sd_negative_prompt", "")
     forced_posprompt = adapter_obj.get("add_sd_prompt", "")
-    forced_steplimit = adapter_obj.get("add_sd_step_limit", 80)
+    forced_steplimit = tryparseint(adapter_obj.get("add_sd_step_limit", genparams.get("add_sd_step_limit",80)),80)
+    forced_maxcfg = tryparsefloat(adapter_obj.get("add_sd_cfg_limit", genparams.get("add_sd_cfg_limit",25)),25)
+    allow_remove_limits = tryparseint(adapter_obj.get("remove_limits", genparams.get("remove_limits",0)),0)
 
     prompt = genparams.get("prompt", "high quality")
     negative_prompt = genparams.get("negative_prompt", "")
@@ -1934,7 +2003,7 @@ def sd_generate(genparams):
     extra_images_arr = extra_images_arr[:extra_images_max]
 
     #clean vars
-    cfg_scale = (1 if cfg_scale < 1 else (25 if cfg_scale > 25 else cfg_scale))
+    cfg_scale = (1 if cfg_scale < 1 else (forced_maxcfg if cfg_scale > forced_maxcfg else cfg_scale))
     if distilled_guidance is not None and (distilled_guidance < 0 or distilled_guidance > 100):
         distilled_guidance = None # fall back to the default
     if shifted_timestep is not None and (shifted_timestep < 0 or shifted_timestep > 1000):
@@ -1971,6 +2040,7 @@ def sd_generate(genparams):
     inputs.clip_skip = clip_skip
     inputs.vid_req_frames = vid_req_frames
     inputs.vid_req_avi = vid_req_avi
+    inputs.remove_limits = allow_remove_limits
     ret = handle.sd_generate(inputs)
     outstr = ""
     animated = False
@@ -2352,9 +2422,71 @@ def is_ipv6_supported():
     except Exception:
         return False
 
+def format_jinja(messages, tools):
+    try:
+        def strftime_now(format='%Y-%m-%d %H:%M:%S'):
+            return datetime.now().strftime(format)
+        def tojson(x, ensure_ascii=False, indent=None, separators=None, sort_keys=False):
+            return json.dumps(x, ensure_ascii=ensure_ascii, indent=indent, separators=separators, sort_keys=sort_keys)
+        global cached_chat_template
+        from jinja2.sandbox import ImmutableSandboxedEnvironment
+        jinja_env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
+        jinja_env.globals['strftime_now'] = strftime_now
+        jinja_env.filters["tojson"] = tojson
+        jinja_compiled_template = jinja_env.from_string(cached_chat_template)
+        text = None
+        if tools and len(tools)>0:
+            text = jinja_compiled_template.render(messages=messages, tools=tools, add_generation_prompt=True, bos_token="", eos_token="")
+        else:
+            text = jinja_compiled_template.render(messages=messages, add_generation_prompt=True, bos_token="", eos_token="")
+        return text if text else None
+    except Exception as e:
+        print(f"Jinja formatting failed: {e}")
+        return None
+
+def remove_outer_tags(inputstr):
+    try:
+        stripped = inputstr.strip()
+        match = re.match(r'^<([^\s<>]+)>(.*?)</\1>\s*$', stripped, re.DOTALL) # Try angle brackets first
+        if match:
+            return match.group(2).strip()
+        match = re.match(r'^\[([^\s<>]+)\](.*?)\[/\1]\s*$', stripped, re.DOTALL) # Then try square brackets
+        if match:
+            return match.group(2).strip()
+        return stripped # If no match, return original string
+    except Exception:
+        return stripped
+
+def normalize_tool_call(obj): # Normalize various tool call formats to OpenAI format
+    if "type" in obj and "function" in obj: # Already in OpenAI format
+        return obj
+    if "name" in obj and ("arguments" in obj or "parameters" in obj):
+        args = obj.get("arguments", obj.get("parameters", {}))
+        return {
+            "type": "function",
+            "function": {
+                "name": obj["name"],
+                "arguments": args
+            }
+        }
+    if "function" in obj and isinstance(obj["function"], dict):
+        func = obj["function"]
+        if "name" in func:
+            return {
+                "type": "function",
+                "function": {
+                    "name": func["name"],
+                    "arguments": func.get("arguments", func.get("parameters", {}))
+                }
+            }
+
+    return obj
+
 # Used to parse json for openai tool calls
 def extract_json_from_string(input_string):
     parsed_json = None
+    input_string = remove_outer_tags(input_string) #if we detected wrapper tags, remove them
+
     try: # First check if model exported perfect json
         parsed_json = json.loads(input_string)
         if not isinstance(parsed_json, list):
@@ -2447,39 +2579,103 @@ def extract_all_names_from_tool_array(tools_array):
             pass
     return toolnames
 
+def strip_oaicontent_of_media(oaicontent):
+    if isinstance(oaicontent, list):
+        outarr = []
+        for x in oaicontent:
+            if not isinstance(x, dict):
+                outarr.append({"type": "unknown", "data": "(base64 data attached)"})
+                continue
+            xtype = x.get("type","data")
+            if xtype=="text":
+                outarr.append(x)
+            else:
+                outarr.append({"type":xtype, "data":"(base64 data attached)"})
+        return outarr
+    return oaicontent
+
 #returns the found JSON of the correct tool to use, or None if no tool is suitable
 def determine_tool_json_to_use(genparams, curr_ctx, assistant_message_start, is_followup_tool):
     # tools handling: Check if user is passing a openai tools array, if so add to end of prompt before assistant prompt unless tool_choice has been set to None
     tools_array = genparams.get('tools', [])
     chosen_tool = genparams.get('tool_choice', "auto")
+    messages = genparams.get('messages',[])
+    toolmem = genparams.get("memory","")
+
     # first handle auto mode, determine whether a tool is needed
     used_tool_json = None
     if not curr_ctx:
         return None
+
+    # get user's last message and last tool call results
+    last_user_message = ""
+    tool_call_results = ""
+
+    if messages:
+        reversed_messages = list(reversed(messages))
+        for message in reversed_messages:
+            if message["role"] == "user":
+                last_user_message = message["content"]
+                last_user_message = strip_oaicontent_of_media(last_user_message)
+                last_user_message = f"\n\nUser's current request: {last_user_message}"
+                break
+        tool_call_chunk = []
+        for message in reversed_messages:
+            if message["role"] == "tool":
+                tool_call_chunk.append(message["content"])
+            else:
+                break
+        tmp_tool_replies = list(reversed(tool_call_chunk))
+        if tmp_tool_replies and len(tmp_tool_replies)>0:
+            tool_call_results = f"\n\nTool call responses: {tmp_tool_replies}"
+
     if tools_array and len(tools_array) > 0 and chosen_tool is not None and chosen_tool!="none":
-        tools_string = json.dumps(tools_array, indent=0)
         should_use_tools = True
-        if chosen_tool=="auto":
-            # if you want a different template, you can set 'custom_tools_prompt' in the chat completions adapter as follows
-            custom_tools_prompt = "Can the user query be answered by a listed tool above? (One word response: yes or no):"
-            if is_followup_tool:
-                custom_tools_prompt = "Can the user query be further answered by another listed tool above? (If response is already complete, reply NO) (One word response: yes or no):"
+        if chosen_tool=="auto" or chosen_tool=="required":
             # note: message string already contains the instruct start tag!
-            pollgrammar = r'root ::= "yes" | "no" | "Yes" | "No" | "YES" | "NO"'
+            temptoolnames = extract_all_names_from_tool_array(tools_array)
+            tempjson = {}
+            if chosen_tool=="required":
+                custom_tools_prompt_json_format = "Respond with a JSON object using this structure:\r\n{\r\n    \"tool_name\": \"exact_tool_name_here\"\r\n}\r\n\r\nRules:\r\n- You must pick one of the tools to use, pick the most suitable tool."
+                tempjson = {"type":"object","properties":{"tool_name":{"type":"string","enum":temptoolnames}},"required":["tool_name"],"additionalProperties":False}
+            else:
+                temptoolnames.append("null")
+                custom_tools_prompt_json_format = "Respond with a JSON object using this structure:\r\n{\r\n    \"reasoning\": \"Your reasoning here\",\r\n    \"final_decision\": \"yes\" or \"no\",\r\n    \"tool_name\": \"exact_tool_name_here\" or \"null\"\r\n}\r\n\r\nRules:\r\n- Output only the JSON object. Do NOT add anything before or after the json object.\r\n- final_decision must be exactly \"yes\" or \"no\"\r\n- tool_name must be either an exact tool name, or if no tool is required, an empty string: \"\"\r\n- Keep reasoning short, maximum one or two sentences.\r\n- No unnecessary comments"
+                tempjson = {"type":"object","properties":{"reasoning":{"type":"string"},"final_decision":{"type":"string","enum":["yes","no","Yes","No","YES","NO"," yes"," no"," Yes"," No"," YES"," NO"]},"tool_name":{"type":"string","enum":temptoolnames}},"required":["reasoning","final_decision","tool_name"],"additionalProperties":False}
+            toolquerygrammar = convert_json_to_gbnf(tempjson)
+
+            if not is_followup_tool:
+                custom_tools_prompt = "Is calling one of the tools listed above absolutely essential to answer user's current request, or is a tool call optional?"
+                custom_tools_prompt_processed = f"{curr_ctx}{last_user_message}\n\n{custom_tools_prompt} {custom_tools_prompt_json_format}{assistant_message_start}"
+            else:
+                custom_tools_prompt = "Given the tool call response to the user's current request, is another tool call needed to further answer user's message?"
+                custom_tools_prompt_processed = f"{curr_ctx}{last_user_message}{tool_call_results}\n\n{custom_tools_prompt} {custom_tools_prompt_json_format}{assistant_message_start}"
+
+            # first, prompt to see if a tool call is needed using the prompt above.
+            # the result is a short explanation by the LLM on why a tool call is or is not needed, along with it's final decision at the end.
             temp_poll = {
-                "prompt": f"{curr_ctx}\n\nTool List:\n{tools_string}\n\n{custom_tools_prompt}{assistant_message_start}",
-                "max_length":5,
+                "prompt": custom_tools_prompt_processed,
+                "memory": toolmem,
+                "max_length":300,
                 "temperature":0.1,
                 "top_k":1,
                 "rep_pen":1,
                 "ban_eos_token":False,
-                "grammar":pollgrammar
-                }
+                "grammar":toolquerygrammar
+            }
             temp_poll_result = generate(genparams=temp_poll)
-            if temp_poll_result and "yes" not in temp_poll_result['text'].lower():
-                should_use_tools = False
+            temp_poll_text = temp_poll_result['text'].strip().rstrip('.')
+            temp_poll_data_arr = extract_json_from_string(temp_poll_text)
+            temp_poll_data = temp_poll_data_arr[0] if (temp_poll_data_arr and len(temp_poll_data_arr)>0) else None
+
+            if temp_poll_data:
+                if chosen_tool!="required" and ("yes" not in temp_poll_data.get("final_decision","").lower() or "null" in temp_poll_data.get("tool_name","").lower()):
+                    should_use_tools = False
+                elif (chosen_tool=="auto" or chosen_tool=="required") and "null" not in temp_poll_data.get("tool_name","").lower():
+                    chosen_tool = temp_poll_data.get("tool_name","").lower().strip()
+
             if not args.quiet:
-                print(f"\nRelevant tool is listed: {temp_poll_result['text']} ({should_use_tools})")
+                print(f"\n[TOOLCALL REASONING]: {temp_poll_text}")
 
         if should_use_tools:
             #first, try and extract a specific tool if selected
@@ -2492,35 +2688,49 @@ def determine_tool_json_to_use(genparams, curr_ctx, assistant_message_start, is_
                 toolnames = extract_all_names_from_tool_array(tools_array)
                 if len(toolnames) == 1:
                     used_tool_json = extract_tool_info_from_tool_array(toolnames[0], tools_array)
-                else:
-                    pollgrammar = ""
-                    for name in toolnames:
-                        pollgrammar += ("" if pollgrammar=="" else " | ")
-                        pollgrammar += "\"" + name + "\""
-                    pollgrammar = r'root ::= ' + pollgrammar
-                    decide_tool_prompt = "Which of the listed tools should be used next? Pick exactly one. (Reply directly with the selected tool's name):"
-                    temp_poll = {
-                        "prompt": f"{curr_ctx}\n\nTool List:\n{tools_string}\n\n{decide_tool_prompt}{assistant_message_start}",
-                        "max_length":16,
-                        "temperature":0.1,
-                        "top_k":1,
-                        "rep_pen":1,
-                        "ban_eos_token":False,
-                        "grammar":pollgrammar
-                        }
-                    temp_poll_result = generate(genparams=temp_poll)
-                    if temp_poll_result:
-                        raw = temp_poll_result['text'].lower()
-                        for name in toolnames:
-                            if name.lower() in raw:
-                                used_tool_json = extract_tool_info_from_tool_array(name, tools_array)
-                                if not args.quiet:
-                                    print(f"\nAttempting to use tool: {name}")
-                                break
 
     return used_tool_json
 
-def transform_genparams(genparams, api_format):
+def compress_tools_array(tools_array):
+    tools_array_filtered = []
+    for tool_dict in tools_array:
+        tool_data = tool_dict['function']
+        tool_props = {}
+        params = tool_data.get("parameters", {})
+        props = params.get("properties", {})
+        for prop_name, prop_data in props.items():
+            tool_props[prop_name] = prop_data['type']
+        tools_array_filtered.append({
+            "name": tool_data['name'],
+            "description": tool_data['description'],
+            "properties": tool_props
+        })
+
+    return tools_array_filtered
+
+def sweep_media_from_messages(messages_array):
+    images = []
+    audio = []
+    for message in messages_array:
+        curr_content = message.get("content", None)
+        if isinstance(curr_content, list):
+            for item in curr_content:
+                if item.get("type") == "image_url":
+                    url = item.get("image_url", {}).get("url", "")
+                    if url.startswith("data:image"):
+                        images.append(url.split(",", 1)[1])
+                elif item.get("type") == "input_audio":
+                    data = item.get("input_audio", {}).get("data")
+                    if data:
+                        audio.append(data)
+        imgs_ollama = message.get("images", None)
+        if imgs_ollama:
+            for img in imgs_ollama:
+                images.append(img)
+    return images, audio
+
+
+def transform_genparams(genparams, api_format, use_jinja):
     global chatcompl_adapter, maxctx
 
     if api_format < 0: #not text gen, do nothing
@@ -2600,6 +2810,8 @@ ws ::= | " " | "\n" [ \t]{0,20}
         adapter_obj = genparams.get('adapter', default_adapter)
         default_max_tok = (adapter_obj.get("max_length", args.defaultgenamt) if (api_format==4 or api_format==7) else args.defaultgenamt)
         genparams["max_length"] = tryparseint(genparams.get('max_tokens', genparams.get('max_completion_tokens', default_max_tok)),default_max_tok)
+        if genparams["max_length"] <= 0:
+            genparams["max_length"] = default_max_tok
         presence_penalty = genparams.get('presence_penalty', genparams.get('frequency_penalty', 0.0))
         genparams["presence_penalty"] = tryparsefloat(presence_penalty,0.0)
         # openai allows either a string or a list as a stop sequence
@@ -2623,10 +2835,12 @@ ws ::= | " " | "\n" [ \t]{0,20}
             assistant_message_start = adapter_obj.get("assistant_start", "\n### Response:\n")
             assistant_message_end = adapter_obj.get("assistant_end", "")
             assistant_message_gen = adapter_obj.get("assistant_gen", assistant_message_start)
-            tools_message_start = adapter_obj.get("tools_start", "\nTool Results:\n")
+            tools_message_start = adapter_obj.get("tools_start", "")
             tools_message_end = adapter_obj.get("tools_end", "")
             images_added = []
             audio_added = []
+            continue_assistant_turn = genparams.get('continue_assistant_turn', False)
+            latest_turn_was_assistant = False
 
             # handle structured outputs
             respformat = genparams.get('response_format', None)
@@ -2657,85 +2871,115 @@ ws ::= | " " | "\n" [ \t]{0,20}
             message_index = 0
             attachedimgid = 0
             attachedaudid = 0
-            for message in messages_array:
-                message_index += 1
-                if message['role'] == "system":
-                    messages_string += system_message_start
-                elif message['role'] == "user":
-                    messages_string += user_message_start
-                elif message['role'] == "assistant":
-                    messages_string += assistant_message_start
-                elif message['role'] == "tool":
-                    messages_string += tools_message_start
+            jinja_output = None
+            jinjatools = genparams.get('tools', [])
+            if use_jinja and cached_chat_template:
+                jinja_output = format_jinja(messages_array,jinjatools)
+            if jinja_output:
+                messages_string = jinja_output
+                if jinjatools and len(jinjatools)>0:
+                    genparams["using_openai_tools"] = True
+                # handle media
+                images_added, audio_added = sweep_media_from_messages(messages_array)
+            else:
+                if jinjatools:
+                    # inject the tools list at the top of the context window, even if context has shifted
+                    # uses koboldcpp's special memory parameter
+                    tools_string = f"{system_message_start}### Available Tools:\n{json.dumps(compress_tools_array(jinjatools), indent=0)}{system_message_end}\n"
+                    exist_mem = genparams.get('memory', "")
+                    genparams["memory"] = tools_string + exist_mem
 
-                # content can be a string or an array of objects
-                curr_content = message.get("content",None)
-                if api_format==7: #ollama handle vision
-                    imgs = message.get("images",None)
-                    if imgs and len(imgs) > 0:
-                        for img in imgs:
-                            images_added.append(img)
-                if not curr_content:
-                    if "tool_calls" in message:
-                        try:
-                            if len(message.get("tool_calls"))>0:
-                                tcfnname = message.get("tool_calls")[0].get("function").get("name")
-                                messages_string += f"\n(Made a function call to {tcfnname})\n"
-                        except Exception:
-                            messages_string += "\n(Made a function call)\n"
-                    pass  # do nothing
-                elif isinstance(curr_content, str):
-                    messages_string += curr_content
-                elif isinstance(curr_content, list): #is an array
-                    for item in curr_content:
-                        if item['type']=="text":
-                                messages_string += item['text']
-                        elif item['type']=="image_url":
-                            if 'image_url' in item and item['image_url'] and item['image_url']['url'] and item['image_url']['url'].startswith("data:image"):
-                                images_added.append(item['image_url']['url'].split(",", 1)[1])
-                                attachedimgid += 1
-                                messages_string += f"\n(Attached Image {attachedimgid})\n"
-                        elif item['type']=="input_audio":
-                            if 'input_audio' in item and item['input_audio'] and item['input_audio']['data']:
-                                audio_added.append(item['input_audio']['data'])
-                                attachedaudid += 1
-                                messages_string += f"\n(Attached Audio {attachedaudid})\n"
-                # If last message, add any tools calls after message content and before message end token if any
-                if message_index == len(messages_array):
-                    used_tool_json = determine_tool_json_to_use(genparams, messages_string, assistant_message_start, (message['role'] == "tool"))
+                for message in messages_array:
+                    message_index += 1
+                    latest_turn_was_assistant = False
+                    if message['role'] == "system":
+                        messages_string += system_message_start
+                    elif message['role'] == "user":
+                        messages_string += user_message_start
+                    elif message['role'] == "assistant":
+                        messages_string += assistant_message_start
+                        latest_turn_was_assistant = True
+                    elif message['role'] == "tool":
+                        messages_string += tools_message_start
+                        tcid = message.get("tool_call_id","")
+                        tcid = ("" if not tcid else f" {tcid}")
+                        messages_string += f"\nReceived results of function call{tcid}:\n"
 
-                    if used_tool_json:
-                        toolparamjson = None
-                        toolname = None
-                        # Set temperature lower automatically if function calling, cannot exceed 0.5
-                        genparams["temperature"] = (1.0 if genparams.get("temperature", 0.5) > 1.0 else genparams.get("temperature", 0.5))
-                        genparams["using_openai_tools"] = True
-                        # Set grammar to llamacpp example grammar to force json response (see https://github.com/ggerganov/llama.cpp/blob/master/grammars/json_arr.gbnf)
-                        genparams["grammar"] = jsongrammar
-                        try:
-                            toolname = used_tool_json.get('function').get('name')
-                            toolparamjson = used_tool_json.get('function').get('parameters')
-                            bettergrammarjson = {"type":"array","items":{"type":"object","properties":{"id":{"type":"string","enum":["call_001"]},"type":{"type":"string","enum":["function"]},"function":{"type":"object","properties":{"name":{"type":"string"},"arguments":{}},"required":["name","arguments"],"additionalProperties":False}},"required":["id","type","function"],"additionalProperties":False}}
-                            bettergrammarjson["items"]["properties"]["function"]["properties"]["arguments"] = toolparamjson
-                            decoded = convert_json_to_gbnf(bettergrammarjson)
-                            if decoded:
-                                genparams["grammar"] = decoded
-                        except Exception:
-                            pass
-                        tool_json_formatting_instruction = f"\nPlease use the provided schema to fill the parameters to create a function call for {toolname}, in the following format: " + json.dumps([{"id": "call_001", "type": "function", "function": {"name": f"{toolname}", "arguments": {"first property key": "first property value", "second property key": "second property value"}}}], indent=0)
-                        messages_string += f"\n\nJSON Schema:\n{used_tool_json}\n\n{tool_json_formatting_instruction}{assistant_message_start}"
+                    # content can be a string or an array of objects
+                    curr_content = message.get("content",None)
+                    if api_format==7: #ollama handle vision
+                        imgs = message.get("images",None)
+                        if imgs and len(imgs) > 0:
+                            for img in imgs:
+                                images_added.append(img)
+                    if not curr_content:
+                        if "tool_calls" in message:
+                            try:
+                                nlstart = True
+                                for tc in message.get("tool_calls"):
+                                    if nlstart:
+                                        nlstart = False
+                                        messages_string += "\n"
+                                    tcid = tc.get("id","")
+                                    tcfnname = tc.get("function").get("name")
+                                    tcfnargs = tc.get("function").get("arguments","")
+                                    tcfnargs = (f" with arguments={tcfnargs}" if tcfnargs else "")
+                                    messages_string += f"(Made a function call {tcid} to {tcfnname}{tcfnargs})\n"
+                            except Exception:
+                                messages_string += "\n(Made a function call)\n"
+                        pass  # do nothing
+                    elif isinstance(curr_content, str):
+                        messages_string += curr_content
+                    elif isinstance(curr_content, list): #is an array
+                        for item in curr_content:
+                            if item['type']=="text":
+                                    messages_string += item['text']
+                            elif item['type']=="image_url":
+                                if 'image_url' in item and item['image_url'] and item['image_url']['url'] and item['image_url']['url'].startswith("data:image"):
+                                    images_added.append(item['image_url']['url'].split(",", 1)[1])
+                                    attachedimgid += 1
+                                    messages_string += f"\n(Attached Image {attachedimgid})\n"
+                            elif item['type']=="input_audio":
+                                if 'input_audio' in item and item['input_audio'] and item['input_audio']['data']:
+                                    audio_added.append(item['input_audio']['data'])
+                                    attachedaudid += 1
+                                    messages_string += f"\n(Attached Audio {attachedaudid})\n"
+                    # If last message, add any tools calls after message content and before message end token if any
+                    if message_index == len(messages_array):
+                        used_tool_json = determine_tool_json_to_use(genparams, messages_string, assistant_message_start, (message['role'] == "tool"))
 
+                        if used_tool_json:
+                            toolparamjson = None
+                            toolname = None
+                            # Set temperature lower automatically if function calling, cannot exceed 0.5
+                            genparams["temperature"] = (1.0 if genparams.get("temperature", 0.5) > 1.0 else genparams.get("temperature", 0.5))
+                            genparams["using_openai_tools"] = True
+                            # Set grammar to llamacpp example grammar to force json response (see https://github.com/ggerganov/llama.cpp/blob/master/grammars/json_arr.gbnf)
+                            genparams["grammar"] = jsongrammar
+                            try:
+                                toolname = used_tool_json.get('function').get('name')
+                                toolparamjson = used_tool_json.get('function').get('parameters')
+                                bettergrammarjson = {"type":"array","items":{"type":"object","properties":{"id":{"type":"string","enum":["call_001"]},"type":{"type":"string","enum":["function"]},"function":{"type":"object","properties":{"name":{"type":"string"},"arguments":{}},"required":["name","arguments"],"additionalProperties":False}},"required":["id","type","function"],"additionalProperties":False}}
+                                bettergrammarjson["items"]["properties"]["function"]["properties"]["arguments"] = toolparamjson
+                                decoded = convert_json_to_gbnf(bettergrammarjson)
+                                if decoded:
+                                    genparams["grammar"] = decoded
+                            except Exception:
+                                pass
+                            tool_json_formatting_instruction = f"\nPlease use the provided schema to fill the parameters to create a function call for {toolname}, in the following format: " + json.dumps([{"id": "call_001", "type": "function", "function": {"name": f"{toolname}", "arguments": {"first property key": "first property value", "second property key": "second property value"}}}], indent=0)
+                            messages_string += f"\n\nJSON Schema:\n{used_tool_json}\n\n{tool_json_formatting_instruction}{assistant_message_start}"
 
-                if message['role'] == "system":
-                    messages_string += system_message_end
-                elif message['role'] == "user":
-                    messages_string += user_message_end
-                elif message['role'] == "assistant":
-                    messages_string += assistant_message_end
-                elif message['role'] == "tool":
-                    messages_string += tools_message_end
-
-            messages_string += assistant_message_gen
+                    if message['role'] == "system":
+                        messages_string += system_message_end
+                    elif message['role'] == "user":
+                        messages_string += user_message_end
+                    elif message['role'] == "assistant":
+                        messages_string += assistant_message_end
+                    elif message['role'] == "tool":
+                        messages_string += tools_message_end
+                messages_string += assistant_message_gen
+                if (latest_turn_was_assistant and continue_assistant_turn): #allow continue a prefill, chop off end
+                    messages_string = messages_string[:-(len(assistant_message_gen)+len(assistant_message_end))]
             genparams["prompt"] = messages_string
             if len(images_added)>0:
                 genparams["images"] = images_added
@@ -3001,6 +3245,7 @@ class KcppServerRequestHandler(http.server.SimpleHTTPRequestHandler):
             if using_openai_tools:
                 tool_calls = extract_json_from_string(recvtxt)
                 if tool_calls and len(tool_calls)>0:
+                    tool_calls = [normalize_tool_call(obj) for obj in tool_calls]
                     for tc in tool_calls:
                         tcarg = tc.get("function",{}).get("arguments",None)
                         tc["id"] = f"call_{random.randint(10000, 99999)}"
@@ -3036,8 +3281,8 @@ class KcppServerRequestHandler(http.server.SimpleHTTPRequestHandler):
             print(f"Generate: Error while generating: {e}")
 
     async def send_oai_sse_event(self, data):
-        if data=="[DONE]":
-            self.wfile.write(f'data: {data}'.encode())
+        if data and data.strip()=="[DONE]":
+            self.wfile.write(f'data: {data.strip()}\n\n'.encode())
         else:
             self.wfile.write(f'data: {data}\n\n'.encode())
         self.wfile.flush()
@@ -3148,6 +3393,7 @@ class KcppServerRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if streamDone:
                     if api_format == 4 or api_format == 3:  # if oai chat, send last [DONE] message consistent with openai format
                         await self.send_oai_sse_event('[DONE]')
+                        await asyncio.sleep(async_sleep_short)
                     break
         except Exception as ex:
             print("Token streaming was interrupted or aborted!")
@@ -3383,54 +3629,75 @@ Change Mode<br>
         self.wfile.write(finalhtml)
 
     def do_GET(self):
-        global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui
-        global last_req_time, start_time
+        global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz
+        global last_req_time, start_time, cached_chat_template, has_vision_support, has_audio_support, has_whisper, friendlymodelname
         global savedata_obj, has_multiplayer, multiplayer_turn_major, multiplayer_turn_minor, multiplayer_story_data_compressed, multiplayer_dataformat, multiplayer_lastactive, maxctx, maxhordelen, friendlymodelname, lastuploadedcomfyimg, lastgeneratedcomfyimg, KcppVersion, totalgens, preloaded_story, exitcounter, currentusergenkey, friendlysdmodelname, fullsdmodelpath, password, friendlyembeddingsmodelname
-        self.path = self.path.rstrip('/')
+
+        clean_path = self.path.split("?")[0] #for cases where we do not want query params
+        if clean_path=="/lcpp": #fix for svelte redirect issues, browser path needs to end with slash
+            clean_path = "/lcpp/"
+            self.send_response(302)
+            self.send_header("location", clean_path)
+            self.end_headers(content_type='text/html')
+            return None
+
+        clean_path = clean_path.rstrip('/')
         response_body = None
         content_type = 'application/json'
+        content_encoding = None
 
-        if self.path in ["", "/?"] or self.path.startswith(('/?','?')): #it's possible for the root url to have ?params without /
+        # Check if browser supports gzip
+        accept_encoding = self.headers.get('Accept-Encoding', '')
+        supports_gzip = 'gzip' in accept_encoding.lower()
+
+        if clean_path!="/lcpp" and clean_path.startswith("/lcpp/"):
+            clean_path = clean_path[5:] #adapt lcpp paths to the root
+
+        if clean_path in [""]: # the root url is lite
             content_type = 'text/html'
-            if embedded_kailite is None:
-                response_body = (f"Embedded KoboldAI Lite is not found.<br>You will have to connect via the main KoboldAI client, or <a href='https://lite.koboldai.net?local=1&port={self.port}'>use this URL</a> to connect.").encode()
-            else:
+            if supports_gzip and embedded_kailite_gz is not None:
+                response_body = embedded_kailite_gz
+                content_encoding = 'gzip'
+            elif embedded_kailite is not None:
                 response_body = embedded_kailite
+            else:
+                response_body = (f"Embedded KoboldAI Lite is not found.<br>You will have to connect via the main KoboldAI client, or <a href='https://lite.koboldai.net?local=1&port={self.port}'>use this URL</a> to connect.").encode()
 
-        elif self.path in ["/noscript", "/noscript?"] or self.path.startswith(('/noscript?','noscript?')): #it's possible for the root url to have ?params without /
+
+        elif clean_path in ["/noscript","noscript"]: #noscript webui
             self.noscript_webui()
             return
 
-        elif self.path.endswith(('/manifest.json')):
+        elif clean_path.endswith(('/manifest.json')):
             response_body = (json.dumps({"name":"KoboldAI Lite","short_name":"KoboldAI Lite","description":"Progressive Web App for KoboldAI Lite","start_url":"./","scope":".","display":"standalone","background_color":"#303030","theme_color":"#337ab7","orientation":"portrait-primary","icons":[{"src":"data:image/png;base64,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","type":"image/png","sizes":"150x150"}]}).encode())
 
-        elif self.path.endswith(('/api/v1/model', '/api/latest/model')):
+        elif clean_path.endswith(('/api/v1/model', '/api/latest/model')):
             auth_ok = self.check_header_password(password)
             response_body = (json.dumps({'result': (friendlymodelname if auth_ok else "koboldcpp/protected-model") }).encode())
 
-        elif self.path.endswith(('/api/v1/config/max_length', '/api/latest/config/max_length')):
+        elif clean_path.endswith(('/api/v1/config/max_length', '/api/latest/config/max_length')):
             response_body = (json.dumps({"value": maxhordelen}).encode())
 
-        elif self.path.endswith(('/api/v1/config/max_context_length', '/api/latest/config/max_context_length')):
+        elif clean_path.endswith(('/api/v1/config/max_context_length', '/api/latest/config/max_context_length')):
             response_body = (json.dumps({"value": min(maxctx,(maxctx if maxhordectx==0 else maxhordectx))}).encode())
 
-        elif self.path.endswith(('/api/v1/config/soft_prompt', '/api/latest/config/soft_prompt')):
+        elif clean_path.endswith(('/api/v1/config/soft_prompt', '/api/latest/config/soft_prompt')):
             response_body = (json.dumps({"value":""}).encode())
 
-        elif self.path.endswith(('/api/v1/config/soft_prompts_list', '/api/latest/config/soft_prompts_list')):
+        elif clean_path.endswith(('/api/v1/config/soft_prompts_list', '/api/latest/config/soft_prompts_list')):
             response_body = (json.dumps({"values": []}).encode())
 
-        elif self.path.endswith(('/api/v1/info/version', '/api/latest/info/version')):
+        elif clean_path.endswith(('/api/v1/info/version', '/api/latest/info/version')):
             response_body = (json.dumps({"result":"1.2.5"}).encode())
 
-        elif self.path.endswith(('/api/extra/true_max_context_length')): #do not advertise this to horde
+        elif clean_path.endswith(('/api/extra/true_max_context_length')): #do not advertise this to horde
             response_body = (json.dumps({"value": maxctx}).encode())
 
-        elif self.path.endswith(('/api/extra/version')):
+        elif clean_path.endswith(('/api/extra/version')):
             caps = get_capabilities()
             response_body = (json.dumps(caps).encode())
 
-        elif self.path.endswith(('/api/admin/list_options')): #used by admin to get info about a kcpp instance
+        elif clean_path.endswith(('/api/admin/list_options')): #used by admin to get info about a kcpp instance
             opts = []
             if args.admin and args.admindir and os.path.exists(args.admindir) and self.check_header_password(args.adminpassword):
                 dirpath = os.path.abspath(args.admindir)
@@ -3438,7 +3705,7 @@ Change Mode<br>
                 opts.append("unload_model")
             response_body = (json.dumps(opts).encode())
 
-        elif self.path.endswith(('/api/extra/perf')):
+        elif clean_path.endswith(('/api/extra/perf')):
             lastp = handle.get_last_process_time()
             laste = handle.get_last_eval_time()
             lastc = handle.get_last_token_count()
@@ -3485,7 +3752,7 @@ Change Mode<br>
                 }
             ).encode()
 
-        elif self.path.endswith('/api/extra/generate/check'):
+        elif clean_path.endswith('/api/extra/generate/check'):
             if not self.secure_endpoint():
                 return
             pendtxtStr = ""
@@ -3494,7 +3761,7 @@ Change Mode<br>
                 pendtxtStr = ctypes.string_at(pendtxt).decode("UTF-8","ignore")
             response_body = (json.dumps({"results": [{"text": pendtxtStr}]}).encode())
 
-        elif self.path.endswith('/api/extra/last_logprobs'):
+        elif clean_path.endswith('/api/extra/last_logprobs'):
             if not self.secure_endpoint():
                 return
             logprobsdict = None
@@ -3503,32 +3770,37 @@ Change Mode<br>
                 logprobsdict = parse_last_logprobs(lastlogprobs)
             response_body = (json.dumps({"logprobs":logprobsdict}).encode())
 
-        elif self.path.endswith('/v1/models') or self.path=='/models':
+        elif clean_path.endswith('/v1/models') or clean_path=='/models':
             response_body = (json.dumps({"object":"list","data":[{"id":friendlymodelname,"object":"model","created":int(time.time()),"owned_by":"koboldcpp","permission":[],"root":"koboldcpp"}]}).encode())
 
-        elif self.path.endswith('/sdapi/v1/sd-models'):
+        elif clean_path.endswith('/sdapi/v1/sd-models'):
             if friendlysdmodelname=="inactive" or fullsdmodelpath=="":
                 response_body = (json.dumps([]).encode())
             else:
                 response_body = (json.dumps([{"title":friendlysdmodelname,"model_name":friendlysdmodelname,"hash":"8888888888","sha256":"8888888888888888888888888888888888888888888888888888888888888888","filename":fullsdmodelpath,"config": None}]).encode())
-        elif self.path.endswith('/sdapi/v1/options'):
+        elif clean_path.endswith('/sdapi/v1/options'):
             response_body = (json.dumps({"samples_format":"png","sd_model_checkpoint":friendlysdmodelname}).encode())
-        elif self.path.endswith('/sdapi/v1/samplers'):
+        elif clean_path.endswith('/sdapi/v1/samplers'):
             if friendlysdmodelname=="inactive" or fullsdmodelpath=="":
                 response_body = (json.dumps([]).encode())
             else:
                 response_body = (json.dumps([{"name":"Euler","aliases":["k_euler"],"options":{}},{"name":"Euler a","aliases":["k_euler_a","k_euler_ancestral"],"options":{}},{"name":"Heun","aliases":["k_heun"],"options":{}},{"name":"DPM2","aliases":["k_dpm_2"],"options":{}},{"name":"DPM++ 2M","aliases":["k_dpmpp_2m"],"options":{}},{"name":"DDIM","aliases":["ddim"],"options":{}},{"name":"LCM","aliases":["k_lcm"],"options":{}},{"name":"Default","aliases":["default"],"options":{}}]).encode())
-        elif self.path.endswith('/sdapi/v1/latent-upscale-modes'):
+        elif clean_path.endswith('/sdapi/v1/schedulers'):
+            if friendlysdmodelname=="inactive" or fullsdmodelpath=="":
+                response_body = (json.dumps([]).encode())
+            else:
+                response_body = (json.dumps([{"name":name,"label":name} for name in ["default","discrete","karras","exponential","ays","gits","sgm_uniform","simple","smoothstep","lcm"]]).encode())
+        elif clean_path.endswith('/sdapi/v1/latent-upscale-modes'):
            response_body = (json.dumps([]).encode())
-        elif self.path.endswith('/sdapi/v1/upscalers'):
+        elif clean_path.endswith('/sdapi/v1/upscalers'):
            response_body = (json.dumps([]).encode())
 
         #vits compatible
-        elif self.path.startswith('/voice/check?'):
+        elif clean_path=='/voice/check':
             response_body = (json.dumps({"id":4,"lang":["en"],"name":"KoboldCppTTS","status":"success"}).encode())
-        elif self.path=='/voice/speakers':
+        elif clean_path=='/voice/speakers':
             response_body = (json.dumps({"VITS":[{"id":4,"lang":["en"],"name":"KoboldCppTTS"}]}).encode())
-        elif self.path.startswith('/voice/vits?'):
+        elif clean_path=='/voice/vits':
             parsed_url = urllib.parse.urlparse(self.path)
             parsed_dict = urllib.parse.parse_qs(parsed_url.query)
             prompt = str(parsed_dict['text'][0]) if 'text' in parsed_dict else ""
@@ -3538,39 +3810,41 @@ Change Mode<br>
                 response_body = make_url_request(f'{epurl}/api/extra/tts', {"input": prompt})
             pass
 
-        elif self.path.endswith('/speakers_list'): #xtts compatible
+        elif clean_path.endswith('/speakers_list'): #xtts compatible
             response_body = (json.dumps(["kobo","cheery","sleepy","shouty","chatty"]).encode()) #some random voices for them to enjoy
-        elif self.path.endswith('/speakers'): #xtts compatible
+        elif clean_path.endswith('/speakers'): #xtts compatible
             response_body = (json.dumps([{"name":"kobo","voice_id":"kobo","preview_url":""},{"name":"cheery","voice_id":"cheery","preview_url":""},{"name":"sleepy","voice_id":"sleepy","preview_url":""},{"name":"shouty","voice_id":"shouty","preview_url":""},{"name":"chatty","voice_id":"chatty","preview_url":""}]).encode()) #some random voices for them to enjoy
-        elif self.path.endswith('/v1/audio/voices') or self.path=='/audio/voices':
+        elif clean_path.endswith('/v1/audio/voices') or clean_path=='/audio/voices':
             response_body = (json.dumps({"status":"ok","voices":["kobo","cheery","sleepy","shouty","chatty"]}).encode()) #some random voices for them to enjoy
-        elif self.path.endswith('/get_tts_settings'): #xtts compatible
+        elif clean_path.endswith('/get_tts_settings'): #xtts compatible
             response_body = (json.dumps({"temperature":0.75,"speed":1,"length_penalty":1,"repetition_penalty":1,"top_p":1,"top_k":4,"enable_text_splitting":True,"stream_chunk_size":100}).encode()) #some random voices for them to enjoy
 
-        elif self.path.endswith('/api/tags') or self.path.endswith('/api/ps'): #ollama compatible
+        elif clean_path.endswith('/api/tags') or clean_path.endswith('/api/ps'): #ollama compatible
             response_body = (json.dumps({"models":[{"name":"koboldcpp","model":f"{friendlymodelname}:latest","modified_at":"2024-07-19T15:26:55.6122841+08:00","expires_at": "2055-06-04T19:06:25.5433636+08:00","size":394998579,"size_vram":394998579,"digest":"b5dc5e784f2a3ee1582373093acf69a2f4e2ac1710b253a001712b86a61f88bb","details":{"parent_model":"","format":"gguf","family":"koboldcpp","families":["koboldcpp"],"parameter_size":"128M","quantization_level":"Q4_0"}},{"name":"koboldcpp","model":friendlymodelname,"modified_at":"2024-07-19T15:26:55.6122841+08:00","expires_at": "2055-06-04T19:06:25.5433636+08:00","size":394998579,"size_vram":394998579,"digest":"b5dc5e784f2a3ee1582373093acf69a2f4e2ac1710b253a001712b86a61f88bb","details":{"parent_model":"","format":"gguf","family":"koboldcpp","families":["koboldcpp"],"parameter_size":"128M","quantization_level":"Q4_0"}}]}).encode())
-        elif self.path.endswith('/api/version'): #ollama compatible, NOT the kcpp version
+        elif clean_path.endswith('/api/version'): #ollama compatible, NOT the kcpp version
             response_body = (json.dumps({"version":"0.7.0"}).encode())
-        elif self.path=='/ping':
+        elif clean_path=='/ping':
             response_body = (json.dumps({"status": "healthy"}).encode())
 
         #comfyui compatible
-        elif self.path=='/system_stats':
+        elif clean_path=='/system_stats':
             response_body = (json.dumps({"system":{"os":"posix","ram_total":12345678900,"ram_free":12345678900,"comfyui_version":"v0.3.4-3-g7126ecf","python_version":"3.10.12","pytorch_version":"2.5.1","embedded_python":False,"argv":[]},"devices":[{"name":"koboldcpp","type":"cuda","index":0,"vram_total":12345678900,"vram_free":12345678900,"torch_vram_total":12345678900,"torch_vram_free":12345678900}]}).encode())
-        elif self.path=='/object_info':
+        elif clean_path=='/object_info':
              response_body = (json.dumps({"KSampler":{"input":{"required":{"model":["MODEL",{"tooltip":""}],"seed":["INT",{"default":0,"min":0,"max":512,"tooltip":""}],"steps":["INT",{"default":20,"min":1,"max":512,"tooltip":""}],"cfg":["FLOAT",{"default":8.0,"min":0.0,"max":100.0,"step":0.1,"round":0.01,"tooltip":"512"}],"sampler_name":[["euler"],{"tooltip":""}],"scheduler":[["normal"],{"tooltip":""}],"positive":["CONDITIONING",{"tooltip":""}],"negative":["CONDITIONING",{"tooltip":""}],"latent_image":["LATENT",{"tooltip":""}],"denoise":["FLOAT",{"default":1.0,"min":0.0,"max":1.0,"step":0.01,"tooltip":""}]}},"input_order":{"required":["model","seed","steps","cfg","sampler_name","scheduler","positive","negative","latent_image","denoise"]},"output":["LATENT"],"output_is_list":[False],"output_name":["LATENT"],"name":"KSampler","display_name":"KSampler","description":"KSampler","python_module":"nodes","category":"sampling","output_node":False,"output_tooltips":[""]},"CheckpointLoaderSimple":{"input":{"required":{"ckpt_name":[[friendlysdmodelname],{"tooltip":""}]}},"input_order":{"required":["ckpt_name"]},"output":["MODEL","CLIP","VAE"],"output_is_list":[False,False,False],"output_name":["MODEL","CLIP","VAE"],"name":"CheckpointLoaderSimple","display_name":"Load","description":"","python_module":"nodes","category":"loaders","output_node":False,"output_tooltips":["","",""]},"CLIPTextEncode":{"input":{"required":{"text":["STRING",{"multiline":True,"dynamicPrompts":True,"tooltip":""}],"clip":["CLIP",{"tooltip":""}]}},"input_order":{"required":["text","clip"]},"output":["CONDITIONING"],"output_is_list":[False],"output_name":["CONDITIONING"],"name":"CLIPTextEncode","display_name":"CLIP","description":"","python_module":"nodes","category":"conditioning","output_node":False,"output_tooltips":[""]},"CLIPSetLastLayer":{"input":{"required":{"clip":["CLIP"],"stop_at_clip_layer":["INT",{"default":-1,"min":-24,"max":-1,"step":1}]}},"input_order":{"required":["clip","stop_at_clip_layer"]},"output":["CLIP"],"output_is_list":[False],"output_name":["CLIP"],"name":"CLIPSetLastLayer","display_name":"CLIPSLL","description":"","python_module":"nodes","category":"conditioning","output_node":False},"VAEDecode":{"input":{"required":{"samples":["LATENT",{"tooltip":""}],"vae":["VAE",{"tooltip":""}]}},"input_order":{"required":["samples","vae"]},"output":["IMAGE"],"output_is_list":[False],"output_name":["IMAGE"],"name":"VAEDecode","display_name":"VAE","description":"","python_module":"nodes","category":"latent","output_node":False,"output_tooltips":[""]},"VAEEncode":{"input":{"required":{"pixels":["IMAGE"],"vae":["VAE"]}},"input_order":{"required":["pixels","vae"]},"output":["LATENT"],"output_is_list":[False],"output_name":["LATENT"],"name":"VAEEncode","display_name":"VAE","description":"","python_module":"nodes","category":"latent","output_node":False},"VAEEncodeForInpaint":{"input":{"required":{"pixels":["IMAGE"],"vae":["VAE"],"mask":["MASK"],"grow_mask_by":["INT",{"default":6,"min":0,"max":64,"step":1}]}},"input_order":{"required":["pixels","vae","mask","grow_mask_by"]},"output":["LATENT"],"output_is_list":[False],"output_name":["LATENT"],"name":"VAEEncodeForInpaint","display_name":"VAE","description":"","python_module":"nodes","category":"latent/inpaint","output_node":False},"VAELoader":{"input":{"required":{"vae_name":[["kcpp_vae"]]}},"input_order":{"required":["vae_name"]},"output":["VAE"],"output_is_list":[False],"output_name":["VAE"],"name":"VAELoader","display_name":"Load VAE","description":"","python_module":"nodes","category":"loaders","output_node":False},"EmptyLatentImage":{"input":{"required":{"width":["INT",{"default":512,"min":16,"max":16384,"step":8,"tooltip":""}],"height":["INT",{"default":512,"min":16,"max":16384,"step":8,"tooltip":""}],"batch_size":["INT",{"default":1,"min":1,"max":1,"tooltip":""}]}},"input_order":{"required":["width","height","batch_size"]},"output":["LATENT"],"output_is_list":[False],"output_name":["LATENT"],"name":"EmptyLatentImage","display_name":"Empty Latent Image","description":"","python_module":"nodes","category":"latent","output_node":False,"output_tooltips":[""]}}).encode())
-        elif self.path.endswith('/api/models/checkpoints') or self.path.endswith('/models/checkpoints'): #emulate comfyui, duplication is redundant but added for clarity
+        elif clean_path.endswith('/api/models/checkpoints') or clean_path.endswith('/models/checkpoints'): #emulate comfyui, duplication is redundant but added for clarity
             if friendlysdmodelname=="inactive" or fullsdmodelpath=="":
                 response_body = (json.dumps([]).encode())
             else:
                 response_body = (json.dumps([friendlysdmodelname]).encode())
-        elif self.path=='/view' or self.path=='/view.png' or self.path=='/api/view' or self.path.startswith('/view_image') or self.path.startswith('/view?') or self.path.startswith('/api/view?'): #emulate comfyui
+        elif clean_path=='/api/models/loras' or clean_path=='/models/loras':
+            response_body = (json.dumps([]).encode())
+        elif clean_path=='/view' or clean_path=='/view.png' or clean_path=='/api/view' or clean_path.startswith('/view_image'): #emulate comfyui
             content_type = 'image/png'
             response_body = lastgeneratedcomfyimg
-        elif self.path=='/history' or self.path=='/api/history' or self.path.startswith('/api/history/') or self.path.startswith('/history/'): #emulate comfyui
+        elif clean_path=='/history' or clean_path=='/api/history' or clean_path.startswith('/api/history/') or clean_path.startswith('/history/'): #emulate comfyui
             imgdone = (False if lastgeneratedcomfyimg==b'' else True)
             response_body = (json.dumps({"12345678-0000-0000-0000-000000000001":{"prompt":[0,"12345678-0000-0000-0000-000000000001",{"3":{"class_type":"KSampler","inputs":{"cfg":5.0,"denoise":1.0,"latent_image":["5",0],"model":["4",0],"negative":["7",0],"positive":["6",0],"sampler_name":"euler","scheduler":"normal","seed":1,"steps":20}},"4":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":friendlysdmodelname}},"5":{"class_type":"EmptyLatentImage","inputs":{"batch_size":1,"height":512,"width":512}},"6":{"class_type":"CLIPTextEncode","inputs":{"clip":["4",1],"text":"prompt"}},"7":{"class_type":"CLIPTextEncode","inputs":{"clip":["4",1],"text":""}},"8":{"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["4",2]}},"9":{"class_type":"SaveImage","inputs":{"filename_prefix":"kliteimg","images":["8",0]}}},{},["9"]],"outputs":{"9":{"images":[{"filename":"kliteimg_00001_.png","subfolder":"","type":"output"}]}},"status":{"status_str":"success","completed":imgdone,"messages":[["execution_start",{"prompt_id":"12345678-0000-0000-0000-000000000001","timestamp":1}],["execution_cached",{"nodes":[],"prompt_id":"12345678-0000-0000-0000-000000000001","timestamp":1}],["execution_success",{"prompt_id":"12345678-0000-0000-0000-000000000001","timestamp":1}]]},"meta":{"9":{"node_id":"9","display_node":"9","parent_node":None,"real_node_id":"9"}}}}).encode())
-        elif self.path.startswith('/ws?clientId') and ('Upgrade' in self.headers and self.headers['Upgrade'].lower() == 'websocket' and
+        elif clean_path=='/ws' and ('Upgrade' in self.headers and self.headers['Upgrade'].lower() == 'websocket' and
             'Sec-WebSocket-Key' in self.headers):
             ws_key = self.headers['Sec-WebSocket-Key']
             ws_accept = base64.b64encode(hashlib.sha1((ws_key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
@@ -3595,58 +3869,85 @@ Change Mode<br>
                 print(f"WebSocket send error: {e}")
             self.connection.close()
             return
-        elif self.path.endswith(('/.well-known/serviceinfo')):
+        elif clean_path.endswith(('/.well-known/serviceinfo')):
             response_body = (json.dumps({"version":"0.2","software":{"name":"KoboldCpp","version":KcppVersion,"repository":"https://github.com/LostRuins/koboldcpp","homepage":"https://github.com/LostRuins/koboldcpp","logo":"https://raw.githubusercontent.com/LostRuins/koboldcpp/refs/heads/concedo/niko.ico"},"api":{"koboldai":{"name":"KoboldAI API","rel_url":"/api","documentation":"https://lite.koboldai.net/koboldcpp_api","version":KcppVersion},"openai":{"name":"OpenAI API","rel_url ":"/v1","documentation":"https://openai.com/documentation/api","version":KcppVersion}}}).encode())
 
-        elif self.path=="/props":
-            ctbytes = handle.get_chat_template()
-            chat_template = ctypes.string_at(ctbytes).decode("UTF-8","ignore")
+        elif clean_path=="/props":
             response_body = (json.dumps({
-                "chat_template": chat_template,
+                "chat_template": cached_chat_template,
+                "id": 0,
+		        "id_task": -1,
                 "total_slots": 1,
+                "modalities": {
+                    "vision": has_vision_support,
+                    "audio": has_audio_support
+                },
+                "model_path": friendlymodelname,
+                "n_ctx": maxctx,
                 "default_generation_settings": {
                     "n_ctx": maxctx,
                 },
             }).encode())
 
-        elif self.path=="/api" or self.path=="/docs" or self.path.startswith(('/api/?json=','/api?json=','/docs/?json=','/docs?json=')):
+        elif clean_path=="/slots":
+            self.send_response(501)
+            self.end_headers(content_type='application/json')
+            self.wfile.write(json.dumps({"error":{"code":501,"message":"This server does not support slots endpoint.","type":"not_supported_error"}}).encode())
+            return
+
+        elif clean_path=="/api" or clean_path=="/docs":
             content_type = 'text/html'
-            if embedded_kcpp_docs is None:
-                response_body = ("KoboldCpp API is running!\n\nAPI usage reference can be found at the wiki: https://github.com/LostRuins/koboldcpp/wiki").encode()
-            else:
+            if supports_gzip and embedded_kcpp_docs_gz is not None:
+                response_body = embedded_kcpp_docs_gz
+                content_encoding = 'gzip'
+            elif embedded_kcpp_docs is not None:
                 response_body = embedded_kcpp_docs
-
-        elif self.path.startswith(("/sdui")):
-            content_type = 'text/html'
-            if embedded_kcpp_sdui is None:
-                response_body = ("KoboldCpp API is running, but KCPP SDUI is not loaded").encode()
             else:
-                response_body = embedded_kcpp_sdui
+                response_body = ("KoboldCpp API is running!\n\nAPI usage reference can be found at the wiki: https://github.com/LostRuins/koboldcpp/wiki").encode()
 
-        elif self.path=="/v1":
+        elif clean_path=="/lcpp":
+            content_type = 'text/html'
+            if supports_gzip and embedded_lcpp_ui_gz is not None:
+                response_body = embedded_lcpp_ui_gz
+                content_encoding = 'gzip'
+            else:
+                response_body = ("Llama.cpp UI is not available. Please use the KoboldAI Lite UI instead.").encode()
+
+        elif clean_path.startswith(("/sdui")):
+            content_type = 'text/html'
+            if supports_gzip and embedded_kcpp_sdui_gz is not None:
+                response_body = embedded_kcpp_sdui_gz
+                content_encoding = 'gzip'
+            elif embedded_kcpp_sdui is not None:
+                response_body = embedded_kcpp_sdui
+            else:
+                response_body = ("KoboldCpp API is running, but KCPP SDUI is not loaded").encode()
+
+        elif clean_path=="/v1":
             content_type = 'text/html'
             response_body = ("KoboldCpp OpenAI compatible endpoint is running!<br>For usage reference, see <a href='https://platform.openai.com/docs/api-reference'>https://platform.openai.com/docs/api-reference</a><br>For other endpoints, see <a href='/api'>KoboldCpp API Documentation</a>").encode()
 
-        elif self.path=="/api/extra/preloadstory":
+        elif clean_path=="/api/extra/preloadstory":
             if preloaded_story is None:
                 response_body = (json.dumps({}).encode())
             else:
                 response_body = preloaded_story
-        elif self.path.endswith(('/api')) or self.path.endswith(('/api/v1')):
-            self.path = "/api"
+        elif clean_path.endswith(('/api')) or clean_path.endswith(('/api/v1')):
             self.send_response(302)
-            self.send_header("location", self.path)
+            self.send_header("location", "/api")
             self.end_headers(content_type='text/html')
             return None
 
         if response_body is None:
             self.send_response(404)
             self.end_headers(content_type='text/html')
-            rp = 'Error: KoboldCpp HTTP Server is running, but this endpoint does not exist. Please check the URL.'
+            rp = f"Error: KoboldCpp HTTP Server is running, but this endpoint does not exist. Please check the URL and METHOD.<br><a href=\"/api\">[Read API documentation here]</a><br><br>Current path: {self.path}"
             self.wfile.write(rp.encode())
         else:
             self.send_response(200)
             self.send_header('content-length', str(len(response_body)))
+            if content_encoding:
+                self.send_header('Content-Encoding', content_encoding)
             self.end_headers(content_type=content_type)
             self.wfile.write(response_body)
         return
@@ -4076,11 +4377,12 @@ Change Mode<br>
             is_tts = False
             is_embeddings = False
             response_body = None
+            use_jinja = args.jinja
 
             if self.path.endswith('/api/admin/check_state'):
                 if global_memory and args.admin and args.admindir and os.path.exists(args.admindir) and self.check_header_password(args.adminpassword):
                     cur_states = []
-                    for sl in range(savestate_limit): #0,1,2
+                    for sl in range(savestate_limit): #0,1,2,3
                         oldstate = handle.calc_old_state_kv(sl)
                         oldtokencnt = handle.calc_old_state_tokencount(sl)
                         cur_states.append({"tokens":oldtokencnt,"size":oldstate})
@@ -4211,11 +4513,20 @@ Change Mode<br>
                 if args.debugmode >= 1:
                     trunc_len = 32000
 
+                if use_jinja and not args.jinja_tools:
+                    tmptools = genparams.get('tools', [])
+                    if tmptools and len(tmptools) > 0:
+                        use_jinja = False # not allowed to use tools with jinja
+
+                # payload modifications for lcpp endpoint. we detect this by the timings_per_token field existing
+                if "timings_per_token" in genparams:
+                    genparams["continue_assistant_turn"] = True
+
                 printablegenparams_raw = truncate_long_json(genparams,trunc_len)
                 utfprint("\nInput: " + json.dumps(printablegenparams_raw,ensure_ascii=False),1)
 
                 # transform genparams (only used for text gen) first
-                genparams = transform_genparams(genparams, api_format)
+                genparams = transform_genparams(genparams, api_format, use_jinja)
 
                 if args.debugmode >= 1:
                     printablegenparams = truncate_long_json(genparams,trunc_len)
@@ -4245,6 +4556,8 @@ Change Mode<br>
                             self.send_header("cache-control", "no-cache")
                             self.send_header("connection", "keep-alive")
                             self.end_headers(content_type='text/event-stream')
+
+                            content_text = None
                             toolsdata_res = []
                             try:
                                 toolsdata_res = gendat['choices'][0]['message']['tool_calls']
@@ -4252,11 +4565,83 @@ Change Mode<br>
                                     toolsdata_res[0]["index"] = 0 # need to add an index for OWUI
                             except Exception:
                                 toolsdata_res = []
-                            toolsdata_p1 = json.dumps({"id":"koboldcpp","object":"chat.completion.chunk","created":int(time.time()),"model":friendlymodelname,"choices":[{"index":0,"finish_reason":None,"delta":{'role':'assistant','content':None, "tool_calls":toolsdata_res}}]})
-                            toolsdata_p2 = json.dumps({"id":"koboldcpp","object":"chat.completion.chunk","created":int(time.time()),"model":friendlymodelname,"choices":[{"index":0,"finish_reason":"tool_calls","delta":{}}]})
-                            self.wfile.write(f'data: {toolsdata_p1}\n\n'.encode())
-                            self.wfile.write(f'data: {toolsdata_p2}\n\n'.encode())
-                            self.wfile.write('data: [DONE]'.encode())
+                            try:
+                                content_text = gendat['choices'][0]['message'].get('content', None)
+                            except Exception:
+                                content_text = None
+
+                           # Send role chunk first
+                            chunk_role = json.dumps({
+                                "id": "koboldcpp",
+                                "object": "chat.completion.chunk",
+                                "created": int(time.time()),
+                                "model": friendlymodelname,
+                                "choices": [{"index": 0, "finish_reason": None, "delta": {"role": "assistant"}}]
+                            })
+                            self.wfile.write(f"data: {chunk_role}\n\n".encode())
+                            self.wfile.flush()
+
+                            # Send content if present
+                            if content_text:
+                                chunk_content = json.dumps({
+                                    "id": "koboldcpp",
+                                    "object": "chat.completion.chunk",
+                                    "created": int(time.time()),
+                                    "model": friendlymodelname,
+                                    "choices": [{"index": 0, "finish_reason": None, "delta": {"content": content_text}}]
+                                })
+                                self.wfile.write(f"data: {chunk_content}\n\n".encode())
+                                self.wfile.flush()
+
+                            # Send tool calls incrementally in OpenAI format
+                            if toolsdata_res and len(toolsdata_res) > 0:
+                                for idx, tool_call in enumerate(toolsdata_res):
+                                    tc_meta = {
+                                        "index": idx,
+                                        "id": tool_call.get("id", f"call_{idx}"),
+                                        "type": "function",
+                                        "function": {
+                                            "name": tool_call.get("function", {}).get("name", ""),
+                                            "arguments": ""
+                                        }
+                                    }
+                                    chunk_meta = json.dumps({
+                                        "id": "koboldcpp",
+                                        "object": "chat.completion.chunk",
+                                        "created": int(time.time()),
+                                        "model": friendlymodelname,
+                                        "choices": [{"index": 0, "finish_reason": None, "delta": {"tool_calls": [tc_meta]}}]
+                                    })
+                                    self.wfile.write(f"data: {chunk_meta}\n\n".encode())
+                                    self.wfile.flush()
+
+                                    args_str = tool_call.get("function", {}).get("arguments", "{}")
+                                    if isinstance(args_str, dict):
+                                        args_str = json.dumps(args_str)
+                                    tc_args = {
+                                        "index": idx,
+                                        "function": {"arguments": args_str}
+                                    }
+                                    chunk_args = json.dumps({
+                                        "id": "koboldcpp",
+                                        "object": "chat.completion.chunk",
+                                        "created": int(time.time()),
+                                        "model": friendlymodelname,
+                                        "choices": [{"index": 0, "finish_reason": None, "delta": {"tool_calls": [tc_args]}}]
+                                    })
+                                    self.wfile.write(f"data: {chunk_args}\n\n".encode())
+                                    self.wfile.flush()
+
+                            # Final chunk
+                            chunk_final = json.dumps({
+                                "id": "koboldcpp",
+                                "object": "chat.completion.chunk",
+                                "created": int(time.time()),
+                                "model": friendlymodelname,
+                                "choices": [{"index": 0, "finish_reason": "tool_calls", "delta": {}}]
+                            })
+                            self.wfile.write(f"data: {chunk_final}\n\n".encode())
+                            self.wfile.write("data: [DONE]\n\n".encode())
                             self.wfile.flush()
                             self.close_connection = True
                     except Exception as ex:
@@ -4375,8 +4760,7 @@ Change Mode<br>
         return super(KcppServerRequestHandler, self).end_headers()
 
 def RunServerMultiThreaded(addr, port, server_handler):
-    global exitcounter, sslvalid
-    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, global_memory
+    global exitcounter, sslvalid, global_memory
     if is_port_in_use(port):
         print(f"Warning: Port {port} already appears to be in use by another program.")
 
@@ -4612,7 +4996,7 @@ def show_gui():
     #check for wayland with fractional scale
     def get_problematic_scaler():
         if sys.platform != "linux" or os.environ.get("XDG_SESSION_TYPE") != "wayland":
-            return 1.0
+            return False
         import xml.etree.ElementTree as ET
         from pathlib import Path
         fractional_enabled = False # Check if fractional scaling is enabled
@@ -4623,16 +5007,18 @@ def show_gui():
             ).strip()
             fractional_enabled = "scale-monitor-framebuffer" in features
         except Exception:
-            return 1.0
+            return False
         xml_path = Path.home() / ".config" / "monitors.xml"
-        if not xml_path.exists():
-            return 1.0
+        if not xml_path.exists(): #monitors.xml not found. if we have fractional scaling on gnome, just trigger the fallback
+            if fractional_enabled and "GNOME" in os.environ.get("XDG_CURRENT_DESKTOP"):
+                return True
+            return False
         try:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             configs = root.findall(".//configuration")
             if not configs:
-                return 1.0
+                return False
             logical_confs = [c for c in configs if c.findtext(".//layoutmode") == "logical"]
             physical_confs = [c for c in configs if c.findtext(".//layoutmode") == "physical"]
             if fractional_enabled and logical_confs:
@@ -4643,20 +5029,20 @@ def show_gui():
                 chosen_conf = configs[-1]
             scales = [float(s.text) for s in chosen_conf.findall(".//scale") if s.text]
             if scales:
-                return max(scales)
+                return max(scales)>1.0
         except Exception:
             pass
-        return 1.0
+        return False
 
     import customtkinter as ctk
     nextstate = 0 #0=exit, 1=launch
-    corrupt_scaler = (get_problematic_scaler() > 1.0)
-    original_windowwidth = int(860 if corrupt_scaler else 580)
-    original_windowheight = int(740 if corrupt_scaler else 580)
+    corrupt_scaler = get_problematic_scaler()
+    original_windowwidth = int(860 if corrupt_scaler else 584)
+    original_windowheight = int(740 if corrupt_scaler else 584)
     windowwidth = original_windowwidth
     windowheight = original_windowheight
     ctk.set_appearance_mode("dark")
-    root = ctk.CTk()
+    root = ctk.CTk(fg_color="#2b2b2b")
     root.geometry(str(windowwidth) + "x" + str(windowheight))
     root.title(f"KoboldCpp v{KcppVersion}")
 
@@ -4667,9 +5053,33 @@ def show_gui():
     window_reference_height = None
     previous_event_width = None
     previous_event_height = None
+    resizing = False
+    resizing_id1 = None
+    resizing_id2 = None
+    def clearesizing():
+        nonlocal resizing, resizing_id1
+        resizing = False
+        resizing_id1 = None
+    def actually_resize(windowwidth,windowheight,lastpos,smallratio):
+        root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
+        ctk.set_widget_scaling(smallratio)
+        changerunmode(1,1,1)
+        togglerope(1,1,1)
+        toggleflashattn(1,1,1)
+        togglectxshift(1,1,1)
+        togglehorde(1,1,1)
+        toggletaesd(1,1,1)
+        togglejinja(1,1,1)
+        tabbuttonaction(tabnames[curr_tab_idx])
+        pass
     def on_resize(event):
-        if not event.widget.master:
+        nonlocal resizing, resizing_id1, resizing_id2
+        if not event.widget.master and event.widget == root:
             nonlocal window_reference_width, window_reference_height, previous_event_width,previous_event_height
+            if resizing:
+                previous_event_width = event.width
+                previous_event_height = event.height
+                return
             if not window_reference_width and not window_reference_height:
                 window_reference_width = event.width
                 window_reference_height = event.height
@@ -4683,6 +5093,7 @@ def show_gui():
                 smallratio = min(incr_w,incr_h)
                 smallratio = round(smallratio,2)
                 if new_width != previous_event_width or new_height!=previous_event_height:
+                    resizing = True
                     lastpos = root.geometry()
                     lparr = lastpos.split('+', 1)
                     lastpos = ("+"+str(lparr[1])) if (len(lparr)==2) else ""
@@ -4692,15 +5103,16 @@ def show_gui():
                     windowwidth = max(256, min(1024, windowwidth))
                     windowheight = math.floor(original_windowheight*smallratio)
                     windowheight = max(256, min(1024, windowheight))
-                    root.geometry(str(windowwidth) + "x" + str(windowheight) + str(lastpos))
-                    ctk.set_widget_scaling(smallratio)
-                    changerunmode(1,1,1)
-                    togglerope(1,1,1)
-                    toggleflashattn(1,1,1)
-                    togglectxshift(1,1,1)
-                    togglehorde(1,1,1)
-                    toggletaesd(1,1,1)
-                    tabbuttonaction(tabnames[curr_tab_idx])
+                    if corrupt_scaler:
+                        smallratio = min(smallratio, 1)*0.98 #don't allow scaling beyond normal
+                    if resizing_id2:
+                        root.after_cancel(resizing_id2)
+                        resizing_id2 = None
+                    resizing_id2 = root.after(100, lambda: actually_resize(windowwidth,windowheight,lastpos,smallratio))
+                    if resizing_id1:
+                        root.after_cancel(resizing_id1)
+                        resizing_id1 = None
+                    resizing_id1 = root.after(5, clearesizing)
 
     if sys.platform=="darwin":
         root.resizable(False,False)
@@ -4743,7 +5155,7 @@ def show_gui():
     navbuttonframe.grid(row=0, column=0, padx=2,pady=2)
     navbuttonframe.grid_propagate(False)
 
-    tabcontentframe = ctk.CTkFrame(tabs, width=windowwidth - int(navbuttonframe.cget("width")), height=int(tabs.cget("height")))
+    tabcontentframe = ctk.CTkFrame(tabs, width=windowwidth - int(navbuttonframe.cget("width")), height=int(tabs.cget("height")),fg_color="transparent")
     tabcontentframe.grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
     tabcontentframe.grid_propagate(False)
 
@@ -4784,6 +5196,7 @@ def show_gui():
     debugmode = ctk.IntVar()
     keepforeground = ctk.IntVar()
     terminalonly = ctk.IntVar()
+    pipelineparallel = ctk.IntVar()
     quietmode = ctk.IntVar(value=0)
     checkforupdates = ctk.IntVar()
     nocertifymode = ctk.IntVar(value=0)
@@ -4793,7 +5206,7 @@ def show_gui():
     quantkv_var = ctk.IntVar(value=0)
     blas_threads_var = ctk.StringVar()
     blas_size_var = ctk.IntVar()
-    version_var = ctk.StringVar(value="0")
+    autofit_var = ctk.IntVar()
     tensor_split_str_vars = ctk.StringVar(value="")
     rowsplit_var = ctk.IntVar()
     maingpu_var = ctk.StringVar(value="")
@@ -4801,6 +5214,7 @@ def show_gui():
     contextshift_var = ctk.IntVar(value=1)
     fastforward_var = ctk.IntVar(value=1)
     swa_var = ctk.IntVar(value=0)
+    smartcache_var = ctk.IntVar(value=0)
     remotetunnel_var = ctk.IntVar(value=0)
     smartcontext_var = ctk.IntVar()
     flashattention_var = ctk.IntVar(value=0)
@@ -4811,9 +5225,11 @@ def show_gui():
     customrope_base = ctk.StringVar(value="10000")
     customrope_nativectx = ctk.StringVar(value=str(default_native_ctx))
     chatcompletionsadapter_var = ctk.StringVar(value="AutoGuess")
+    jinja_var = ctk.IntVar(value=0)
+    jinja_tools_var = ctk.IntVar(value=0)
     moeexperts_var = ctk.StringVar(value=str(-1))
     moecpu_var = ctk.StringVar(value=str(0))
-    defaultgenamt_var = ctk.StringVar(value=str(768))
+    defaultgenamt_var = ctk.StringVar(value=str(896))
     genlimit_var = ctk.StringVar(value=str(0))
     nobostoken_var = ctk.IntVar(value=0)
     override_kv_var = ctk.StringVar(value="")
@@ -5395,12 +5811,16 @@ def show_gui():
                 dict = json.load(f)
                 import_vars(dict)
 
-    def setup_backend_tooltip(parent):
+    def setup_backend_tooltip(parent, singlerow):
         # backend count label with the tooltip function
         nl = '\n'
         tooltxt = "Number of backends you have built and available." + (f"\n\nMissing Backends: \n\n{nl.join(antirunopts)}" if len(runopts) < 8 else "")
-        num_backends_built = makelabel(parent, str(len(runopts)) + "/9", 5, 2,tooltxt)
-        num_backends_built.grid(row=1, column=1, padx=205, pady=0)
+        num_backends_built = None
+        num_backends_built = makelabel(parent, str(len(runopts)) + "/9", 1, 1,tooltxt)
+        if singlerow:
+            num_backends_built.grid(row=1, column=0, padx=355, pady=0)
+        else:
+            num_backends_built.grid(row=1, column=1, padx=205, pady=0)
         num_backends_built.configure(text_color="#00ff00")
 
     def gui_changed_modelfile(*args):
@@ -5422,7 +5842,7 @@ def show_gui():
         max_gpu_layers = (f"/{modelfile_extracted_meta[1][0]+1}" if (modelfile_extracted_meta and modelfile_extracted_meta[1] and modelfile_extracted_meta[1][0]!=0) else "")
         index = runopts_var.get()
         gpu_be = (index == "Use Vulkan" or index == "Use Vulkan (Old CPU)" or index == "Use CLBlast" or index == "Use CLBlast (Old CPU)" or index == "Use CLBlast (Older CPU)" or index == "Use CUDA" or index == "Use hipBLAS (ROCm)")
-        layercounter_label.grid(row=6, column=1, padx=75, sticky="W")
+        layercounter_label.grid(row=6, column=0, padx=230, sticky="W")
         quick_layercounter_label.grid(row=6, column=1, padx=75, sticky="W")
         if sys.platform=="darwin" and gpulayers_var.get()=="-1":
             quick_layercounter_label.configure(text="(Auto: All Layers)")
@@ -5473,6 +5893,10 @@ def show_gui():
         if swa_var.get()==1:
             contextshift_var.set(0)
 
+    def togglesmartcache(a,b,c):
+        if smartcache_var.get()==1:
+            fastforward_var.set(1)
+
     def togglefastforward(a,b,c):
         if fastforward_var.get()==0:
             contextshift_var.set(0)
@@ -5513,11 +5937,11 @@ def show_gui():
         index = runopts_var.get()
         if index == "Use Vulkan" or index == "Use Vulkan (Old CPU)" or index == "Use CLBlast"  or index == "Use CLBlast (Old CPU)" or index == "Use CLBlast (Older CPU)" or index == "Use CUDA" or index == "Use hipBLAS (ROCm)":
             quick_gpuname_label.grid(row=3, column=1, padx=75, sticky="W")
-            gpuname_label.grid(row=3, column=1, padx=75, sticky="W")
+            gpuname_label.grid(row=3, column=0, padx=230, sticky="W")
             gpu_selector_label.grid(row=3, column=0, padx = 8, pady=1, stick="nw")
             quick_gpu_selector_label.grid(row=3, column=0, padx = 8, pady=1, stick="nw")
             if index == "Use CLBlast" or index == "Use CLBlast (Old CPU)" or index == "Use CLBlast (Older CPU)":
-                gpu_selector_box.grid(row=3, column=1, padx=8, pady=1, stick="nw")
+                gpu_selector_box.grid(row=3, column=0, padx=160, pady=1, stick="nw")
                 quick_gpu_selector_box.grid(row=3, column=1, padx=8, pady=1, stick="nw")
                 CUDA_gpu_selector_box.grid_remove()
                 CUDA_quick_gpu_selector_box.grid_remove()
@@ -5529,10 +5953,10 @@ def show_gui():
             elif index == "Use Vulkan" or index == "Use Vulkan (Old CPU)" or index == "Use CUDA" or index == "Use hipBLAS (ROCm)":
                 gpu_selector_box.grid_remove()
                 quick_gpu_selector_box.grid_remove()
-                CUDA_gpu_selector_box.grid(row=3, column=1, padx=8, pady=1, stick="nw")
+                CUDA_gpu_selector_box.grid(row=3, column=0, padx=160, pady=1, stick="nw")
                 CUDA_quick_gpu_selector_box.grid(row=3, column=1, padx=8, pady=1, stick="nw")
-                maingpu_label.grid(row=10, column=0, padx = 8, pady=1, stick="nw")
-                maingpu_entry.grid(row=10, column=1, padx = 8, pady=1, stick="nw")
+                maingpu_label.grid(row=8, column=0, padx = 270, pady=1, stick="nw")
+                maingpu_entry.grid(row=8, column=0, padx = 340, pady=1, stick="nw")
                 lowvram_box.grid(row=4, column=0, padx=8, pady=1,  stick="nw")
         else:
             quick_gpuname_label.grid_remove()
@@ -5548,11 +5972,11 @@ def show_gui():
             lowvram_box.grid_remove()
 
         if index == "Use CUDA" or index == "Use hipBLAS (ROCm)":
-            mmq_box.grid(row=4, column=1, padx=8, pady=1,  stick="nw")
+            mmq_box.grid(row=4, column=0, padx=160, pady=1,  stick="nw")
             quick_mmq_box.grid(row=4, column=1, padx=8, pady=1,  stick="nw")
-            splitmode_box.grid(row=5, column=1, padx=8, pady=1,  stick="nw")
+            splitmode_box.grid(row=4, column=0, padx=300, pady=1,  stick="nw")
             tensor_split_label.grid(row=8, column=0, padx = 8, pady=1, stick="nw")
-            tensor_split_entry.grid(row=8, column=1, padx=8, pady=1, stick="nw")
+            tensor_split_entry.grid(row=8, column=0, padx = 160, pady=1, stick="nw")
         else:
             mmq_box.grid_remove()
             quick_mmq_box.grid_remove()
@@ -5562,16 +5986,16 @@ def show_gui():
 
         if index == "Use Vulkan" or index == "Use Vulkan (Old CPU)":
             tensor_split_label.grid(row=8, column=0, padx = 8, pady=1, stick="nw")
-            tensor_split_entry.grid(row=8, column=1, padx=8, pady=1, stick="nw")
+            tensor_split_entry.grid(row=8, column=0, padx = 160, pady=1, stick="nw")
 
         if index == "Use Vulkan" or index == "Use Vulkan (Old CPU)" or index == "Use CLBlast" or index == "Use CLBlast (Old CPU)" or index == "Use CLBlast (Older CPU)" or index == "Use CUDA" or index == "Use hipBLAS (ROCm)":
-            gpu_layers_label.grid(row=6, column=0, padx = 8, pady=1, stick="nw")
-            gpu_layers_entry.grid(row=6, column=1, padx=8, pady=1, stick="nw")
+            gpu_layers_label.grid(row=6, column=0, padx=8, pady=1, stick="nw")
+            gpu_layers_entry.grid(row=6, column=0, padx=160, pady=1, stick="nw")
             quick_gpu_layers_label.grid(row=6, column=0, padx = 8, pady=1, stick="nw")
             quick_gpu_layers_entry.grid(row=6, column=1, padx=8, pady=1, stick="nw")
         elif sys.platform=="darwin":
-            gpu_layers_label.grid(row=6, column=0, padx = 8, pady=1, stick="nw")
-            gpu_layers_entry.grid(row=6, column=1, padx=8, pady=1, stick="nw")
+            gpu_layers_label.grid(row=6, column=0, padx=8, pady=1, stick="nw")
+            gpu_layers_entry.grid(row=6, column=0, padx=160, pady=1, stick="nw")
             quick_gpu_layers_label.grid(row=6, column=0, padx = 8, pady=1, stick="nw")
             quick_gpu_layers_entry.grid(row=6, column=1, padx=8, pady=1, stick="nw")
         else:
@@ -5590,20 +6014,23 @@ def show_gui():
     runoptbox.set(runopts[0]) # Set to first available option
 
     # Tell user how many backends are available
-    setup_backend_tooltip(quick_tab)
+    setup_backend_tooltip(quick_tab,False)
 
     # gpu options
-    quick_gpu_selector_label = makelabel(quick_tab, "GPU ID:", 3,0,"Which GPU ID to load the model with.\nNormally your main GPU is #1, but it can vary for multi GPU setups.")
+    quick_gpu_selector_label = makelabel(quick_tab, "GPU ID:", 3,0,"Which GPU ID to load the model with.\nNormally your main GPU is #1, but it can vary for multi GPU setups.",padx=8)
     quick_gpu_selector_box = ctk.CTkComboBox(quick_tab, values=CLDevices, width=60, variable=gpu_choice_var, state="readonly")
     CUDA_quick_gpu_selector_box = ctk.CTkComboBox(quick_tab, values=CUDevices, width=60, variable=gpu_choice_var, state="readonly")
+    CUDA_quick_gpu_selector_box.grid(row=3, column=1, padx=8, pady=1, stick="nw")
     quick_gpuname_label = ctk.CTkLabel(quick_tab, text="")
     quick_gpuname_label.grid(row=3, column=1, padx=75, sticky="W")
     quick_gpuname_label.configure(text_color="#ffff00")
     quick_gpu_layers_entry,quick_gpu_layers_label = makelabelentry(quick_tab,"GPU Layers:", gpulayers_var, 6, 50,tooltip="How many layers to offload onto the GPU.\nUsage varies based on model type and increases with model and context size.\nRequires some trial and error to find the best fit value.\n\nNote: The auto estimation is often inaccurate! Please set layers yourself for best results!")
+    quick_gpu_layers_label.grid(row=6, column=0, padx = 8, pady=1, stick="nw")
+    quick_gpu_layers_entry.grid(row=6, column=1, padx=8, pady=1, stick="nw")
     quick_layercounter_label = ctk.CTkLabel(quick_tab, text="")
     quick_layercounter_label.grid(row=6, column=1, padx=75, sticky="W")
     quick_layercounter_label.configure(text_color="#ffff00")
-    quick_mmq_box = makecheckbox(quick_tab,  "Use QuantMatMul (mmq)", mmq_var, 4,1,tooltiptxt="Enable MMQ mode instead of CUDA for prompt processing. Read the wiki. Speed may vary.")
+    quick_mmq_box = makecheckbox(quick_tab,  "Use MMQ", mmq_var, 4,1,tooltiptxt="Enable MMQ mode instead of hipBLAS for prompt processing. Read the wiki. Speed may vary.")
 
     # quick boxes
     quick_boxes = {
@@ -5633,32 +6060,35 @@ def show_gui():
     # presets selector
     makelabel(hardware_tab, "Backend:", 1,0,"Select a backend to use.\nCUDA runs on Nvidia GPUs, and is much faster.\nVulkan and CLBlast works on all GPUs but is somewhat slower.\nOtherwise, runs on CPU only.\nNoAVX2 and Failsafe modes support older PCs.")
     runoptbox = ctk.CTkComboBox(hardware_tab, values=runopts,  width=180,variable=runopts_var, state="readonly")
-    runoptbox.grid(row=1, column=1,padx=8, stick="nw")
+    runoptbox.grid(row=1, column=0,padx=160, stick="nw")
     runoptbox.set(runopts[0]) # Set to first available option
 
     # Tell user how many backends are available
-    setup_backend_tooltip(hardware_tab)
+    setup_backend_tooltip(hardware_tab,True)
 
     # gpu options
     gpu_selector_label = makelabel(hardware_tab, "GPU ID:", 3,0,"Which GPU ID to load the model with.\nNormally your main GPU is #1, but it can vary for multi GPU setups.")
     gpu_selector_box = ctk.CTkComboBox(hardware_tab, values=CLDevices, width=60, variable=gpu_choice_var, state="readonly")
+    gpu_selector_box.grid(row=3, column=0, padx=160, pady=1, stick="nw")
     CUDA_gpu_selector_box = ctk.CTkComboBox(hardware_tab, values=CUDevices, width=60, variable=gpu_choice_var, state="readonly")
+    CUDA_gpu_selector_box.grid(row=3, column=0, padx=160, pady=1, stick="nw")
     gpuname_label = ctk.CTkLabel(hardware_tab, text="")
-    gpuname_label.grid(row=3, column=1, padx=75, sticky="W")
+    gpuname_label.grid(row=3, column=0, padx=230, sticky="W")
     gpuname_label.configure(text_color="#ffff00")
-    gpu_layers_entry,gpu_layers_label = makelabelentry(hardware_tab,"GPU Layers:", gpulayers_var, 6, 50,tooltip="How many layers to offload onto the GPU.\nVRAM intensive, usage increases with model and context size.\nRequires some trial and error to find the best fit value.\n\nCommon values for total layers, accuracy not guaranteed.\n\nLlama/Mistral 7b/8b: 33\nSolar 10.7b/11b: 49\nLlama 13b: 41\nLlama 20b(stack): 63\nLlama/Yi 34b: 61\nMixtral 8x7b: 33\nLlama 70b: 81")
+    lowvram_box = makecheckbox(hardware_tab,  "No KV offload", lowvram_var, 4,0, tooltiptxt='Avoid offloading KV Cache or scratch buffers to VRAM.\nAllows more layers to fit, but may result in a large speed loss.')
+    mmq_box = makecheckbox(hardware_tab,  "Use MMQ", mmq_var, 4,0,padx=160, tooltiptxt="Enable MMQ mode to use finetuned kernels instead of default CuBLAS/HipBLAS for prompt processing.\nRead the wiki. Speed may vary.")
+    splitmode_box = makecheckbox(hardware_tab,  "Row-Split", rowsplit_var, 4,0,padx=300, tooltiptxt="Split rows across GPUs instead of splitting layers and KV across GPUs.\nUses the main GPU for small tensors and intermediate results. Speed may vary.")
+    gpu_layers_entry,gpu_layers_label = makelabelentry(hardware_tab,"GPU Layers:", gpulayers_var, 6, 50, padx=160,singleline=True,tooltip="How many layers to offload onto the GPU.\nVRAM intensive, usage increases with model and context size.\nRequires some trial and error to find the best fit value.\n\nCommon values for total layers, accuracy not guaranteed.\n\nLlama/Mistral 7b/8b: 33\nSolar 10.7b/11b: 49\nLlama 13b: 41\nLlama 20b(stack): 63\nLlama/Yi 34b: 61\nMixtral 8x7b: 33\nLlama 70b: 81")
     layercounter_label = ctk.CTkLabel(hardware_tab, text="")
-    layercounter_label.grid(row=6, column=1, padx=75, sticky="W")
+    layercounter_label.grid(row=6, column=0, padx=230, sticky="W")
     layercounter_label.configure(text_color="#ffff00")
-    tensor_split_entry,tensor_split_label = makelabelentry(hardware_tab, "Tensor Split:", tensor_split_str_vars, 8, 80, tooltip='When using multiple GPUs this option controls how large tensors should be split across all GPUs.\nUses a comma-separated list of non-negative values that assigns the proportion of data that each GPU should get in order.\nFor example, "3,2" will assign 60% of the data to GPU 0 and 40% to GPU 1.')
-    lowvram_box = makecheckbox(hardware_tab,  "Low VRAM (No KV offload)", lowvram_var, 4,0, tooltiptxt='Avoid offloading KV Cache or scratch buffers to VRAM.\nAllows more layers to fit, but may result in a large speed loss.')
-    mmq_box = makecheckbox(hardware_tab,  "Use QuantMatMul (mmq)", mmq_var, 4,1, tooltiptxt="Enable MMQ mode to use finetuned kernels instead of default CuBLAS/HipBLAS for prompt processing.\nRead the wiki. Speed may vary.")
-    splitmode_box = makecheckbox(hardware_tab,  "Row-Split", rowsplit_var, 5,0, tooltiptxt="Split rows across GPUs instead of splitting layers and KV across GPUs.\nUses the main GPU for small tensors and intermediate results. Speed may vary.")
-
-    maingpu_entry,maingpu_label = makelabelentry(hardware_tab, "Main GPU:" , maingpu_var, 10, 50,tooltip="Only for multi-gpu, which GPU to set as main?\nIf left blank, uses default value.")
+    tensor_split_entry,tensor_split_label = makelabelentry(hardware_tab, "Tensor Split:", tensor_split_str_vars, 8, 80, padx=160, singleline=True, tooltip='When using multiple GPUs this option controls how large tensors should be split across all GPUs.\nUses a comma-separated list of non-negative values that assigns the proportion of data that each GPU should get in order.\nFor example, "3,2" will assign 60% of the data to GPU 0 and 40% to GPU 1.')
+    maingpu_entry,maingpu_label = makelabelentry(hardware_tab, "Main GPU:" , maingpu_var, 8, 50,padx=340,singleline=True,tooltip="Only for multi-gpu, which GPU to set as main?\nIf left blank, uses default value.",labelpadx=270)
 
     # threads
-    makelabelentry(hardware_tab, "Threads:" , threads_var, 11, 50,tooltip="How many threads to use.\nRecommended value is your CPU core count, defaults are usually OK.")
+    makelabelentry(hardware_tab, "Threads:" , threads_var, 11, 50, padx=160, singleline=True,tooltip="How many threads to use.\nRecommended value is your CPU core count, defaults are usually OK.")
+    # blas thread specifier
+    makelabelentry(hardware_tab, "Batch Threads:" , blas_threads_var, 11, 50,padx=340, singleline=True,tooltip="How many threads to use during batched processing.\nIf left blank, uses same value as regular thread count.",labelpadx=240)
 
     # hardware checkboxes
     hardware_boxes = {
@@ -5668,21 +6098,19 @@ def show_gui():
         "Use mlock": [usemlock, "Enables mlock, preventing the RAM used to load the model from being paged out."],
         "Debug Mode": [debugmode, "Enables debug mode, with extra info printed to the terminal."],
         "Keep Foreground": [keepforeground, "Bring KoboldCpp to the foreground every time there is a new generation."],
-        "CLI Terminal Only": [terminalonly, "Does not launch KoboldCpp HTTP server. Instead, enables KoboldCpp from the command line, accepting interactive console input and displaying responses to the terminal."]
+        "CLI Terminal Only": [terminalonly, "Does not launch KoboldCpp HTTP server. Instead, enables KoboldCpp from the command line, accepting interactive console input and displaying responses to the terminal."],
+        "Pipeline Parallel": [pipelineparallel, "Enable Pipeline Parallelism for faster multigpu speeds but using more memory, only active for multigpu."],
     }
 
     for idx, (name, properties) in enumerate(hardware_boxes.items()):
-        makecheckbox(hardware_tab, name, properties[0], int(idx/2) + 30, idx % 2, tooltiptxt=properties[1])
+        makecheckbox(hardware_tab, name, properties[0], int(idx/2) + 30, 0, padx=(160 if idx % 2 else 8), tooltiptxt=properties[1])
 
-    # blas thread specifier
-    makelabelentry(hardware_tab, "Batch Threads:" , blas_threads_var, 14, 50,tooltip="How many threads to use during batched processing.\nIf left blank, uses same value as regular thread count.")
     # blas batch size
     makeslider(hardware_tab, "Batch Size:", batchsize_text, blas_size_var, 0, len(batchsize_values)-1, 16,width=200, set=6,tooltip="How many tokens to process at once per batch.\nLarger values use more memory.")
     blas_size_var.trace_add("write", changed_gpulayers_estimate)
 
-    # force version
-    makelabelentry(hardware_tab, "Force Version:" , version_var, 100, 50,tooltip="If the autodetected version is wrong, you can change it here.\nLeave as 0 for default.")
-    ctk.CTkButton(hardware_tab , text = "Run Benchmark", command = guibench ).grid(row=110,column=0, stick="se", padx= 0, pady=2)
+    makecheckbox(hardware_tab, "AutoFit (llama.cpp mode)", autofit_var, 100,0, tooltiptxt="Automatically attempt to fit the model in the best possible way. Overrides everything else. Not recommended for multi model setups. Experimental.")
+    ctk.CTkButton(hardware_tab , text = "Run Benchmark", command = guibench ).grid(row=110,column=0, stick="nw", padx= 8, pady=2)
 
 
     # Tokens Tab
@@ -5692,6 +6120,7 @@ def show_gui():
     makecheckbox(tokens_tab, "Use ContextShift", contextshift_var, 2,tooltiptxt="Uses Context Shifting to reduce reprocessing.\nRecommended. Check the wiki for more info.", command=togglectxshift)
     makecheckbox(tokens_tab, "Use FastForwarding", fastforward_var, 3,tooltiptxt="Use fast forwarding to recycle previous context (always reprocess if disabled).\nRecommended.", command=togglefastforward)
     makecheckbox(tokens_tab, "Use Sliding Window Attention (SWA)", swa_var, 4,tooltiptxt="Allows Sliding Window Attention (SWA) KV Cache, which saves memory but cannot be used with context shifting.", command=toggleswa)
+    makecheckbox(tokens_tab, "Use SmartCache", smartcache_var, 5,tooltiptxt="Enables intelligent context switching by saving KV cache snapshots to RAM. Requires fast forwarding.", command=togglesmartcache)
 
     # context size
     makeslider(tokens_tab, "Context Size:",contextsize_text, context_var, 0, len(contextsize_text)-1, 18, width=280, set=7,tooltip="What is the maximum context size to support. Model specific. You cannot exceed it.\nLarger contexts require more memory, and not all models support it.")
@@ -5701,27 +6130,27 @@ def show_gui():
 
     nativectx_entry, nativectx_label = makelabelentry(tokens_tab, "Override Native Context:", customrope_nativectx, row=23, padx=(246 if corrupt_scaler else 146), singleline=True, tooltip="Overrides the native trained context of the loaded model with a custom value to be used for Rope scaling.")
     customrope_scale_entry, customrope_scale_label = makelabelentry(tokens_tab, "RoPE Scale:", customrope_scale, row=23, padx=(160 if corrupt_scaler else 100), singleline=True, tooltip="For Linear RoPE scaling. RoPE frequency scale.")
-    customrope_base_entry, customrope_base_label = makelabelentry(tokens_tab, "RoPE Base:", customrope_base, row=24, padx=(160 if corrupt_scaler else 100), singleline=True, tooltip="For NTK Aware Scaling. RoPE frequency base.")
+    customrope_base_entry, customrope_base_label = makelabelentry(tokens_tab, "Base:", customrope_base, row=23, padx=(420 if corrupt_scaler else 220), singleline=True, tooltip="For NTK Aware Scaling. RoPE frequency base.",labelpadx=(280 if corrupt_scaler else 180))
     def togglerope(a,b,c):
+        manualropebox.grid_remove()
+        nativectx_label.grid_remove()
+        nativectx_entry.grid_remove()
+        customrope_scale_label.grid_remove()
+        customrope_scale_entry.grid_remove()
+        customrope_base_label.grid_remove()
+        customrope_base_entry.grid_remove()
         if customrope_var.get() == 1:
-            manualropebox.grid()
-            enabled_items = [customrope_scale_label, customrope_scale_entry,customrope_base_label, customrope_base_entry]
-            disabled_items = [nativectx_entry,nativectx_label]
-            for idx, item in enumerate(enabled_items):
-                if manualrope_var.get() == 1:
-                    item.grid()
-                else:
-                    item.grid_remove()
-            for idx, item in enumerate(disabled_items):
-                if manualrope_var.get() == 0:
-                    item.grid()
-                else:
-                    item.grid_remove()
-        else:
-            disabled_items = [manualropebox, nativectx_entry,nativectx_label, customrope_scale_label, customrope_scale_entry, customrope_base_label, customrope_base_entry]
-            for idx, item in enumerate(disabled_items):
-                item.grid_remove()
-    manualropebox = makecheckbox(tokens_tab, "Manual Rope Scale", variable=manualrope_var, row=22, command=togglerope, padx=(276 if corrupt_scaler else 166), tooltiptxt="Set RoPE base and scale manually.")
+            manualropebox.grid(row=22, column=0,padx=(300 if corrupt_scaler else 200), pady=1, stick="nw")
+            if manualrope_var.get() == 1:
+                customrope_scale_label.grid(row=23, column=0, padx=8, pady=1, stick="nw")
+                customrope_scale_entry.grid(row=23, column=0, padx=(160 if corrupt_scaler else 100), pady=1, stick="nw")
+                customrope_base_label.grid(row=23, column=0, padx=(280 if corrupt_scaler else 180), pady=1, stick="nw")
+                customrope_base_entry.grid(row=23, column=0,  padx=(420 if corrupt_scaler else 220), pady=1, stick="nw")
+            else:
+                nativectx_label.grid(row=23, column=0, padx=8, pady=1, stick="nw")
+                nativectx_entry.grid(row=23, column=0, padx=(246 if corrupt_scaler else 146), pady=1, stick="nw")
+
+    manualropebox = makecheckbox(tokens_tab, "Manual Rope Scale", variable=manualrope_var, row=22, command=togglerope, padx=(300 if corrupt_scaler else 200), tooltiptxt="Set RoPE base and scale manually.")
 
     makecheckbox(tokens_tab, "Custom RoPE Config", variable=customrope_var, row=22, command=togglerope,tooltiptxt="Override the default RoPE configuration with custom RoPE scaling.")
     makecheckbox(tokens_tab, "Use FlashAttention", flashattention_var, 28, command=toggleflashattn,  tooltiptxt="Enable flash attention for GGUF models.")
@@ -5731,6 +6160,16 @@ def show_gui():
     quantkv_var.trace_add("write", toggleflashattn)
     makecheckbox(tokens_tab, "No BOS Token", nobostoken_var, 43, tooltiptxt="Prevents BOS token from being added at the start of any prompt. Usually NOT recommended for most models.")
     makecheckbox(tokens_tab, "Enable Guidance", enableguidance_var, 43,padx=(200 if corrupt_scaler else 140), tooltiptxt="Enables the use of Classifier-Free-Guidance, which allows the use of negative prompts. Has performance and memory impact.")
+    def togglejinja(a,b,c):
+        if jinja_var.get()==1:
+            jinjatoolsbox.grid()
+        else:
+            jinja_tools_var.set(0)
+            jinjatoolsbox.grid_remove()
+        changed_gpulayers_estimate()
+    makecheckbox(tokens_tab, "Use Jinja", jinja_var, row=45, command=togglejinja, tooltiptxt="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected.")
+    jinjatoolsbox = makecheckbox(tokens_tab, "Jinja for Tools", jinja_tools_var, row=45 ,padx=(200 if corrupt_scaler else 140), tooltiptxt="Allows jinja even with tool calls. If unchecked, jinja will be disabled when tools are used.")
+    jinja_var.trace_add("write", togglejinja)
     makelabelentry(tokens_tab, "MoE Experts:", moeexperts_var, row=55, padx=(220 if corrupt_scaler else 120), singleline=True, tooltip="Override number of MoE experts.")
     makelabelentry(tokens_tab, "MoE CPU Layers:", moecpu_var, row=55, padx=(490 if corrupt_scaler else 320), singleline=True, tooltip="Force Mixture of Experts (MoE) weights of the first N layers to the CPU.\nSetting it higher than GPU layers has no effect.", labelpadx=(300 if corrupt_scaler else 210))
     makelabelentry(tokens_tab, "Override KV:", override_kv_var, row=57, padx=(220 if corrupt_scaler else 120), singleline=True, width=150, tooltip="Override metadata value by key. Separate multiple values with commas. Format is name=type:value. Types: int, float, bool, str")
@@ -5889,7 +6328,7 @@ def show_gui():
         kcpp_exporting_template = True
         export_vars()
         kcpp_exporting_template = False
-        savdict = json.loads(json.dumps(args.__dict__))
+        savdict = json.loads(json.dumps(args.__dict__,indent=2))
         file_type = [("KoboldCpp LaunchTemplate", "*.kcppt")]
         #remove blacklisted fields
         savdict = convert_args_to_template(savdict)
@@ -5900,7 +6339,7 @@ def show_gui():
         if not filenamestr.endswith(".kcppt"):
             filenamestr += ".kcppt"
         file = open(filenamestr, 'w')
-        file.write(json.dumps(savdict))
+        file.write(json.dumps(savdict,indent=2))
         file.close()
         pass
 
@@ -5923,6 +6362,29 @@ def show_gui():
         makecheckbox(extra_tab, "Use Classic FilePicker", nozenity_var, 20, tooltiptxt="Use the classic TKinter file picker instead.")
         nozenity_var.trace_add("write", togglezenity)
 
+    extra_terminal_process = None
+    def showtermlogs():
+        nonlocal extra_terminal_process
+        try:
+            if extra_terminal_process and extra_terminal_process.poll() is None:
+                print("Error: Secondary terminal already running.")
+                return
+            if sys.platform == "linux":
+                # Create an unnamed pipe, launch a terminal that reads from the read-end FD
+                r, w = os.pipe()
+                extra_terminal_process = subprocess.Popen(["xterm", "-hold","-e", f"bash -c 'cat <&{r}'"], pass_fds=[r])
+                writer = os.fdopen(w, "w", buffering=1)
+                redirector = StdoutRedirector(writer)
+                sys.stdout = redirector
+                print("--- Secondary Linux Terminal Active ---")
+            else:
+                print("Error: Secondary Terminal Not Supported on this Platform")
+        except Exception as e:
+            print(f"Spawn Extra Terminal Failed: {e}")
+    if sys.platform == "linux":
+        makelabel(extra_tab, "Spawn Terminal Logs", 12, 0,tooltiptxt="A simple terminal logger that duplicates the command line output.")
+        ctk.CTkButton(extra_tab , text = "Spawn Terminal", command = showtermlogs ).grid(row=12,column=0, stick="w", padx= 170, pady=2)
+
     # refresh
     runopts_var.trace_add("write", changerunmode)
     changerunmode(1,1,1)
@@ -5932,6 +6394,7 @@ def show_gui():
     toggleflashattn(1,1,1)
     togglectxshift(1,1,1)
     togglehorde(1,1,1)
+    togglejinja(1,1,1)
 
     # launch
     def guilaunch():
@@ -5957,9 +6420,11 @@ def show_gui():
         args.noshift = contextshift_var.get()==0
         args.nofastforward = fastforward_var.get()==0
         args.useswa = swa_var.get()==1
+        args.smartcache = smartcache_var.get()==1
         args.remotetunnel = remotetunnel_var.get()==1
         args.foreground = keepforeground.get()==1
         args.cli = terminalonly.get()==1
+        args.pipelineparallel = pipelineparallel.get()==1
         args.quiet = quietmode.get()==1
         args.nocertify = nocertifymode.get()==1
         args.nomodel = nomodel.get()==1
@@ -6033,7 +6498,7 @@ def show_gui():
         args.maingpu = -1 if maingpu_var.get()=="" else int(maingpu_var.get())
         args.blasthreads = None if blas_threads_var.get()=="" else int(blas_threads_var.get())
         args.batchsize = int(batchsize_values[int(blas_size_var.get())])
-        args.forceversion = 0 if version_var.get()=="" else int(version_var.get())
+        args.autofit = autofit_var.get() == 1
         args.contextsize = int(contextsize_text[context_var.get()])
         if customrope_var.get()==1:
             if manualrope_var.get()==1:
@@ -6047,9 +6512,11 @@ def show_gui():
             args.overridenativecontext = 0
         args.moeexperts = int(moeexperts_var.get()) if moeexperts_var.get()!="" else -1
         args.moecpu = int(moecpu_var.get()) if moecpu_var.get()!="" else 0
-        args.defaultgenamt = int(defaultgenamt_var.get()) if defaultgenamt_var.get()!="" else 768
+        args.defaultgenamt = int(defaultgenamt_var.get()) if defaultgenamt_var.get()!="" else 896
         args.genlimit = int(genlimit_var.get()) if genlimit_var.get()!="" else 0
         args.nobostoken = (nobostoken_var.get()==1)
+        args.jinja = (jinja_var.get()==1)
+        args.jinja_tools = (jinja_tools_var.get()==1)
         args.enableguidance = (enableguidance_var.get()==1)
         args.overridekv = None if override_kv_var.get() == "" else override_kv_var.get()
         args.overridetensors = None if override_tensors_var.get() == "" else override_tensors_var.get()
@@ -6163,6 +6630,7 @@ def show_gui():
         args.admindir = admin_dir_var.get()
         args.adminpassword = admin_password_var.get()
         args.singleinstance = (singleinstance_var.get()==1)
+        args.showgui = False #prevent showgui from leaking into configs, its cli only
 
     def import_vars(dict):
         global importvars_in_progress
@@ -6182,9 +6650,11 @@ def show_gui():
         contextshift_var.set(0 if "noshift" in dict and dict["noshift"] else 1)
         fastforward_var.set(0 if "nofastforward" in dict and dict["nofastforward"] else 1)
         swa_var.set(1 if "useswa" in dict and dict["useswa"] else 0)
+        smartcache_var.set(1 if "smartcache" in dict and dict["smartcache"] else 0)
         remotetunnel_var.set(1 if "remotetunnel" in dict and dict["remotetunnel"] else 0)
         keepforeground.set(1 if "foreground" in dict and dict["foreground"] else 0)
         terminalonly.set(1 if "cli" in dict and dict["cli"] else 0)
+        pipelineparallel.set(1 if "pipelineparallel" in dict and dict["pipelineparallel"] else 0)
         quietmode.set(1 if "quiet" in dict and dict["quiet"] else 0)
         checkforupdates.set(1 if "checkforupdates" in dict and dict["checkforupdates"] else 0)
         nocertifymode.set(1 if "nocertify" in dict and dict["nocertify"] else 0)
@@ -6290,6 +6760,8 @@ def show_gui():
         else:
             genlimit_var.set(str(0))
         nobostoken_var.set(dict["nobostoken"] if ("nobostoken" in dict) else 0)
+        jinja_var.set(dict["jinja"] if ("jinja" in dict) else 0)
+        jinja_tools_var.set(dict["jinja_tools"] if ("jinja_tools" in dict) else 0)
         enableguidance_var.set(dict["enableguidance"] if ("enableguidance" in dict) else 0)
         if "overridekv" in dict and dict["overridekv"]:
             override_kv_var.set(dict["overridekv"])
@@ -6299,7 +6771,7 @@ def show_gui():
         if "batchsize" in dict and dict["batchsize"]:
             blas_size_var.set(batchsize_values.index(str(dict["batchsize"])))
 
-        version_var.set(str(dict["forceversion"]) if ("forceversion" in dict and dict["forceversion"]) else "0")
+        autofit_var.set(1 if "autofit" in dict and dict["autofit"] else 0)
         model_var.set(dict["model_param"] if ("model_param" in dict and dict["model_param"]) else "")
 
         lora_var.set("")
@@ -6396,7 +6868,7 @@ def show_gui():
         nonlocal kcpp_exporting_template
         kcpp_exporting_template = False
         export_vars()
-        savdict = json.loads(json.dumps(args.__dict__))
+        savdict = json.loads(json.dumps(args.__dict__,indent=2))
         file_type = [("KoboldCpp Settings", "*.kcpps")]
         filename = zentk_asksaveasfilename(filetypes=file_type, defaultextension=".kcpps",title="Save kcpps settings config file")
         if not filename:
@@ -6405,7 +6877,7 @@ def show_gui():
         if not filenamestr.lower().endswith(".kcpps"):
             filenamestr += ".kcpps"
         file = open(filenamestr, 'w')
-        file.write(json.dumps(savdict))
+        file.write(json.dumps(savdict,indent=2))
         file.close()
         pass
 
@@ -6751,6 +7223,7 @@ def run_horde_worker(args, api_key, worker_name):
                 print_with_time(f"Horde Worker Paused for {penaltytime} min - Too many errors. It will resume automatically, but you should restart it.")
                 print_with_time("Caution: Too many failed jobs may lead to entering maintenance mode.")
                 time.sleep(60 * penaltytime)
+                print_with_time("Horde Worker Resumed")
             else:
                  print_with_time("Horde Worker Exit limit reached, too many errors.")
 
@@ -6887,6 +7360,8 @@ def convert_invalid_args(args):
         dict["sdclip1"] = dict["sdclipl"]
     if "sdclipg" in dict and "sdclip2" not in dict:
         dict["sdclip2"] = dict["sdclipg"]
+    if "jinja_tools" in dict and dict["jinja_tools"]:
+        dict["jinja"] = True
     return args
 
 def setuptunnel(global_memory, has_sd):
@@ -6939,6 +7414,7 @@ def setuptunnel(global_memory, has_sd):
                         if global_memory and global_memory["load_complete"]:
                             print(f"Your remote Kobold API can be found at {tunneloutput}/api")
                             print(f"Your remote OpenAI Compatible API can be found at {tunneloutput}/v1")
+                            print(f"Your remote llama.cpp secondary WebUI at {tunneloutput}/lcpp/")
                             if has_sd:
                                 print(f"StableUI is available at {tunneloutput}/sdui/")
                             print("======\n")
@@ -7334,6 +7810,10 @@ def main(launch_args, default_args):
         print(f"{KcppVersion}") # just print version and exit
         return
 
+    if args.testmemory:
+        fetch_gpu_properties(True, True, True, testmemory=True)
+        return
+
     #prevent disallowed combos
     if (args.nomodel or args.benchmark or args.launch or args.admin) and args.cli:
         exit_with_error(1, "Error: --cli cannot be combined with --launch, --nomodel, --admin or --benchmark")
@@ -7522,8 +8002,8 @@ def main(launch_args, default_args):
                 input()
 
 def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
-    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, start_time, exitcounter, global_memory, using_gui_launcher
-    global libname, args, friendlymodelname, friendlysdmodelname, fullsdmodelpath, password, fullwhispermodelpath, ttsmodelpath, embeddingsmodelpath, friendlyembeddingsmodelname, has_audio_support, has_vision_support
+    global embedded_kailite, embedded_kcpp_docs, embedded_kcpp_sdui, embedded_kailite_gz, embedded_kcpp_docs_gz, embedded_kcpp_sdui_gz, embedded_lcpp_ui_gz, start_time, exitcounter, global_memory, using_gui_launcher
+    global libname, args, friendlymodelname, friendlysdmodelname, fullsdmodelpath, password, fullwhispermodelpath, ttsmodelpath, embeddingsmodelpath, friendlyembeddingsmodelname, has_audio_support, has_vision_support, cached_chat_template
 
     start_server = True
 
@@ -7578,15 +8058,19 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
             ccadapter_path = os.path.abspath(args.chatcompletionsadapter)
         elif isinstance(args.chatcompletionsadapter, str) and adapt_dir:
             filename = args.chatcompletionsadapter
-            if filename.lower().strip()=="autoguess":
-                filename = "AutoGuess"
             if not filename.endswith(".json"):
                 filename += ".json"
             #strip to just the filename
             filename = os.path.basename(filename)
-            premade_adapt_path = os.path.join(adapt_dir,filename)
-            if premade_adapt_path and os.path.exists(premade_adapt_path):
-                ccadapter_path = os.path.abspath(premade_adapt_path)
+            # Case-insensitive match inside adapt_dir
+            matched = None
+            if adapt_dir:
+                for f in os.listdir(adapt_dir):
+                    if f.lower().strip() == filename.lower().strip():
+                        matched = os.path.join(adapt_dir, f)
+                        break
+            if matched and os.path.exists(matched):
+                ccadapter_path = os.path.abspath(matched)
         if ccadapter_path:
             print(f"Loading Chat Completions Adapter: {ccadapter_path}")
             with open(ccadapter_path, 'r', encoding='utf-8', errors='replace') as f:
@@ -7751,7 +8235,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
         global maxctx
         maxctx = args.contextsize
 
-    args.defaultgenamt = max(128, min(args.defaultgenamt, 8192))
+    args.defaultgenamt = max(64, min(args.defaultgenamt, 8192))
     args.defaultgenamt = min(args.defaultgenamt, maxctx / 2)
 
     if args.port_param!=defaultport:
@@ -7894,15 +8378,14 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
             exitcounter = 999
             exit_with_error(3,"Could not load text model: " + modelname)
 
-    if (chatcompl_adapter_list is not None and isinstance(chatcompl_adapter_list, list)):
         # The chat completions adapter is a list that needs derivation from chat templates
         # Try to derive chat completions adapter from chat template, now that we have the model loaded
-        if not args.nomodel and args.model_param:
+        if args.model_param:
             ctbytes = handle.get_chat_template()
-            chat_template = ctypes.string_at(ctbytes).decode("UTF-8","ignore")
-            if chat_template != "":
+            cached_chat_template = ctypes.string_at(ctbytes).decode("UTF-8","ignore")
+            if cached_chat_template != "" and (chatcompl_adapter_list is not None and isinstance(chatcompl_adapter_list, list)):
                 for entry in chatcompl_adapter_list:
-                    if all(s in chat_template for s in entry['search']):
+                    if all(s in cached_chat_template for s in entry['search']):
                         print(f"Chat completion heuristic: {entry['name']}")
                         chatcompl_adapter = entry['adapter']
                         break
@@ -8044,6 +8527,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
             for p in patches:
                 embedded_kailite = embedded_kailite.replace(p["find"], p["replace"])
             embedded_kailite = embedded_kailite.encode()
+            embedded_kailite_gz = gzip.compress(embedded_kailite)
             print("Embedded KoboldAI Lite loaded.")
     except Exception:
         print("Could not find KoboldAI Lite. Embedded KoboldAI Lite will not be available.")
@@ -8051,6 +8535,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
     try:
         with open(os.path.join(embddir, "kcpp_docs.embd"), mode='rb') as f:
             embedded_kcpp_docs = f.read()
+            embedded_kcpp_docs_gz = gzip.compress(embedded_kcpp_docs)
             print("Embedded API docs loaded.")
     except Exception:
         print("Could not find Embedded KoboldCpp API docs.")
@@ -8058,10 +8543,18 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
     try:
         with open(os.path.join(embddir, "kcpp_sdui.embd"), mode='rb') as f:
             embedded_kcpp_sdui = f.read()
+            embedded_kcpp_sdui_gz = gzip.compress(embedded_kcpp_sdui)
             if args.sdmodel:
                 print("Embedded SDUI loaded.")
     except Exception:
         print("Could not find Embedded SDUI.")
+
+    try:
+        with open(os.path.join(embddir, "lcpp.gz.embd"), mode='rb') as f:
+            embedded_lcpp_ui_gz = f.read()
+            print("Llama.cpp UI loaded.")
+    except Exception:
+        print("Could not find Embedded llama.cpp UI.")
 
     # print enabled modules
     caps = get_capabilities()
@@ -8115,6 +8608,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
         if not args.remotetunnel:
             print(f"Starting Kobold API on port {args.port} at {endpoint_url}/api/")
             print(f"Starting OpenAI Compatible API on port {args.port} at {endpoint_url}/v1/")
+            print(f"Starting llama.cpp secondary WebUI at {endpoint_url}/lcpp/")
             if args.sdmodel:
                 print(f"StableUI is available at {endpoint_url}/sdui/")
         elif global_memory:
@@ -8124,6 +8618,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
                 remote_url = val
                 print(f"Your remote Kobold API can be found at {endpoint_url}/api")
                 print(f"Your remote OpenAI Compatible API can be found at {endpoint_url}/v1")
+                print(f"Starting llama.cpp secondary WebUI at {endpoint_url}/lcpp/")
                 if args.sdmodel:
                     print(f"StableUI is available at {endpoint_url}/sdui/")
             global_memory["load_complete"] = True
@@ -8164,7 +8659,7 @@ def kcpp_main_process(launch_args, g_memory=None, gui_launcher=False):
                     continue
                 lastturns.append({"role":"user","content":lastuserinput})
                 payload = {"messages":lastturns,"rep_pen":1.07,"temperature":0.8}
-                payload = transform_genparams(payload, 4) #to chat completions
+                payload = transform_genparams(payload, 4, False) #to chat completions
                 if args.debugmode < 1:
                     suppress_stdout()
                 genout = generate(genparams=payload)
@@ -8303,7 +8798,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpulayers","--gpu-layers","--n-gpu-layers","-ngl", help="Set number of layers to offload to GPU when using GPU. Requires GPU. Set to -1 to try autodetect, set to 0 to disable GPU offload.",metavar=('[GPU layers]'), nargs='?', const=1, type=int, default=-1)
     parser.add_argument("--tensor_split","--tensorsplit","--tensor-split","-ts", help="For CUDA and Vulkan only, ratio to split tensors across multiple GPUs, space-separated list of proportions, e.g. 7 3", metavar=('[Ratios]'), type=float, nargs='+')
     parser.add_argument("--checkforupdates", help="Checks KoboldCpp-ROCm's release page on GitHub using HTTPS to see if there's a new update available.", action='store_true')
-
+    parser.add_argument("--autofit","--fit","-fit", help="Automatically attempt to fit the model in the best possible way. Overrides everything else. Experimental.", action='store_true')
 
     #more advanced params
     advparser = parser.add_argument_group('Advanced Commands')
@@ -8317,6 +8812,7 @@ if __name__ == '__main__':
     advparser.add_argument("--noshift","--no-context-shift", help="If set, do not attempt to Trim and Shift the GGUF context.", action='store_true')
     advparser.add_argument("--nofastforward", help="If set, do not attempt to fast forward GGUF context (always reprocess). Will also enable noshift", action='store_true')
     advparser.add_argument("--useswa", help="If set, allows Sliding Window Attention (SWA) KV Cache, which saves memory but cannot be used with context shifting.", action='store_true')
+    advparser.add_argument("--smartcache", help="Enables intelligent context switching by saving KV cache snapshots to RAM. Requires fast forwarding.", action='store_true')
     advparser.add_argument("--ropeconfig", help="If set, uses customized RoPE scaling from configured frequency scale and frequency base (e.g. --ropeconfig 0.25 10000). Otherwise, uses NTK-Aware scaling set automatically based on context size. For linear rope, simply set the freq-scale and ignore the freq-base",metavar=('[rope-freq-scale]', '[rope-freq-base]'), default=[0.0, 10000.0], type=float, nargs='+')
     advparser.add_argument("--overridenativecontext", help="Overrides the native trained context of the loaded model with a custom value to be used for Rope scaling.",metavar=('[trained context]'), type=int, default=0)
     compatgroup3 = advparser.add_mutually_exclusive_group()
@@ -8352,10 +8848,11 @@ if __name__ == '__main__':
     advparser.add_argument("--ratelimit", metavar=('[seconds]'), help="If enabled, rate limit generative request by IP address. Each IP can only send a new request once per X seconds.", type=int, default=0)
     advparser.add_argument("--ignoremissing", help="Ignores all missing non-essential files, just skipping them instead.", action='store_true')
     advparser.add_argument("--chatcompletionsadapter", metavar=('[filename]'), help="Select an optional ChatCompletions Adapter JSON file to force custom instruct tags.", default="AutoGuess")
+    advparser.add_argument("--jinja", help="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected. Tool calls are done without jinja.", action='store_true')
+    advparser.add_argument("--jinja_tools","--jinja-tools","--jinjatools", help="Enables using jinja chat template formatting for chat completions endpoint. Other endpoints are unaffected. Tool calls are done with jinja.", action='store_true')
     advparser.add_argument("--flashattention","--flash-attn","-fa", help="Enables flash attention.", action='store_true')
     advparser.add_argument("--lowvram","-nkvo","--no-kv-offload", help="If supported by the backend, do not offload KV to GPU (lowvram mode). Not recommended, will be slow.", action='store_true')
     advparser.add_argument("--quantkv", help="Sets the KV cache data type quantization, 0=f16, 1=q8, 2=q4. Requires Flash Attention for full effect, otherwise only K cache is quantized.",metavar=('[quantization level 0/1/2]'), type=int, choices=[0,1,2], default=0)
-    advparser.add_argument("--forceversion", help="If the model file format detection fails (e.g. rogue modified model) you can set this to override the detected format (enter desired version, e.g. 401 for GPTNeoX-Type2).",metavar=('[version]'), type=int, default=0)
     advparser.add_argument("--smartcontext", help="Reserving a portion of context to try processing less frequently. Outdated. Not recommended.", action='store_true')
     advparser.add_argument("--unpack", help="Extracts the file contents of the KoboldCpp binary into a target directory.", metavar=('destination'), type=str, default="")
     advparser.add_argument("--exportconfig", help="Exports the current selected arguments as a .kcpps settings file", metavar=('[filename]'), type=str, default="")
@@ -8363,7 +8860,7 @@ if __name__ == '__main__':
     advparser.add_argument("--nomodel", help="Allows you to launch the GUI alone, without selecting any model.", action='store_true')
     advparser.add_argument("--moeexperts", metavar=('[num of experts]'), help="How many experts to use for MoE models (default=follow gguf)", type=int, default=-1)
     advparser.add_argument("--moecpu","--n-cpu-moe", "-ncmoe", metavar=('[layers affected]'), help="Keep the Mixture of Experts (MoE) weights of the first N layers in the CPU. If no value is provided, applies to all layers.", nargs='?', const=999, type=int, default=0)
-    advparser.add_argument("--defaultgenamt", help="How many tokens to generate by default, if not specified. Must be smaller than context size. Usually, your frontend GUI will override this.", type=check_range(int,64,8192), default=768)
+    advparser.add_argument("--defaultgenamt", help="How many tokens to generate by default, if not specified. Must be smaller than context size. Usually, your frontend GUI will override this.", type=check_range(int,64,8192), default=896)
     advparser.add_argument("--nobostoken", help="Prevents BOS token from being added at the start of any prompt. Usually NOT recommended for most models.", action='store_true')
     advparser.add_argument("--enableguidance", help="Enables the use of Classifier-Free-Guidance, which allows the use of negative prompts. Has performance and memory impact.", action='store_true')
     advparser.add_argument("--maxrequestsize", metavar=('[size in MB]'), help="Specify a max request payload size. Any requests to the server larger than this size will be dropped. Do not change if unsure.", type=int, default=32)
@@ -8373,6 +8870,7 @@ if __name__ == '__main__':
     compatgroup2.add_argument("--showgui", help="Always show the GUI instead of launching the model right away when loading settings from a .kcpps file.", action='store_true')
     compatgroup2.add_argument("--skiplauncher", help="Doesn't display or use the GUI launcher. Overrides showgui.", action='store_true')
     advparser.add_argument("--singleinstance", help="Allows this KoboldCpp instance to be shut down by any new instance requesting the same port, preventing duplicate servers from clashing on a port.", action='store_true')
+    advparser.add_argument("--pipelineparallel", help="Enable Pipeline Parallelism for faster multigpu speeds but using more memory, only active for multigpu.", action='store_true')
 
     hordeparsergroup = parser.add_argument_group('Horde Worker Commands')
     hordeparsergroup.add_argument("--hordemodelname", metavar=('[name]'), help="Sets your AI Horde display model name.", default="")
@@ -8430,5 +8928,9 @@ if __name__ == '__main__':
     compatgroup.add_argument("--noblas", help=argparse.SUPPRESS, action='store_true')
     compatgroup3.add_argument("--nommap","--no-mmap", help=argparse.SUPPRESS, action='store_true')
     deprecatedgroup.add_argument("--sdnotile", help=argparse.SUPPRESS, action='store_true') # legacy option, see sdtiledvae
+    deprecatedgroup.add_argument("--forceversion", help=argparse.SUPPRESS, action='store_true') #no longer used
+
+    debuggroup = parser.add_argument_group('Debug Commands')
+    debuggroup.add_argument("--testmemory", help=argparse.SUPPRESS, action='store_true')
 
     main(launch_args=parser.parse_args(),default_args=parser.parse_args([]))

@@ -57,7 +57,7 @@ struct load_model_inputs
     const int kcpp_main_gpu = 0;
     const char * vulkan_info = nullptr;
     const int batchsize = 512;
-    const int forceversion = 0;
+    const bool autofit = false;
     const int gpulayers = 0;
     const float rope_freq_scale = 1.0f;
     const float rope_freq_base = 10000.0f;
@@ -75,6 +75,8 @@ struct load_model_inputs
     const bool check_slowness = false;
     const bool highpriority = false;
     const bool swa_support = false;
+    const bool smartcache = false;
+    const bool pipelineparallel = false;
     const float lora_multiplier = 1.0f;
     const bool quiet = false;
     const int debugmode = 0;
@@ -103,8 +105,8 @@ struct generation_inputs
     const float rep_pen_slope = 1.0f;
     const float presence_penalty = 0.0f;
     const int mirostat = 0;
-    const float mirostat_eta = 0.0f;
     const float mirostat_tau = 0.0f;
+    const float mirostat_eta = 0.0f;
     const float xtc_threshold = 0.0f;
     const float xtc_probability = 0.0f;
     const samplers sampler_order[KCPP_SAMPLER_MAX] = {};
@@ -119,6 +121,7 @@ struct generation_inputs
     const float dynatemp_range = 0.0f;
     const float dynatemp_exponent = 1.0f;
     const float smoothing_factor = 0.0f;
+    const float smoothing_curve = 1.0f;
     const float dry_multiplier = 0.0f;
     const float dry_base = 0.0f;
     const int dry_allowed_length = 0;
@@ -181,6 +184,7 @@ struct sd_load_model_inputs
     const char * vae_filename = nullptr;
     const char * lora_filename = nullptr;
     const float lora_multiplier = 1.0f;
+    const int lora_apply_mode = 0;
     const char * photomaker_filename = nullptr;
     const int img_hard_limit = 0;
     const int img_soft_limit = 0;
@@ -209,6 +213,7 @@ struct sd_generation_inputs
     const int clip_skip = -1;
     const int vid_req_frames = 1;
     const int vid_req_avi = 0;
+    const bool remove_limits = false;
 };
 struct sd_generation_outputs
 {
