@@ -47,7 +47,7 @@ jobs:
           Set-Location 'D:\a\koboldcpp-rocm\koboldcpp-rocm'
           Get-Location
           ls
-          make CC=gcc LLAMA_CLBLAST=1 LLAMA_OPENBLAS=1 LLAMA_VULKAN=1 LLAMA_PORTABLE=1 -j${env:NUMBER_OF_PROCESSORS}
+          make CC=gcc LLAMA_CLBLAST=1 LLAMA_OPENBLAS=1 LLAMA_VULKAN=1 LLAMA_PORTABLE=1 -j
           
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
