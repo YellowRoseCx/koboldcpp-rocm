@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag of koboldcpp-rocm to build: v1.93.2.yr0-ROCm'
-        default: v1.93.2.yr0-ROCm
+        description: 'Version tag of koboldcpp-rocm to build: v1.104.yr0-ROCm'
+        default: v1.104.yr0-ROCm
         required: false
         type: string
   workflow_call:
     inputs:
       version:
-        description: 'Version tag of koboldcpp-rocm to build: v1.93.2.yr0-ROCm'
-        default: v1.93.2.yr0-ROCm
+        description: 'Version tag of koboldcpp-rocm to build: v1.104.yr0-ROCm'
+        default: v1.104.yr0-ROCm
         required: false
         type: string
 
@@ -54,12 +54,12 @@ jobs:
         
       - name: Install ROCm SDK
         run: |
-          curl -LO https://download.amd.com/developer/eula/rocm-hub/AMD-Software-PRO-Edition-24.Q3-Win10-Win11-For-HIP.exe
-          Start-Process 'AMD-Software-PRO-Edition-24.Q3-Win10-Win11-For-HIP.exe' -ArgumentList '-install' -NoNewWindow -Wait
-          echo "C:\Program Files\AMD\ROCm\6.1\bin" >> $env:GITHUB_PATH
-          echo 'ROCM_PATH=C:\Program Files\AMD\ROCm\6.1' >> $env:GITHUB_ENV
-          echo 'HIP_PATH=C:\Program Files\AMD\ROCm\6.1' >> $env:GITHUB_ENV
-          echo "ROCM_VERSION=6.1.2" >> $env:GITHUB_ENV
+          curl -LO https://download.amd.com/developer/eula/rocm-hub/AMD-Software-PRO-Edition-25.Q3-Win10-Win11-For-HIP.exe
+          Start-Process 'AMD-Software-PRO-Edition-25.Q3-Win10-Win11-For-HIP.exe' -ArgumentList '-install' -NoNewWindow -Wait
+          echo "C:\Program Files\AMD\ROCm\6.4\bin" >> $env:GITHUB_PATH
+          echo 'ROCM_PATH=C:\Program Files\AMD\ROCm\6.4' >> $env:GITHUB_ENV
+          echo 'HIP_PATH=C:\Program Files\AMD\ROCm\6.4' >> $env:GITHUB_ENV
+          echo "ROCM_VERSION=6.4.2" >> $env:GITHUB_ENV
 
       - uses: actions/setup-python@v5
         with:
@@ -81,17 +81,17 @@ jobs:
 
       - name: Build Lib
         run: |
-          Set-Location 'C:\Program Files\AMD\ROCm\6.1\bin'
+          Set-Location 'C:\Program Files\AMD\ROCm\6.4\bin'
           Get-Location
-          Remove-Item -Force -Recurse -Path 'C:\Program Files\AMD\ROCm\6.1\bin\rocblas'
+          Remove-Item -Force -Recurse -Path 'C:\Program Files\AMD\ROCm\6.4\bin\rocblas'
           curl -LO https://github.com/YellowRoseCx/koboldcpp-rocm/releases/download/deps-v6.2.0/rocblas6.2.0.7z
           7z x rocblas6.2.0.7z -aoa
-          Set-Location 'C:\Program Files\AMD\ROCm\6.1\bin\rocblas\library'
+          Set-Location 'C:\Program Files\AMD\ROCm\6.4\bin\rocblas\library'
           ls
           Set-Location 'D:\a\koboldcpp-rocm\koboldcpp-rocm'
-          $env:CC = 'C:\Program Files\AMD\ROCm\6.1\bin\clang.exe'
-          $env:CXX = 'C:\Program Files\AMD\ROCm\6.1\bin\clang++.exe'
-          $env:CMAKE_PREFIX_PATH = 'C:\Program Files\AMD\ROCm\6.1'
+          $env:CC = 'C:\Program Files\AMD\ROCm\6.4\bin\clang.exe'
+          $env:CXX = 'C:\Program Files\AMD\ROCm\6.4\bin\clang++.exe'
+          $env:CMAKE_PREFIX_PATH = 'C:\Program Files\AMD\ROCm\6.4'
           $env:VERBOSE = '1'
           Set-Location 'D:\a\koboldcpp-rocm\koboldcpp-rocm'
           mkdir 'build'
@@ -101,14 +101,14 @@ jobs:
           clang --version
           cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DLLAMA_HIPBLAS=ON -DHIP_PLATFORM=amd -DAMDGPU_TARGETS="gfx803;gfx900;gfx906;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102"
           cmake --build . --config Release -j ${env:NUMBER_OF_PROCESSORS}
-# -DCMAKE_C_COMPILER="C:\Program Files\AMD\ROCm\6.1\bin\clang.exe" -DCMAKE_CXX_COMPILER="C:\Program Files\AMD\ROCm\6.1\bin\clang++.exe"
+# -DCMAKE_C_COMPILER="C:\Program Files\AMD\ROCm\6.4\bin\clang.exe" -DCMAKE_CXX_COMPILER="C:\Program Files\AMD\ROCm\6.4\bin\clang++.exe"
       - name: Copy ROCm DLLs and Run PyInstaller
         run: |
           Set-Location 'D:\a\koboldcpp-rocm\koboldcpp-rocm'
           Get-Location
           curl -LO https://github.com/YellowRoseCx/koboldcpp-rocm/releases/download/deps-v6.2.0/rocblas-6.2.0.dll.7z
           7z x rocblas-6.2.0.dll.7z -aoa
-          robocopy "C:\Program Files\AMD\ROCm\6.1\bin\rocblas" .\rocblas /MIR 
+          robocopy "C:\Program Files\AMD\ROCm\6.4\bin\rocblas" .\rocblas /MIR 
           python -m pip install customtkinter
           PyInstaller --noconfirm --onefile --clean --console `
             --icon ".\niko.ico" `
