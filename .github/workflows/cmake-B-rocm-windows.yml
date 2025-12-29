@@ -115,6 +115,10 @@ jobs:
           PyInstaller --noconfirm --onefile --clean --console --collect-all customtkinter --collect-all jinja2 --collect-all psutil --icon "./niko.ico" `
                       --add-data "C:/Windows/System32/msvcp140.dll;." `
                       --add-data "C:/Windows/System32/vcruntime140_1.dll;." `
+                      --add-data "./dist/koboldcpp-launcher/koboldcpp-launcher.exe;." `
+                      --add-data "./simpleclinfo.exe;." `
+                      --add-data "./simplecpuinfo.exe;." `
+                      --add-data "./aria2c-win.exe;." `
                       --add-data "D:\a\koboldcpp-rocm\koboldcpp-rocm\build\bin\koboldcpp_hipblas.dll;." `
                       --add-data "./clblast.dll;." `
                       --add-data "./embd_res;./embd_res" `
