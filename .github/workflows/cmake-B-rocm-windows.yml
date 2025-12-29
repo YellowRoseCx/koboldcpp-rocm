@@ -134,7 +134,7 @@ jobs:
                       --add-data "./rocblas.dll;." `
                       --add-data "./rocblas;." `
                       --version-file "./version.txt" `
-                      "./koboldcpp.py" -n "koboldcpp_rocm_B.exe"
+                      "./koboldcpp.py" -n "koboldcpp_rocm_b2.exe"
 
 
       - name: Create ZIP archive
@@ -162,8 +162,8 @@ jobs:
                                "D:\a\koboldcpp-rocm\koboldcpp-rocm\OpenCL.dll", `
                                "D:\a\koboldcpp-rocm\koboldcpp-rocm\rocblas", `
                                "D:\a\koboldcpp-rocm\koboldcpp-rocm\rocblas.dll" `
-                               -DestinationPath koboldcpp_rocm_files.zip
-          copy "koboldcpp_rocm_files.zip" D:\a\koboldcpp-rocm\koboldcpp-rocm\dist
+                               -DestinationPath koboldcpp_rocm_b2_files.zip
+          copy "koboldcpp_rocm_files_B.zip" D:\a\koboldcpp-rocm\koboldcpp-rocm\dist
 
 
       # - uses: actions/upload-artifact@v4.3.3
