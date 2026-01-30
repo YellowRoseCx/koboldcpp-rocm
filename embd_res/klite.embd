@@ -33,7 +33,7 @@ Current version indicated by LITEVER below.
 	<link rel="icon" id="fvico" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAEtQTFRFAAAA+XJ0l09PsVdXcTw842hqw2hmTi4vMCQlb2eUgWtl+tGpBAMDEw4NPCkoFw8PJBgXt5WBVkxW4Nvf7Lia3Z+MpJnAZ05HnJOTYIS/NAAAABl0Uk5TAv////v//vT9//3/Nna08qf+///////a/hkcROQAAAGUSURBVHiclZLRcoQgDEULBAKoIKjI/39pL4i7nbUPbcYZwJyES5Kvr3/YvIx1nn9zL4G4EwuTXX7xs4QFGEklOT6SBENERguhsWHFD2AVRhL8IEgawY8b5L4fYtg+TSl8+NMEu4G2P34Q67r6I+37dLyBfU/4PY/sInG2MR8vIHG01h9mHfq1hUUQtwYcLEcp+ltmwqutdy5HMwAfc8ExKtVSLEZZW13Jxb4Azq7UHFnFrtGItLliS1UDYOfctm3JhEtlEH5zzpZNDsC63AB1VysY3gqC3C2ytsNW6Q3IjCt91Qr9QK8MiFL4nUEpEyNLYmodxYo3RquVHWUmbbRu0QCbKWwNfil5zYeENrRRqtZrGEQYqdtW8FWHLl4bgZDLFLZdbS/UzP2AEGTufkt3xWSvwzJeh4GxHWD5qlgXOZ/n2ULuC/od4Pk8x9xhCekD0Bqd/DmXgbpEumRgrMPn1K6ecs4pJc/V0nE+x35KtfTJTJufpvPTD2DyNZ3e4wP3zDCHevg+yYvf09PfkHuK7/Vv9g2CjBTdqv3bFgAAAABJRU5ErkJggg==" />
 
 	<style id="custom_css"></style>
-
+    <style>*{transition: 0.3s;}</style>
 	<style id="bootstrap-normalize.min">
 	/*!
 	* Bootstrap v3.4.1 (https://getbootstrap.com/)
